@@ -2,6 +2,12 @@
 
 This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
 
+# SUBFROST Documentation
+
+This repository contains the source code for the SUBFROST documentation website.
+
+SUBFROST is a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin. It operates as a Layer 0 system, building fraud proofs as ZK circuits to ensure the integrity of its operations.
+
 ## Installation
 
 ```bash

@@ -7,7 +7,11 @@ import { Card, CardGrid } from '@site/src/components/Card';
 
 # Welcome to the SUBFROST Documentation
 
-SUBFROST is a novel trust-minimized Bitcoin sidechain that leverages the **FROST** (Flexible Round-Optimized Schnorr Threshold) signature scheme to secure its two-way peg. It introduces a Proof-of-Stake (PoS) consensus mechanism, where validators stake the native `FROST` token to secure the network and earn rewards.
+SUBFROST is a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin. It operates as a Layer 0 system, building fraud proofs as ZK circuits to ensure the integrity of its operations.
+
+At its core, SUBFROST uses the **FROST** (Flexible Round-Optimized Schnorr Threshold) signature scheme, allowing signing groups of up to 255 participants to collectively sign transactions. This decentralized approach to custody is managed by a peer-to-peer network built on QUIC and libp2p, ensuring robust and secure communication.
+
+SUBFROST is designed to issue synthetic assets, such as a synthetic BTC, directly onto Bitcoin's metaprotocol execution layer, including support for Alkanes and BRC-20 tokens. It achieves this without relying on `OP_CAT`, although assets managed by SUBFROST can be bridged to other systems that do use it.
 
 This documentation provides a comprehensive guide to understanding, using, and developing on the SUBFROST platform.
 
@@ -15,22 +19,16 @@ This documentation provides a comprehensive guide to understanding, using, and d
 
 <CardGrid>
   <Card
-    title="Trust-Minimized Peg"
+    title="Decentralized Custody"
     icon="🔐"
     to="/docs/developer-guide/frost-protocol">
-    SUBFROST's two-way peg is secured by a large, dynamic set of validators using FROST threshold signatures, eliminating single points of failure.
+    Signing groups of up to 255 participants use the FROST protocol to produce Schnorr signatures, securing assets in a decentralized manner.
   </Card>
   <Card
-    title="Proof-of-Stake"
-    icon="💸"
-    to="/docs/developer-guide/proof-of-stake">
-    The network is secured by validators who stake `FROST` tokens, participating in consensus and earning rewards from transaction fees and the emission schedule.
-  </Card>
-  <Card
-    title="Alkanes Metaprotocol"
+    title="Layer 0 on Bitcoin"
     icon="🧩"
     to="/docs/developer-guide/alkanes">
-    A powerful metaprotocol built on Bitcoin that enables complex smart contract-like functionality, including the creation of synthetic assets like `frBTC`.
+    SUBFROST is pegged to Bitcoin via the Alkanes metaprotocol, with fraud proofs built as ZK circuits for trustless verification.
   </Card>
   <Card
     title="Subrail Runtime"
