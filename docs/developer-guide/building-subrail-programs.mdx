@@ -1,0 +1,113 @@
+---
+title: Building Subrail Programs
+sidebar_position: 5
+---
+
+# Building Subrail Programs
+
+`subrail` is a WASM runtime that extends the `metashrew` indexer layer. It allows developers to write custom logic that can be executed in a trustless environment. This guide will walk you through the process of building a simple `subrail` program using the `subfrost-kit`.
+
+## 1. Project Setup
+
+First, you'll need to set up a new Rust project and add the necessary dependencies.
+
+```toml
+[package]
+name = "my-subrail-program"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+subfrost-kit = "0.1.0"
+bitcoin = "0.30.0"
+alkanes-support = "0.1.0"
+types-support = "0.1.0"
+subrail-support = "0.1.0"
+protorune-support = "0.1.0"
+protobuf = "3.2.0"
+```
+
+## 2. Defining the Rail
+
+The core of a `subrail` program is the `Rail` struct. This struct defines the state of your program and implements the `Rail` trait from the `subfrost-kit`.
+
+Here is a simplified example of a `Rail` that collects payments and creates a bundle transaction:
+
+```rust
+use subfrost_kit::prelude::{view, height, Result, Psbt, Message};
+use bitcoin::{Transaction, TxIn, TxOut, Amount, OutPoint, ScriptBuf};
+use std::collections::HashMap;
+
+#[subrail_imports::declare_rail]
+#[derive(Default, Clone, Debug)]
+pub struct MySubfrostRail {
+  pub(crate) payments: Vec<Payment>,
+  pub(crate) fee_rate_per_vbyte: u64,
+}
+
+impl MySubfrostRail {
+    fn sync(&mut self) -> Result<()> {
+        // In a real implementation, you would fetch new payments
+        // from the blockchain using the `view` function.
+        // For this example, we'll just add a dummy payment.
+        let dummy_payment = Payment {
+            spendable: OutPoint::null(),
+            output: TxOut {
+                value: Amount::from_sat(10000),
+                script_pubkey: ScriptBuf::new(),
+            },
+        };
+        self.payments.push(dummy_payment);
+        self.fee_rate_per_vbyte = 10; // sats/vbyte
+        Ok(())
+    }
+
+    fn getbundle(&self) -> Result<Vec<Psbt>> {
+        if self.payments.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let mut total_input_value = Amount::ZERO;
+        let inputs: Vec<TxIn> = self.payments.iter()
+            .map(|payment| {
+                total_input_value += payment.output.value;
+                TxIn {
+                    previous_output: payment.spendable,
+                    script_sig: ScriptBuf::new(),
+                    sequence: bitcoin::Sequence::MAX,
+                    witness: bitcoin::Witness::new(),
+                }
+            })
+            .collect();
+
+        let fee = Amount::from_sat(1000); // Dummy fee
+        let output_value = total_input_value - fee;
+
+        let tx = Transaction {
+            version: bitcoin::transaction::Version(2),
+            lock_time: bitcoin::locktime::absolute::LockTime::ZERO,
+            input: inputs,
+            output: vec![TxOut {
+                value: output_value,
+                script_pubkey: ScriptBuf::new(), // Dummy output script
+            }],
+        };
+        
+        Ok(vec![Psbt::from_unsigned_tx(tx)?])
+    }
+}
+```
+
+## 3. Building and Deploying
+
+To build your `subrail` program, you will need to compile it to WASM. You can then deploy it to the SUBFROST network using the `deezel` CLI.
+
+```bash
+# Build the WASM binary
+cargo build --target wasm32-unknown-unknown --release
+
+# Deploy the contract
+deezel alkanes deploy-contract target/wasm32-unknown-unknown/release/my_subrail_program.wasm --calldata <YOUR_INIT_DATA>
+```
+
+This is a simplified example, but it demonstrates the basic structure of a `subrail` program. For a more detailed and complete example, please refer to the [`subfrost-consensus`](https://github.com/subfrost/subfrost/tree/main/crates/subfrost-consensus) crate in the official SUBFROST repository.

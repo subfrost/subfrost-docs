@@ -5,71 +5,71 @@ sidebar_position: 2
 
 # `deezel` CLI Reference
 
-The `deezel` command-line interface is the primary tool for end-users to interact with the SUBFROST network. It provides wallet functionality, asset management, and an interface for interacting with Alkanes like `frBTC`.
+`deezel` is a comprehensive command-line interface and tooling suite for interacting with Bitcoin and the Alkanes metaprotocol. It provides wallet management, smart contract deployment, token operations, AMM functionality, and advanced blockchain analysis capabilities.
 
-## Global Options
+To get started, clone the repository from: `https://github.com/altinakseven/deezel`
 
--   `--node-url <URL>`: Specifies the URL of the SUBFROST node RPC endpoint to connect to.
--   `--help`: Displays help information.
--   `--version`: Displays version information.
+## Features
 
-## Main Commands
+### Wallet Management
+- HD Wallet Support (BIP39)
+- Multi-Network Support (mainnet, testnet, signet, regtest)
+- Encrypted Wallet Storage (GPG or PBKDF2)
+- UTXO Management
+- Transaction Construction
+- Fee Estimation
 
-### `wallet`
+### Alkanes Metaprotocol Integration
+- Smart Contract Deployment (WASM)
+- Token Operations (deploy, mint, transfer)
+- AMM/DEX Functionality
+- Advanced Contract Execution
+- Commit-Reveal Transactions (Envelopes)
+- Transaction Preview and Simulation
 
-Commands for managing user wallets.
+### Blockchain Analysis Tools
+- Runestone Decoder
+- Transaction Tracing
+- Contract Inspection (WASM disassembly and fuzzing)
+- Balance Queries
+- Block Data Access
 
-**Usage:**
+## Installation
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/altinakseven/deezel
+    cd deezel
+    ```
+
+2.  Build the project:
+    ```bash
+    cargo build --release
+    ```
+    The binary will be available at `target/release/deezel`.
+
+## Quick Start
+
+### Create a Wallet
+
 ```bash
-deezel wallet <SUBCOMMAND>
+# Create a new GPG-encrypted wallet
+./deezel --wallet-file ~/.deezel/mainnet.json.asc wallet create
+
+# Create a wallet with a specific mnemonic
+./deezel --wallet-file ~/.deezel/mainnet.json.asc wallet create --mnemonic "your twelve word mnemonic phrase here"
 ```
 
-**Subcommands:**
+### Check Wallet Information
 
--   `create`: Generates a new wallet, including a mnemonic phrase and address.
--   `address`: Displays the address for the current wallet.
--   `balance`: Fetches and displays the balance of `FROST`, `frBTC`, and other assets for the current wallet.
-
-### `wrap`
-
-Constructs and initiates a transaction to wrap BTC into `frBTC`.
-
-**Usage:**
 ```bash
-deezel wrap --amount <BTC_AMOUNT> --to <SUBFROST_ADDRESS> --change <BTC_ADDRESS>
+# Show wallet info including Bitcoin and Alkanes balances
+./deezel --wallet-file ~/.deezel/mainnet.json.asc wallet info
+
+# Get wallet addresses
+./deezel --wallet-file ~/.deezel/mainnet.json.asc wallet addresses --count 5
 ```
 
-**Options:**
+## Command Reference
 
--   `--amount <BTC_AMOUNT>`: The amount of BTC to lock and convert to `frBTC`.
--   `--to <SUBFROST_ADDRESS>`: The SUBFROST address that will receive the minted `frBTC`.
--   `--change <BTC_ADDRESS>`: A standard Bitcoin address to receive the change from the UTXO used to fund the transaction.
-
-### `unwrap`
-
-Constructs and initiates a transaction to unwrap `frBTC` back into BTC.
-
-**Usage:**
-```bash
-deezel unwrap --amount <FRBTC_AMOUNT> --to <BTC_ADDRESS>
-```
-
-**Options:**
-
--   `--amount <FRBTC_AMOUNT>`: The amount of `frBTC` to burn.
--   `--to <BTC_ADDRESS>`: The destination Bitcoin address that will receive the unlocked BTC.
-
-### `send`
-
-Transfers `frBTC` or other SUBFROST assets to another SUBFROST address.
-
-**Usage:**
-```bash
-deezel send --amount <AMOUNT> --to <RECIPIENT_ADDRESS> --asset <ASSET_ID>
-```
-
-**Options:**
-
--   `--amount <AMOUNT>`: The amount of the asset to send.
--   `--to <RECIPIENT_ADDRESS>`: The SUBFROST address of the recipient.
--   `--asset <ASSET_ID>`: The identifier of the asset to send (e.g., `frBTC`). Defaults to `FROST`.
+For a full list of commands and options, please refer to the output of `deezel --help` and the detailed documentation in the [project repository](https://github.com/altinakseven/deezel).

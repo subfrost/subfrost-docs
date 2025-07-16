@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'user-guide/getting-started',
         'user-guide/wrapping-frbtc',
+        'user-guide/creating-a-keystore',
       ],
     },
     {
@@ -36,6 +37,7 @@ const sidebars: SidebarsConfig = {
         'developer-guide/proof-of-stake',
         'developer-guide/alkanes',
         'developer-guide/subrail',
+        'developer-guide/building-subrail-programs',
       ],
     },
     {
