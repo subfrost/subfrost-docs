@@ -100,14 +100,14 @@ impl MySubfrostRail {
 
 ## 3. Building and Deploying
 
-To build your `subrail` program, you will need to compile it to WASM. You can then deploy it to the SUBFROST network using the `deezel` CLI.
+To build your `subrail` program, you will need to compile it to WASM. You can then deploy it to the SUBFROST network using the `subrail-cli`.
 
 ```bash
 # Build the WASM binary
 cargo build --target wasm32-unknown-unknown --release
 
 # Deploy the contract
-deezel alkanes deploy-contract target/wasm32-unknown-unknown/release/my_subrail_program.wasm --calldata <YOUR_INIT_DATA>
+subrail-cli alkanes deploy-contract target/wasm32-unknown-unknown/release/my_subrail_program.wasm --calldata <YOUR_INIT_DATA>
 ```
 
 This is a simplified example, but it demonstrates the basic structure of a `subrail` program. For a more detailed and complete example, please refer to the [`subfrost-consensus`](https://github.com/subfrost/subfrost/tree/main/crates/subfrost-consensus) crate in the official SUBFROST repository.

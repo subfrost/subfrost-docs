@@ -5,7 +5,7 @@ sidebar_position: 1
 
 # Getting Started
 
-This guide will walk you through the process of setting up the necessary tools to interact with the SUBFROST network. You will install the `subfrost-node` to connect to the network and the `deezel` CLI for user-level interactions like managing assets.
+This guide will walk you through the process of setting up the necessary tools to interact with the SUBFROST network. You will install the `subfrost-node` to connect to the network and the `subrail-cli` CLI for user-level interactions like managing assets.
 
 ## Prerequisites
 
@@ -46,35 +46,35 @@ Verify the installation by checking the version:
 subfrost-node --version
 ```
 
-## 2. Install `deezel` CLI
+## 2. Install `subrail-cli` CLI
 
-The `deezel` CLI is the primary tool for users to interact with the SUBFROST network. It allows you to create wallets, check balances, and initiate transactions like wrapping and unwrapping `frBTC`.
+The `subrail-cli` CLI is the primary tool for users to interact with the SUBFROST network. It allows you to create wallets, check balances, and initiate transactions like wrapping and unwrapping `frBTC`.
 
-Clone the `deezel` repository:
+Clone the `subrail-cli` repository:
 
 ```bash
-git clone https://github.com/subfrost/deezel.git
-cd deezel
+git clone https://github.com/subfrost/subrail-cli.git
+cd subrail-cli
 ```
 
-Build the `deezel` binary:
+Build the `subrail-cli` binary:
 
 ```bash
-cargo build --release --package deezel
+cargo build --release --package subrail-cli
 ```
 
 Move the compiled binary to your `PATH`:
 
 ```bash
-sudo mv target/release/deezel /usr/local/bin/
+sudo mv target/release/subrail-cli /usr/local/bin/
 ```
 
 Verify the installation:
 
 ```bash
-deezel --version
+subrail-cli --version
 ```
 
 ## Next Steps
 
-With `subfrost-node` and `deezel` installed, you are now ready to run a node and interact with the network. The next sections will guide you through running a node and performing common operations.
+With `subfrost-node` and `subrail-cli` installed, you are now ready to run a node and interact with the network. The next sections will guide you through running a node and performing common operations.

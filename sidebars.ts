@@ -45,7 +45,7 @@ const sidebars: SidebarsConfig = {
         label: 'References',
         items: [
             'references/subfrost-node-cli',
-            'references/deezel-cli',
+            'references/subrail-cli',
         ],
     }
   ],

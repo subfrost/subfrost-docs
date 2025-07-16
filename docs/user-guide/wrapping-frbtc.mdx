@@ -7,7 +7,7 @@ sidebar_position: 2
 
 One of the core functionalities of the SUBFROST ecosystem is the ability to create `frBTC`, a synthetic asset pegged 1:1 to Bitcoin. This is achieved through a trust-minimized process that locks BTC on the Bitcoin mainnet and mints a corresponding amount of `frBTC` on the SUBFROST sidechain.
 
-This guide will walk you through the process using the `deezel` CLI.
+This guide will walk you through the process using the `subrail-cli` CLI.
 
 ## The Wrapping Process Explained
 
@@ -20,14 +20,14 @@ Wrapping involves creating a special Bitcoin transaction that performs two actio
 If you haven't already, you need a SUBFROST wallet to receive your `frBTC`.
 
 ```bash
-deezel wallet create
+subrail-cli wallet create
 ```
 
 This command will generate a new wallet and display your address. Keep your mnemonic phrase safe and private.
 
 ## 2. Initiate the Wrap
 
-To wrap BTC, you will use the `deezel wrap` command. This command constructs and broadcasts the necessary Bitcoin transaction.
+To wrap BTC, you will use the `subrail-cli wrap` command. This command constructs and broadcasts the necessary Bitcoin transaction.
 
 You need to specify three things:
 -   The amount of BTC to wrap.
@@ -36,17 +36,17 @@ You need to specify three things:
 
 ```bash
 # Example: Wrap 0.1 BTC
-deezel wrap --amount 0.1 --to <your-subfrost-address> --change <your-bitcoin-change-address>
+subrail-cli wrap --amount 0.1 --to <your-subfrost-address> --change <your-bitcoin-change-address>
 ```
 
-`deezel` will then guide you through the process, which will involve signing the transaction with a compatible Bitcoin wallet.
+`subrail-cli` will then guide you through the process, which will involve signing the transaction with a compatible Bitcoin wallet.
 
 ## 3. Confirm Your `frBTC` Balance
 
-After the Bitcoin transaction is confirmed, the `frBTC` will be minted on the SUBFROST chain. You can check your balance using `deezel`.
+After the Bitcoin transaction is confirmed, the `frBTC` will be minted on the SUBFROST chain. You can check your balance using `subrail-cli`.
 
 ```bash
-deezel balance --address <your-subfrost-address>
+subrail-cli balance --address <your-subfrost-address>
 ```
 
 You should see your new `frBTC` balance reflected.
@@ -57,11 +57,11 @@ Unwrapping is the reverse process: `frBTC` is burned on the SUBFROST chain, and 
 
 ## 1. Initiate the Unwrap
 
-Use the `deezel unwrap` command, specifying the amount of `frBTC` to unwrap and the destination Bitcoin address.
+Use the `subrail-cli unwrap` command, specifying the amount of `frBTC` to unwrap and the destination Bitcoin address.
 
 ```bash
 # Example: Unwrap 0.1 frBTC
-deezel unwrap --amount 0.1 --to <your-destination-bitcoin-address>
+subrail-cli unwrap --amount 0.1 --to <your-destination-bitcoin-address>
 ```
 
 This will create and broadcast a SUBFROST transaction that burns your `frBTC`.
