@@ -84,7 +84,7 @@ const config: Config = {
     footer: {
       style: 'dark',
       links: [],
-      copyright: `Copyright © ${new Date().getFullYear()} SUBFROST. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Subzero Research Inc.`,
     },
     prism: {
       theme: prismThemes.dracula,

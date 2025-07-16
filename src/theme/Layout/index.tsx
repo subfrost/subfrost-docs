@@ -2,10 +2,10 @@
   /*
     Chadson v69.1.0
     File: src/theme/Layout/index.tsx
-    Purpose: Main layout component for the Docusaurus site. Integrates the splash loader.
+    Purpose: Main layout component for the Docusaurus site. Integrates the splash loader and sticky footer.
     Project: SUBFROST Documentation
     Date: 2025-07-16
-    Task: Integrate splash loader into the site layout.
+    Task: Implement sticky footer.
   */
 }
 import React, { useState, useEffect, type ReactNode } from 'react';
@@ -54,7 +54,7 @@ export default function Layout(props: Props): ReactNode {
   return (
     <LayoutProvider>
       <SplashLoader loading={loading} />
-      <div style={{ visibility: loading ? 'hidden' : 'visible' }}>
+      <div className={clsx(styles.layout, { [styles.layoutHidden]: loading })}>
         <SnowflakeWatermark />
         <PageMetadata title={title} description={description} />
 
