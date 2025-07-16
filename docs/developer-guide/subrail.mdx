@@ -1,67 +1,30 @@
 ---
-id: subrail
-title: Subrail and Subrail CLI
+title: Subrail Runtime
+sidebar_position: 5
 ---
 
-This guide provides a comprehensive overview of `subrail`, the `subrail-cli`, and the `subrail-imports` crate.
+# Subrail Runtime
 
-## Subrail Runtime
+`Subrail` is the high-performance WebAssembly (WASM) runtime at the heart of the SUBFROST node. It is specifically designed to execute the consensus-critical logic of Alkanes and other state transition functions within the SUBFROST ecosystem.
 
-The `subrail` runtime is the consensus program that powers SUBFROST's decentralized multisignature operations. It provides a deterministic execution environment for the protocol logic, ensuring consistent behavior across all nodes.
+## Purpose and Design
 
-### Architecture
+The primary purpose of `Subrail` is to provide a secure, deterministic, and fast execution environment for the programs that define the SUBFROST protocol. By using WASM, `Subrail` allows for protocol logic to be developed in any language that can compile to a WASM target (such as Rust, C++, or Go), offering developers flexibility without sacrificing performance.
 
-The `subrail` runtime consists of several key components:
+Key design features include:
 
--   **WASM Execution Environment:** Provides a sandboxed, deterministic execution environment for smart contracts.
--   **State Management:** Handles persistent storage with snapshots and rollbacks.
--   **Message Processing:** Manages protocol message handling and routing.
--   **Cryptographic Primitives:** Implements necessary cryptographic operations.
--   **Consensus Logic:** Ensures agreement on state transitions.
+-   **Sandboxed Execution:** All WASM modules are executed in a sandboxed environment, preventing them from accessing the host system's resources and ensuring the determinism required for consensus.
+-   **State Management:** `Subrail` integrates directly with the node's state database. It provides the WASM guest with an API to read from and write to the world state, but only in a controlled, transactional manner.
+-   **Integration with `metashrew`:** `Subrail` is powered by `metashrew`, a specialized Bitcoin blockchain indexer. `metashrew` processes Bitcoin blocks, extracts relevant data (like `OP_RETURN` outputs containing Runestones), and provides this data to the `Subrail` runtime. This allows Alkane contracts to be aware of and react to events on the Bitcoin L1.
 
-### Consensus Process
+## Execution Lifecycle
 
-The `subrail` consensus process is triggered externally and uses `metashrew` as a backend for indexing and querying the Bitcoin blockchain. All nodes compute the same bundle of transactions using the `getbundle` function, and the signing group agrees on what message to sign with a threshold signature.
+When a `subfrost-node` processes a new block, the following occurs:
 
-## Subrail CLI
+1.  **Data Ingestion:** The `metashrew` component of the node parses the block and identifies any transactions containing Runestones.
+2.  **Runtime Invocation:** The data from the Runestone (edicts, calldata, etc.) is passed to the `Subrail` runtime.
+3.  **WASM Execution:** `Subrail` loads the appropriate Alkane WASM module (e.g., the `frBTC` contract) and executes it, passing the Runestone data as input.
+4.  **State Transition:** The WASM module executes its logic. If it's a `mint` operation, it will calculate the new `frBTC` balance and use the `Subrail` API to write this new state to a pending state transition.
+5.  **State Commit:** Once the block is fully processed and consensus is reached, the pending state transitions are committed to the node's database, finalizing the changes.
 
-The `subrail-cli` is a command-line tool for interacting with the SUBFROST network. It allows you to deploy and manage your consensus programs, as well as interact with the network's state.
-
-### Commands
-
-The `subrail-cli` provides a variety of commands for interacting with the SUBFROST network, including:
-
--   `subrail-cli deploy`: Deploys a new consensus program to the network.
--   `subrail-cli call`: Calls a function on a deployed consensus program.
--   `subrail-cli query`: Queries the state of a deployed consensus program.
-
-## subrail-imports Crate
-
-The `subrail-imports` crate provides a set of high-level APIs for building consensus programs. It simplifies the process of interacting with the SUBFROST network by providing a set of macros and functions for common tasks.
-
-### Example Usage
-
-Here is an example of how to use the `subrail-imports` crate to build a simple consensus program, based on the `subfrost-consensus/src/rail.rs` file:
-
-```rust
-#![cfg_attr(not(feature = "std"), no_std)]
-
-#[subrail_imports::program]
-mod subfrost_consensus {
-    #[subrail_imports(storage)]
-    static FOO: u32 = 0;
-
-    #[subrail_imports(init)]
-    fn init(ctx: Context) {
-        FOO::set(0);
-    }
-
-    #[subrail_imports(message)]
-    fn increment(ctx: Context, value: u32) {
-        let current_value = FOO::get();
-        FOO::set(current_value + value);
-    }
-}
-```
-
-This example demonstrates a simple consensus program with a single storage variable `FOO`, an `init` function to initialize the state, and a `message` function to update the state.
+This architecture separates the core node logic from the application-specific logic of the Alkanes, making the entire system more modular, secure, and upgradeable.

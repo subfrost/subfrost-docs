@@ -1,0 +1,75 @@
+---
+title: deezel CLI
+sidebar_position: 2
+---
+
+# `deezel` CLI Reference
+
+The `deezel` command-line interface is the primary tool for end-users to interact with the SUBFROST network. It provides wallet functionality, asset management, and an interface for interacting with Alkanes like `frBTC`.
+
+## Global Options
+
+-   `--node-url <URL>`: Specifies the URL of the SUBFROST node RPC endpoint to connect to.
+-   `--help`: Displays help information.
+-   `--version`: Displays version information.
+
+## Main Commands
+
+### `wallet`
+
+Commands for managing user wallets.
+
+**Usage:**
+```bash
+deezel wallet <SUBCOMMAND>
+```
+
+**Subcommands:**
+
+-   `create`: Generates a new wallet, including a mnemonic phrase and address.
+-   `address`: Displays the address for the current wallet.
+-   `balance`: Fetches and displays the balance of `FROST`, `frBTC`, and other assets for the current wallet.
+
+### `wrap`
+
+Constructs and initiates a transaction to wrap BTC into `frBTC`.
+
+**Usage:**
+```bash
+deezel wrap --amount <BTC_AMOUNT> --to <SUBFROST_ADDRESS> --change <BTC_ADDRESS>
+```
+
+**Options:**
+
+-   `--amount <BTC_AMOUNT>`: The amount of BTC to lock and convert to `frBTC`.
+-   `--to <SUBFROST_ADDRESS>`: The SUBFROST address that will receive the minted `frBTC`.
+-   `--change <BTC_ADDRESS>`: A standard Bitcoin address to receive the change from the UTXO used to fund the transaction.
+
+### `unwrap`
+
+Constructs and initiates a transaction to unwrap `frBTC` back into BTC.
+
+**Usage:**
+```bash
+deezel unwrap --amount <FRBTC_AMOUNT> --to <BTC_ADDRESS>
+```
+
+**Options:**
+
+-   `--amount <FRBTC_AMOUNT>`: The amount of `frBTC` to burn.
+-   `--to <BTC_ADDRESS>`: The destination Bitcoin address that will receive the unlocked BTC.
+
+### `send`
+
+Transfers `frBTC` or other SUBFROST assets to another SUBFROST address.
+
+**Usage:**
+```bash
+deezel send --amount <AMOUNT> --to <RECIPIENT_ADDRESS> --asset <ASSET_ID>
+```
+
+**Options:**
+
+-   `--amount <AMOUNT>`: The amount of the asset to send.
+-   `--to <RECIPIENT_ADDRESS>`: The SUBFROST address of the recipient.
+-   `--asset <ASSET_ID>`: The identifier of the asset to send (e.g., `frBTC`). Defaults to `FROST`.

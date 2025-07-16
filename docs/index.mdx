@@ -1,8 +1,77 @@
 ---
-id: intro
-title: Introduction
+title: Introduction to SUBFROST
+sidebar_position: 1
 ---
 
-Welcome to the SUBFROST documentation.
+import { Card, CardGrid } from '@site/src/components/Card';
 
-SUBFROST is a decentralized protocol for wrapping, staking, and governing your BTC. This documentation provides a comprehensive overview of the SUBFROST ecosystem, including user guides for interacting with the protocol and developer guides for building on top of it.
+# Welcome to the SUBFROST Documentation
+
+SUBFROST is a novel trust-minimized Bitcoin sidechain that leverages the **FROST** (Flexible Round-Optimized Schnorr Threshold) signature scheme to secure its two-way peg. It introduces a Proof-of-Stake (PoS) consensus mechanism, where validators stake the native `FROST` token to secure the network and earn rewards.
+
+This documentation provides a comprehensive guide to understanding, using, and developing on the SUBFROST platform.
+
+## Core Concepts
+
+<CardGrid>
+  <Card
+    title="Trust-Minimized Peg"
+    icon="🔐"
+    to="/docs/developer-guide/frost-protocol">
+    SUBFROST's two-way peg is secured by a large, dynamic set of validators using FROST threshold signatures, eliminating single points of failure.
+  </Card>
+  <Card
+    title="Proof-of-Stake"
+    icon="💸"
+    to="/docs/developer-guide/proof-of-stake">
+    The network is secured by validators who stake `FROST` tokens, participating in consensus and earning rewards from transaction fees and the emission schedule.
+  </Card>
+  <Card
+    title="Alkanes Metaprotocol"
+    icon="🧩"
+    to="/docs/developer-guide/alkanes">
+    A powerful metaprotocol built on Bitcoin that enables complex smart contract-like functionality, including the creation of synthetic assets like `frBTC`.
+  </Card>
+  <Card
+    title="Subrail Runtime"
+    icon="🚂"
+    to="/docs/developer-guide/subrail">
+    A high-performance WebAssembly (WASM) runtime for executing consensus-critical logic, powered by the `metashrew` Bitcoin indexer.
+  </Card>
+</CardGrid>
+
+## Getting Started
+
+New to SUBFROST? Our getting started guide will walk you through setting up a node and connecting to the network.
+
+<CardGrid>
+    <Card
+    title="Run a Node"
+    icon="🚀"
+    to="/docs/user-guide/getting-started">
+    Follow our step-by-step guide to install the necessary software, configure your node, and join the SUBFROST network.
+  </Card>
+</CardGrid>
+
+## Guides
+
+<CardGrid>
+  <Card
+    title="User Guide"
+    icon="🧑‍💻"
+    to="/docs/user-guide/wrapping-frbtc">
+    Learn how to use the `deezel` CLI to interact with the network, manage assets, and wrap/unwrap `frBTC`.
+  </Card>
+  <Card
+    title="Developer Guide"
+    icon="🛠️"
+    to="/docs/developer-guide/introduction">
+    Dive deep into the technical architecture of SUBFROST, from the FROST signing protocol to building on top of the Alkanes metaprotocol.
+  </Card>
+  <Card
+    title="CLI References"
+    icon="⌨️"
+    to="/docs/references/subfrost-node-cli">
+    A complete reference for the `subfrost-node` and `deezel` command-line interfaces.
+  </Card>
+</CardGrid>
