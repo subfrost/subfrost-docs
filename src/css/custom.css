@@ -186,7 +186,7 @@ body {
   body {
     @apply text-foreground;
     color: black;
-    background-color: #EFF6FF;
+    background: linear-gradient(to bottom, #BFDBFE, #EFF6FF);
   }
 }
 
@@ -209,7 +209,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .footer {
-  background-color: #EFF6FF; /* Blue-50 */
+  background: linear-gradient(to bottom, #BFDBFE, #EFF6FF); /* Blue-50 */
   color: black;
-  height: 5rem;
+  height: 1rem;
 }
