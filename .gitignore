@@ -1,6 +1,7 @@
 reference
 # Dependencies
 /node_modules
+/build
 
 # Production
 
