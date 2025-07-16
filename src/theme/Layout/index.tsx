@@ -55,7 +55,7 @@ export default function Layout(props: Props): ReactNode {
     <LayoutProvider>
       <SplashLoader loading={loading} />
       <div className={clsx(styles.layout, { [styles.layoutHidden]: loading })}>
-        <SnowflakeWatermark />
+        
         <PageMetadata title={title} description={description} />
 
         <SkipToContent />

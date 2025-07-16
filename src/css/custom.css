@@ -186,12 +186,12 @@ body {
   body {
     @apply text-foreground;
     color: black;
-    background: linear-gradient(to bottom, #BFDBFE, #EFF6FF);
+    background-color: #EFF6FF;
   }
 }
 
 .main-wrapper {
-  background-color: rgba(var(--ifm-background-color-rgb), 0.98);
+  background-color: transparent;
   padding: 1rem;
   border-radius: var(--radius);
 }
