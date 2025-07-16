@@ -185,6 +185,7 @@ body {
   }
   body {
     @apply text-foreground;
+    color: black;
     background: linear-gradient(to bottom, #BFDBFE, #EFF6FF);
   }
 }
@@ -201,4 +202,14 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   color: #284372;
+}
+
+.navbar__link {
+  color: #284372;
+}
+
+.footer {
+  background-color: #EFF6FF; /* Blue-50 */
+  color: black;
+  height: 20%;
 }
