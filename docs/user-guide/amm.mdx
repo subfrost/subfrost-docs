@@ -1,0 +1,56 @@
+---
+title: AMM Functions
+sidebar_position: 4
+---
+
+# AMM Functions
+
+The `subrail-cli` provides a suite of commands for interacting with the Automated Market Maker (AMM) functionality of the Alkanes metaprotocol. This allows you to create liquidity pools, add and remove liquidity, and swap tokens.
+
+## AMM Commands
+
+### Create a Pool
+
+```bash
+subrail-cli alkanes create-pool --calldata <DATA> --tokens <TOKENS>
+```
+
+This command creates a new liquidity pool with the specified tokens. The `--calldata` argument is used to pass additional data to the AMM contract, and the `--tokens` argument is a list of the tokens to include in the pool.
+
+### Add Liquidity
+
+```bash
+subrail-cli alkanes add-liquidity --calldata <DATA> --tokens <TOKENS>
+```
+
+This command adds liquidity to an existing pool. The `--tokens` argument specifies the amount of each token to add.
+
+### Remove Liquidity
+
+```bash
+subrail-cli alkanes remove-liquidity --calldata <DATA> --token <TOKEN> --amount <AMOUNT>
+```
+
+This command removes liquidity from a pool. You specify the pool token you want to remove and the amount.
+
+### Swap Tokens
+
+```bash
+subrail-cli alkanes swap --calldata <DATA> --token <TOKEN> --amount <AMOUNT>
+```
+
+This command swaps one token for another in a liquidity pool.
+
+## Private Transactions with Rebar
+
+The `subrail-cli` integrates with Rebar Labs Shield to provide private transaction broadcasting. This is useful for protecting your privacy when interacting with the AMM.
+
+To use Rebar, simply add the `--rebar` flag to your `alkanes execute` command.
+
+```bash
+subrail-cli alkanes execute --rebar --to ... --inputs ... ...
+```
+
+**Note:** The `--rebar` flag is only available on the Bitcoin mainnet.
+
+When you use the `--rebar` flag, your transaction will be sent to the Rebar Labs Shield endpoint (`https://shield.rebarlabs.io/v1/rpc`) instead of being broadcast directly to the Bitcoin network. This helps to obscure the origin of your transaction.

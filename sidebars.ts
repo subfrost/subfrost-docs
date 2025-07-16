@@ -26,6 +26,7 @@ const sidebars: SidebarsConfig = {
         'user-guide/getting-started',
         'user-guide/wrapping-frbtc',
         'user-guide/creating-a-keystore',
+        'user-guide/amm',
       ],
     },
     {
