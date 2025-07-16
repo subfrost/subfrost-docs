@@ -1,0 +1,148 @@
+---
+id: wrapping-frbtc
+title: Wrapping and Unwrapping frBTC
+---
+
+This guide provides a comprehensive overview of the process for wrapping and unwrapping frBTC, the synthetic Bitcoin representation on the ALKANES metaprotocol.
+
+## Introduction to frBTC
+
+frBTC is a 1:1 Bitcoin-backed synthetic asset that enables smart contract functionality on the ALKANES metaprotocol while maintaining the security properties of native Bitcoin. It serves as a bridge between native Bitcoin and the world of decentralized finance (DeFi) on Bitcoin.
+
+## Wrapping BTC to frBTC
+
+The process of wrapping BTC to frBTC is atomic and trustless, meaning it occurs within a single Bitcoin transaction without requiring a trusted intermediary.
+
+### The Wrapping Process
+
+1.  **Initiate the Wrap:** You initiate the wrapping process by sending a specially crafted Bitcoin transaction that includes a payment to the SUBFROST multisig address. This transaction also contains a protorunes protocol message that signals your intent to wrap BTC.
+
+2.  **Atomic Minting:** The `fr-btc` alkane, a smart contract on the ALKANES metaprotocol, processes the deposit and mints an equivalent amount of frBTC in the same transaction.
+
+3.  **Immediate Availability:** The newly minted frBTC is immediately available in your wallet for use in other ALKANES smart contracts.
+
+### Using `deezel` to Wrap BTC
+
+The `deezel` command-line tool simplifies the wrapping process by allowing you to execute a protostone that defines the wrapping operation.
+
+**1. Create a Protostone for Wrapping**
+
+First, create a JSON file named `wrap-frbtc.json` with the following content:
+
+```json
+{
+  "protostone": {
+    "name": "wrap-frbtc",
+    "version": "0.1.0",
+    "network": "regtest",
+    "inputs": [
+      {
+        "name": "amount",
+        "type": "uint"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "txid",
+        "type": "string"
+      }
+    ],
+    "logic": [
+      {
+        "type": "invoke",
+        "contract": "[4, 32]",
+        "function": "wrap",
+        "args": [
+          {
+            "type": "input",
+            "name": "amount"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**2. Execute the Protostone**
+
+Next, use the `deezel alkanes execute` command to execute the protostone:
+
+```bash
+deezel alkanes execute --protostone wrap-frbtc.json --input '{"amount": 100000000}'
+```
+
+This command will:
+
+-   Construct a Bitcoin transaction that sends 1 BTC (100,000,000 satoshis) to the SUBFROST multisig address.
+-   Include the necessary protorunes protocol message to trigger the `fr-btc` alkane.
+-   Broadcast the transaction to the Bitcoin network.
+
+Upon confirmation of the transaction, you will receive 1 frBTC in your wallet.
+
+## Unwrapping frBTC to BTC
+
+The unwrapping process converts frBTC back to native Bitcoin. This process is trustless and is coordinated by the SUBFROST P2P network and the `subrail` runtime.
+
+### The Unwrapping Process
+
+1.  **Initiate the Unwrap:** You initiate the unwrapping process by burning your frBTC through the `fr-btc` alkane smart contract.
+
+2.  **On-Chain Verification:** The burn event is recorded on the Bitcoin blockchain and detected by the SUBFROST nodes.
+
+3.  **Consensus and Signing:** The `subrail` runtime verifies the burn event and creates a Bitcoin transaction to send the equivalent amount of BTC from the multisig address to your specified address. The SUBFROST nodes then cooperatively sign the transaction using the FROST threshold signature scheme.
+
+4.  **Transaction Broadcast:** Once the transaction is signed, it is broadcast to the Bitcoin network, and you receive your BTC.
+
+### Using `deezel` to Unwrap frBTC
+
+Similar to wrapping, you can use `deezel` to unwrap frBTC.
+
+**1. Create a Protostone for Unwrapping**
+
+Create a JSON file named `unwrap-frbtc.json` with the following content:
+
+```json
+{
+  "protostone": {
+    "name": "unwrap-frbtc",
+    "version": "0.1.0",
+    "network": "regtest",
+    "inputs": [
+      {
+        "name": "amount",
+        "type": "uint"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "txid",
+        "type": "string"
+      }
+    ],
+    "logic": [
+      {
+        "type": "invoke",
+        "contract": "[4, 32]",
+        "function": "unwrap",
+        "args": [
+          {
+            "type": "input",
+            "name": "amount"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**2. Execute the Protostone**
+
+Execute the protostone using the `deezel alkanes execute` command:
+
+```bash
+deezel alkanes execute --protostone unwrap-frbtc.json --input '{"amount": 100000000}'
+```
+
+This will initiate the unwrapping process. The `subrail` runtime will then create and process the transaction to send the BTC to your wallet.

@@ -1,0 +1,67 @@
+---
+id: subrail
+title: Subrail and Subrail CLI
+---
+
+This guide provides a comprehensive overview of `subrail`, the `subrail-cli`, and the `subrail-imports` crate.
+
+## Subrail Runtime
+
+The `subrail` runtime is the consensus program that powers SUBFROST's decentralized multisignature operations. It provides a deterministic execution environment for the protocol logic, ensuring consistent behavior across all nodes.
+
+### Architecture
+
+The `subrail` runtime consists of several key components:
+
+-   **WASM Execution Environment:** Provides a sandboxed, deterministic execution environment for smart contracts.
+-   **State Management:** Handles persistent storage with snapshots and rollbacks.
+-   **Message Processing:** Manages protocol message handling and routing.
+-   **Cryptographic Primitives:** Implements necessary cryptographic operations.
+-   **Consensus Logic:** Ensures agreement on state transitions.
+
+### Consensus Process
+
+The `subrail` consensus process is triggered externally and uses `metashrew` as a backend for indexing and querying the Bitcoin blockchain. All nodes compute the same bundle of transactions using the `getbundle` function, and the signing group agrees on what message to sign with a threshold signature.
+
+## Subrail CLI
+
+The `subrail-cli` is a command-line tool for interacting with the SUBFROST network. It allows you to deploy and manage your consensus programs, as well as interact with the network's state.
+
+### Commands
+
+The `subrail-cli` provides a variety of commands for interacting with the SUBFROST network, including:
+
+-   `subrail-cli deploy`: Deploys a new consensus program to the network.
+-   `subrail-cli call`: Calls a function on a deployed consensus program.
+-   `subrail-cli query`: Queries the state of a deployed consensus program.
+
+## subrail-imports Crate
+
+The `subrail-imports` crate provides a set of high-level APIs for building consensus programs. It simplifies the process of interacting with the SUBFROST network by providing a set of macros and functions for common tasks.
+
+### Example Usage
+
+Here is an example of how to use the `subrail-imports` crate to build a simple consensus program, based on the `subfrost-consensus/src/rail.rs` file:
+
+```rust
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[subrail_imports::program]
+mod subfrost_consensus {
+    #[subrail_imports(storage)]
+    static FOO: u32 = 0;
+
+    #[subrail_imports(init)]
+    fn init(ctx: Context) {
+        FOO::set(0);
+    }
+
+    #[subrail_imports(message)]
+    fn increment(ctx: Context, value: u32) {
+        let current_value = FOO::get();
+        FOO::set(current_value + value);
+    }
+}
+```
+
+This example demonstrates a simple consensus program with a single storage variable `FOO`, an `init` function to initialize the state, and a `message` function to update the state.
