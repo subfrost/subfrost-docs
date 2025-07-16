@@ -185,31 +185,33 @@ body {
   }
   body {
     @apply text-foreground;
-    color: black;
-    background: linear-gradient(to bottom, #BFDBFE, #EFF6FF);
+    color: #1E3A8A; /* A darker blue for better readability */
+    background: linear-gradient(to bottom, #E0F2FE, #F0F9FF); /* Light frost gradient */
   }
 }
 
 .main-wrapper {
-  background-color: transparent;
+  background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white background */
   padding: 1rem;
   border-radius: var(--radius);
+  backdrop-filter: blur(10px); /* Frosted glass effect */
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .header-docs-link {
-  color: white !important;
+  color: #1E3A8A !important; /* Dark blue for readability */
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color: #284372;
+  color: #1E3A8A; /* Dark blue for headings */
 }
 
 .navbar__link {
-  color: #284372;
+  color: #1E3A8A; /* Dark blue for navbar links */
 }
 
 .footer {
-  background: linear-gradient(to bottom, #BFDBFE, #EFF6FF); /* Blue-50 */
-  color: black;
+  background: transparent;
+  color: #1E3A8A; /* Dark blue for footer text */
   height: 1rem;
 }
