@@ -45,7 +45,7 @@ const CanvasLogo = () => {
           y + radius * 0.6 * Math.sin(angle) + (radius * 0.3 * Math.sin(angle - Math.PI / 4))
         );
       }
-      ctx.strokeStyle = `rgba(255, 255, 255, 0.9)`;
+      ctx.strokeStyle = `rgba(30, 58, 138, 0.9)`;
       ctx.lineWidth = 1;
       ctx.stroke();
     };
