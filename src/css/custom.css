@@ -4,8 +4,9 @@
  * This file contains the custom styles for the Subfrost Docusaurus project.
  * It is based on the styles from the subfrost-app reference project.
  *
- * Last Modified: 2025-07-16
+ * Last Modified: 2025-07-17
  * - Changed font to Satoshi.
+ * - Set footer font size to 0.5rem.
  */
 
 @font-face {
@@ -217,4 +218,5 @@ a {
   background: transparent;
   color: #1E3A8A; /* Dark blue for footer text */
   height: 1rem;
+  font-size: 0.5rem;
 }
