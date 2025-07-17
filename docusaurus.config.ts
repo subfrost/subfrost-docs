@@ -58,7 +58,7 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'web-app-manifest-512x512.png',
     metadata: [
       {name: 'keywords', content: 'bitcoin, staking, yield, defi, alkanes, metaprotocol, amm, frost, subfrost'},
       {name: 'description', content: 'SUBFROST is a decentralized custodian that enables Bitcoin staking and Bitcoin yield through a trustless DeFi ecosystem on the Alkanes Metaprotocol.'},
@@ -66,7 +66,7 @@ const config: Config = {
     og: {
       title: 'SUBFROST | Bitcoin Staking & Yield',
       description: 'A decentralized custodian for trustless DeFi on Bitcoin.',
-      image: 'img/docusaurus-social-card.jpg',
+      image: 'web-app-manifest-512x512.png',
     },
     navbar: {
       title: 'SUBFROST',
