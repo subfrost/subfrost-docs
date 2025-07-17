@@ -49,3 +49,9 @@
         transform: scale(1);
     }
 }
+
+.loadingText {
+    color: white;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+}

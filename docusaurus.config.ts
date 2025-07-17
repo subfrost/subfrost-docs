@@ -6,14 +6,14 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'SUBFROST',
-  tagline: 'Documentation for the SUBFROST ecosystem.',
+  tagline: 'Bitcoin Staking, Bitcoin Yield, and Trustless DeFi on the Alkanes Metaprotocol.',
   
-
+ 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
   },
-
+ 
   // Set the production url of your site here
   url: 'https://docs.subfrost.io',
   // Set the /<baseUrl>/ pathname under which your site is served
@@ -59,6 +59,15 @@ const config: Config = {
   themeConfig: {
     // Replace with your project's social card
     image: 'img/docusaurus-social-card.jpg',
+    metadata: [
+      {name: 'keywords', content: 'bitcoin, staking, yield, defi, alkanes, metaprotocol, amm, frost, subfrost'},
+      {name: 'description', content: 'SUBFROST is a decentralized custodian that enables Bitcoin staking and Bitcoin yield through a trustless DeFi ecosystem on the Alkanes Metaprotocol.'},
+    ],
+    og: {
+      title: 'SUBFROST | Bitcoin Staking & Yield',
+      description: 'A decentralized custodian for trustless DeFi on Bitcoin.',
+      image: 'img/docusaurus-social-card.jpg',
+    },
     navbar: {
       title: 'SUBFROST',
       logo: {
@@ -86,6 +95,7 @@ const config: Config = {
       links: [],
       copyright: `Copyright © ${new Date().getFullYear()} Subzero Research Inc.`,
     },
+    favicon: 'img/favicon.ico',
     prism: {
       theme: prismThemes.dracula,
       darkTheme: prismThemes.dracula,

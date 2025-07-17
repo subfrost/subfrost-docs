@@ -191,10 +191,10 @@ body {
 }
 
 .main-wrapper {
-  background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white background */
+  background-color: rgba(255, 255, 255, 0.3); /* Increased transparency */
   padding: 1rem;
   border-radius: var(--radius);
-  backdrop-filter: blur(10px); /* Frosted glass effect */
+  backdrop-filter: blur(5px); /* Reduced blur for better visibility */
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
