@@ -205,6 +205,9 @@ body {
 h1, h2, h3, h4, h5, h6 {
   color: #1E3A8A; /* Dark blue for headings */
 }
+a {
+  color: #1E3A8A; /* Dark blue for links */
+}
 
 .navbar__link {
   color: #1E3A8A; /* Dark blue for navbar links */
