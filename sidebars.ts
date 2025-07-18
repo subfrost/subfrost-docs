@@ -19,6 +19,7 @@ const sidebars: SidebarsConfig = {
   // But you can create a sidebar manually
   docs: [
     'index',
+    'how-subfrost-works',
     {
       type: 'category',
       label: 'User Guide',
