@@ -13,7 +13,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--ifm-color-primary-darkest);
+    background: linear-gradient(to bottom, #E0F2FE, #F0F9FF); /* Light frost gradient */
     display: flex;
     justify-content: center;
     align-items: center;

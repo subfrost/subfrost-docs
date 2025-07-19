@@ -1,0 +1,32 @@
+---
+title: frBTC Overview
+sidebar_position: 2
+---
+
+# frBTC: The Interoperable BTC Synthetic on Bitcoin L1
+
+One of the core functionalities of the SUBFROST protocol is the ability to create `frBTC`, a synthetic asset pegged 1:1 to Bitcoin.
+
+This is achieved through a trust-minimized process that locks BTC on the Bitcoin mainnet (Layer-1) and mints a corresponding amount of `frBTC` for the user.
+
+frBTC should be live on Alkanes, BRC-20 2.0, OP_NET, Arch, etc. shortly after each one launches to mainnet. 
+
+## Plan for frBTC
+
+1. SUBFROST will first launch frBTC wrapping through partner integrations, like the OYL AMM on Alkanes. This will allow users to convienetly wrap their BTC without leaving these advanced DeFi applications.
+
+2. Shortly after we will allow these partners to integrate the frBTC wrap contract into the front of their transactions. This will enable users, in a single transaction, to enter advanced DeFi apps on Bitcoin with native BTC, **completely abstracting-away the need to wrap their BTC first**.
+
+This will be the first time in history, across any blockchain, that a user can swap native BTC to something like a USD stablecoin, in an entirely decentralized manner.
+
+## The Wrapping Process
+
+Wrapping involves creating a special Bitcoin transaction that performs two actions simultaneously:
+1.  **Lock BTC:** Your BTC is sent to a secure, multisignature address controlled by the SUBFROST validators.
+2.  **Mint frBTC:** An `OP_RETURN` output in the same transaction contains instructions for the Alkanes metaprotocol to mint an equivalent amount of `frBTC` and assign it to your SUBFROST address.
+
+## The Unwrapping Process
+
+Unwrapping is the reverse process, the SUBFROST validators will cooperatively sign a Bitcoin tx which is automated and secured by the SUBFROST protocol:
+1. **Burn frBTC:** `frBTC` is burned on the SUBFROST protocol.
+2. **Unlock BTC:** An equivalent amount of BTC is released from the multisig address back to the Bitcoin address the user specifies (typically their wallet).

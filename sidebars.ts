@@ -7,10 +7,10 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
  - create an ordered group of docs
  - render a sidebar for each doc of that group
  - provide next/previous navigation
-
- The sidebars can be generated from the filesystem, or explicitly defined here.
-
- Create as many sidebars as you want.
+ *
+ *  The sidebars can be generated from the filesystem, or explicitly defined here.
+ *
+ *  Create as many sidebars as you want.
  */
 const sidebars: SidebarsConfig = {
   // By default, Docusaurus generates a sidebar from the docs folder structure
@@ -18,11 +18,19 @@ const sidebars: SidebarsConfig = {
 
   // But you can create a sidebar manually
   docs: [
-    'index',
-    'how-subfrost-works',
     {
       type: 'category',
-      label: 'User Guide',
+      label: 'Overview',
+      items: [
+        'index',
+        'frbtc-overview',
+        'dxbtc-overview',
+        'how-subfrost-works',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Technical User Guide',
       items: [
         'user-guide/getting-started',
         'user-guide/wrapping-frbtc',

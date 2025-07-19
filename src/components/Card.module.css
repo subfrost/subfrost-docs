@@ -18,7 +18,7 @@
 }
 
 .card:hover {
-  border-color: var(--ifm-color-primary);
+  border-color: #1E3A8A;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -37,11 +37,11 @@
 .cardTitle {
   font-size: 1.25rem;
   margin: 0;
-  color: var(--ifm-color-primary);
+  color: #1E3A8A;
 }
 
 .cardBody {
   font-size: 0.9rem;
-  color: var(--ifm-color-secondary-darkest);
+  color: #1E3A8A;
   margin: 0;
 }
