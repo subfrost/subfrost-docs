@@ -42,8 +42,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Security & Architecture',
       items: [
-        'developer-guide/introduction',
-        'how-subfrost-works',
+        'technical-overview',
         'developer-guide/frost-protocol',
         'developer-guide/proof-of-stake',
         'developer-guide/subrail',
@@ -51,11 +50,12 @@ const sidebars: SidebarsConfig = {
     },
     {
         type: 'category',
-        label: 'Where is SUBFROST?',
+        label: 'Supported Bitcoin Ecos',
         items: [
             'developer-guide/alkanes',
             'developer-guide/BRC 2.0 Metaprotocol',
             'developer-guide/OP_NET Metaprotocol',
+'developer-guide/Arch Network',
         ],
     },
     {

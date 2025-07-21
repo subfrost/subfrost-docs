@@ -5,7 +5,7 @@ sidebar_position: 2
 
 # FROST Protocol
 
-**FROST (Flexible Round-Optimized Schnorr Threshold)** is the cryptographic cornerstone of the SUBFROST sidechain. It is a threshold signature scheme that allows a large, dynamic set of validators to collectively create a single Schnorr signature without any single validator ever possessing the full private key.
+**FROST (Flexible Round-Optimized Schnorr Threshold)** is the cryptographic cornerstone of the SUBFROST protocol. It is a threshold signature scheme that allows a large, dynamic set of validators to collectively create a single Schnorr signature without any single validator ever possessing the full private key.
 
 ## How it Secures the Peg
 
@@ -24,4 +24,4 @@ The two-way peg between Bitcoin and SUBFROST is maintained by a large pool of `F
 -   **Scalability:** The protocol supports a large and dynamic set of validators. New validators can join and old ones can leave without needing to regenerate the main key, only requiring an update to the key shares.
 -   **Efficiency:** FROST is optimized to be non-interactive in the signing phase (after an initial setup round), reducing the communication overhead between validators and making the signing process fast.
 
-This trust-minimized setup is a significant improvement over federated or centralized peg mechanisms, providing a much higher degree of security and decentralization for the assets locked on the sidechain.
+This trust-minimized setup is a significant improvement over federated or centralized peg mechanisms, providing a much higher degree of security and decentralization for the assets locked on the protocol.
