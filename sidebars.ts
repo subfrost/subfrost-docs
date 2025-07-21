@@ -25,7 +25,6 @@ const sidebars: SidebarsConfig = {
         'index',
         'frbtc-overview',
         'dxbtc-overview',
-        'how-subfrost-works',
       ],
     },
     {
@@ -36,19 +35,28 @@ const sidebars: SidebarsConfig = {
         'user-guide/wrapping-frbtc',
         'user-guide/creating-a-keystore',
         'user-guide/amm',
+        'developer-guide/building-subrail-programs',
       ],
     },
     {
       type: 'category',
-      label: 'Developer Guide',
+      label: 'Security & Architecture',
       items: [
         'developer-guide/introduction',
+        'how-subfrost-works',
         'developer-guide/frost-protocol',
         'developer-guide/proof-of-stake',
-        'developer-guide/alkanes',
         'developer-guide/subrail',
-        'developer-guide/building-subrail-programs',
       ],
+    },
+    {
+        type: 'category',
+        label: 'Where is SUBFROST?',
+        items: [
+            'developer-guide/alkanes',
+            'developer-guide/BRC 2.0 Metaprotocol',
+            'developer-guide/OP_NET Metaprotocol',
+        ],
     },
     {
         type: 'category',
