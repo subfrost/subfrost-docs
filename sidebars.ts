@@ -25,6 +25,7 @@ const sidebars: SidebarsConfig = {
         'index',
         'frbtc-overview',
         'dxbtc-overview',
+        'developer-guide/frost-token',
       ],
     },
     {
@@ -44,7 +45,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'technical-overview',
         'developer-guide/frost-protocol',
-        'developer-guide/frost-token',
+        
         'developer-guide/proof-of-stake',
         'developer-guide/subrail',
       ],
