@@ -84,9 +84,14 @@ const config: Config = {
           className: 'header-docs-link', // Custom class for styling
         },
         {
-          href: 'https://github.com/subfrost/subfrost',
-          label: 'GitHub',
+          href: 'https://x.com/SUBFROSTio/',
           position: 'right',
+          className: 'header-x-link',
+        },
+        {
+          href: 'https://github.com/subfrost/subfrost',
+          position: 'right',
+          className: 'header-github-link',
         },
       ],
     },
