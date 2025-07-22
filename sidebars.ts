@@ -44,6 +44,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'technical-overview',
         'developer-guide/frost-protocol',
+        'developer-guide/frost-token',
         'developer-guide/proof-of-stake',
         'developer-guide/subrail',
       ],
