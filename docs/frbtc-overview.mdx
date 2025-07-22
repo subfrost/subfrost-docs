@@ -19,13 +19,13 @@ frBTC should be live on Alkanes, BRC-20 2.0, OP_NET, Arch, etc. shortly after ea
 ![frBTC diagram](./Diagrams/frBTC%20diagram.png)
 This will be the first time in history, across any blockchain, that a user can swap native BTC to something like a USD stablecoin, in an entirely decentralized manner.
 
-## The Wrapping Process
+## Wrapping Process
 
 Wrapping involves creating a special Bitcoin transaction that performs two actions simultaneously:
 1.  **Lock BTC:** Your BTC is sent to a secure, multisignature address controlled by the SUBFROST validators.
 2.  **Mint frBTC:** An `OP_RETURN` output in the same transaction contains instructions for the Alkanes metaprotocol to mint an equivalent amount of `frBTC` and assign it to your SUBFROST address.
 
-## The Unwrapping Process
+## Unwrapping Process
 
 Unwrapping is the reverse process, the SUBFROST validators will cooperatively sign a Bitcoin tx which is automated and secured by the SUBFROST protocol:
 1. **Burn frBTC:** `frBTC` is burned on the SUBFROST protocol.
