@@ -52,7 +52,7 @@ export function SnowflakeWatermark() {
         radius: Math.random() * 4 + 2,
         speed: Math.random() * 0.5 + 0.1,
         opacity: Math.random() * 0.7 + 0.3,
-        type: Math.random() < 0.8 ? 'snowflake' : 'bitcoin' // 20% chance of being a Bitcoin logo
+        type: Math.random() < 0.75 ? 'snowflake' : 'bitcoin' // 25% chance of being a Bitcoin logo
       })
     }
 
@@ -68,14 +68,8 @@ export function SnowflakeWatermark() {
     }
 
     function drawBitcoin(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, opacity: number) {
-      ctx.beginPath()
-      ctx.arc(x, y, radius, 0, Math.PI * 2)
-      ctx.strokeStyle = `rgba(183, 215, 253, ${opacity})`
-      ctx.lineWidth = 1.5
-      ctx.stroke()
-
       // Draw the Bitcoin 'B' symbol
-      ctx.font = `${radius}px Nunito`
+      ctx.font = `${radius * 3.5}px Nunito`
       ctx.fillStyle = `rgba(183, 215, 253, ${opacity})`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
