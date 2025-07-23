@@ -1,5 +1,5 @@
 ---
-title: Wrapping frBTC
+title: Wrapping/Unwrapping frBTC
 sidebar_position: 2
 ---
 
@@ -7,17 +7,17 @@ sidebar_position: 2
 
 One of the core functionalities of the SUBFROST ecosystem is the ability to create `frBTC`, a synthetic asset pegged 1:1 to Bitcoin.
 
-This is achieved through a trust-minimized process that locks BTC on the Bitcoin mainnet and mints a corresponding amount of `frBTC` on the SUBFROST protocol. This frBTC can then be used across the Alkanes, BRC-20 2.0 and OP_NET ecosystems.
+This is achieved through a trust-minimized process that locks BTC on the Bitcoin mainnet and mints a corresponding amount of `frBTC` on the SUBFROST protocol.
 
 This guide will walk you through the process using the `subrail-cli` CLI.
 
-## The Wrapping Process Explained
+## Wrapping Process Explained
 
-Wrapping involves creating a special Bitcoin transaction that performs two actions simultaneously:
-1.  **Locks BTC:** Your BTC is sent to a secure, multisignature address controlled by the SUBFROST validators.
+Wrapping involves creating a Bitcoin transaction that performs two actions simultaneously:
+1.  **Locks BTC:** Your BTC is sent to a secure, multisignature address controlled by the SUBFROST signers.
 2.  **Mints frBTC:** An `OP_RETURN` output in the same transaction contains instructions for the Alkanes metaprotocol to mint an equivalent amount of `frBTC` and assign it to your SUBFROST address.
 
-## 1. Generate a SUBFROST Wallet
+### 1. Generate a SUBFROST Wallet
 
 If you haven't already, you need a SUBFROST wallet to receive your `frBTC`.
 
@@ -27,11 +27,11 @@ subrail-cli wallet create
 
 This command will generate a new wallet and display your address. Keep your mnemonic phrase safe and private.
 
-## 2. Initiate the Wrap
+### 2. Initiate the Wrap
 
 To wrap BTC, you will use the `subrail-cli alkanes execute` command. This command gives you fine-grained control over the transaction construction.
 
-### Example: Wrap 0.1 BTC
+#### Example: Wrap 0.1 BTC
 
 ```bash
 subrail-cli alkanes execute \
@@ -41,7 +41,7 @@ subrail-cli alkanes execute \
   "[4,TBD,77]:v0:v0:[B:10000000:v1]"
 ```
 
-### Breakdown of the Command:
+#### Breakdown of the Command:
 
 -   `--to "[self:p2tr:0],<SUBFROST_ADDRESS>"`: This specifies the outputs of the transaction.
     -   `[self:p2tr:0]`: This is your own address (the first Taproot address in your wallet) which will receive the newly minted `frBTC`. This is `v0`.
@@ -55,23 +55,23 @@ subrail-cli alkanes execute \
 
 `subrail-cli` will then guide you through the process, which will involve signing the transaction.
 
-## 3. Confirm Your `frBTC` Balance
+### 3. Confirm Your `frBTC` Balance
 
-After the Bitcoin transaction is confirmed, the `frBTC` will be minted on the SUBFROST chain. You can check your balance using `subrail-cli`.
+After the Bitcoin transaction is confirmed, the `frBTC` will be minted on the SUBFROST protocol. You can check your balance using `subrail-cli`.
 
 ```bash
 subrail-cli balance --address <your-subfrost-address>
 ```
 
-## The Unwrapping Process
+## Unwrapping Process
 
-Unwrapping is the reverse process: `frBTC` is burned on the SUBFROST chain, and the equivalent amount of BTC is released from the multisig address back to a Bitcoin address you specify.
+Unwrapping is the reverse process: `frBTC` is burned and the equivalent amount of BTC is released from the multisig address back to a Bitcoin address you specify.
 
-## 1. Initiate the Unwrap
+### 1. Initiate the Unwrap
 
 To unwrap `frBTC`, you will again use the `subrail-cli alkanes execute` command.
 
-### Example: Unwrap 0.1 frBTC
+#### Example: Unwrap 0.1 frBTC
 
 ```bash
 subrail-cli alkanes execute \
@@ -81,13 +81,13 @@ subrail-cli alkanes execute \
   "[<frBTC_alkane_id>,10000000,88]:v0:v0"
 ```
 
-### Breakdown of the Command:
+#### Breakdown of the Command:
 
 -   `--to "<YOUR_BITCOIN_ADDRESS>"`: The destination Bitcoin address that will receive the unlocked BTC.
 -   `--inputs "<frBTC_alkane_id>:<output_index>:10000000"`: This specifies the `frBTC` tokens you want to burn. You will need to replace `<frBTC_alkane_id>` with the actual Alkane ID of `frBTC` and `<output_index>` with the output index of the UTXO that holds your `frBTC`.
 -   `--change "[self:p2tr:1]"`: Any change from the transaction will be sent to the second Taproot address in your wallet.
 -   `"[<frBTC_alkane_id>,10000000,88]:v0:v0"`: This is the protostone for burning the `frBTC`. `88` is the opcode for burning.
 
-## 2. Receive Your BTC
+### 2. Receive Your BTC
 
-Once the SUBFROST transaction is finalized, the validators will cooperatively sign a Bitcoin transaction to release the locked BTC to your specified destination address. This process is automated and secured by the FROST protocol.
+Once the SUBFROST transaction is finalized, the signers will cooperatively sign a Bitcoin transaction to release the locked BTC to your specified destination address. This process is automated and secured by the [FROST Protocol](/developer-guide/frost-protocol).

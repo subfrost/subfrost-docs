@@ -73,16 +73,9 @@ const config: Config = {
       logo: {
         alt: 'SUBFROST Logo',
         src: 'img/logo.svg', // This will be replaced by the CanvasLogo component
-        href: '/',
+        href: 'https://subfrost.io',
       },
       items: [
-        {
-          type: 'docSidebar',
-          sidebarId: 'docs',
-          position: 'left',
-          label: 'Docs',
-          className: 'header-docs-link', // Custom class for styling
-        },
         {
           href: 'https://x.com/SUBFROSTio/',
           position: 'right',

@@ -212,6 +212,11 @@ a {
 
 .navbar__link {
   color: #1E3A8A; /* Dark blue for navbar links */
+  text-decoration: none;
+}
+
+.table-of-contents__link {
+  text-decoration: none;
 }
 
 .navbar {
@@ -227,6 +232,7 @@ a {
 
 .menu__link {
   font-size: 0.875rem;
+  text-decoration: none;
 }
 
 .header-x-link, .header-github-link {

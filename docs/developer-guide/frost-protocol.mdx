@@ -9,12 +9,12 @@ sidebar_position: 2
 
 ## How it Secures the Peg
 
-The two-way peg between Bitcoin and SUBFROST is maintained by a large pool of `FROST` token stakers. The BTC that collateralizes `frBTC` is held in a single Bitcoin address whose private key is managed by the entire validator set using the FROST protocol.
+The two-way peg between Bitcoin and SUBFROST is maintained by a large pool of `FROST` and `frBTC` token stakers. The BTC that collateralizes `frBTC` is held in a single Bitcoin address whose private key is managed by the entire validator set using the FROST protocol.
 
 1.  **Distributed Key Generation (DKG):** When the validator set is formed or changed, the validators perform a DKG ceremony. This is an interactive protocol where each validator generates a *share* of a private key. At the end of the ceremony, a single public key is created for the group, but no individual validator holds the corresponding private key. Each validator only has their own secret share.
 
 2.  **Threshold Signatures:** To spend the BTC held in the multisig address (i.e., to process an unwrap request), a threshold `t` of the total `n` validators must cooperate.
-    -   A user broadcasts an unwrap transaction on the SUBFROST chain.
+    -   A user broadcasts an unwrap transaction on the SUBFROST protocol.
     -   Once finalized, a quorum of validators (at least `t` of them) will each use their private key *share* to create a *partial signature*.
     -   These partial signatures are then aggregated into a single, valid Schnorr signature for the Bitcoin transaction that releases the BTC to the user.
 
