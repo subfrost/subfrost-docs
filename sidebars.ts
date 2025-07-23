@@ -33,10 +33,10 @@ const sidebars: SidebarsConfig = {
       label: 'Technical User Guide',
       items: [
         'user-guide/getting-started',
-        'user-guide/wrapping-frbtc',
         'user-guide/creating-a-keystore',
-        'user-guide/amm',
+        'user-guide/wrapping-frbtc',
         'developer-guide/building-subrail-programs',
+        'user-guide/amm',
       ],
     },
     {
