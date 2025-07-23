@@ -19,7 +19,6 @@ const SplashLoader = ({ loading }) => {
         <div className={styles.logo}>
           <CanvasLogoLarge />
         </div>
-        <p className={styles.loadingText}>LOADING...</p>
       </div>
     </div>
   );

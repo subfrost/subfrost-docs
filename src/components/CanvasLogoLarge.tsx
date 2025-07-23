@@ -45,7 +45,7 @@ const CanvasLogoLarge = () => {
           y + radius * 0.6 * Math.sin(angle) + (radius * 0.3 * Math.sin(angle - Math.PI / 4))
         );
       }
-      ctx.strokeStyle = `rgba(255, 255, 255, 0.9)`;
+      ctx.strokeStyle = '#1E3A8A';
       ctx.lineWidth = 2; // Thicker lines for a larger logo
       ctx.stroke();
     };
