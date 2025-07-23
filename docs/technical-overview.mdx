@@ -3,12 +3,12 @@ title: Technical Overview
 ---
 
 SUBFROST operates as a Layer-0, building fraud proofs as ZK circuits to ensure the integrity of its operations. 
-At its core, SUBFROST uses the **FROST** (Flexible Round-Optimized Schnorr Threshold) signature scheme, allowing signing groups of up to 255 participants to collectively sign transactions. 
-This decentralized approach to custody is managed by a peer-to-peer network built on QUIC and libp2p, ensuring robust and secure communication. Further, SUBFROST is the first network to enforce honest behavior via slashing of the staker's BTC itself.
+At its core, SUB[FROST](./developer-guide/frost-protocol) uses the **[FROST](./developer-guide/frost-protocol)** (Flexible Round-Optimized Schnorr Threshold) signature scheme, allowing signing groups of up to 255 participants to collectively sign transactions. 
+This decentralized approach to custody is managed by a peer-to-peer network built on QUIC and libp2p, ensuring robust and secure communication. Further, SUB[FROST](./developer-guide/frost-protocol) is the first network to enforce honest behavior via slashing of the staker's BTC itself.
 
 We will cover the core components, including:
 
-- **FROST Protocol**: The threshold signature scheme that powers decentralized custody.
-- **Alkanes Metaprotocol**: The bridge that pegs SUBFROST to the Bitcoin protocol.
-- **Subrail**: The WASM runtime for executing consensus-critical logic.
+- **[FROST](./developer-guide/frost-protocol) Protocol**: The threshold signature scheme that powers decentralized custody.
+- **[Alkanes Metaprotocol](./developer-guide/alkanes)**: The bridge that pegs SUB[FROST](./developer-guide/frost-protocol) to the Bitcoin protocol.
+- **[Subrail](./developer-guide/subrail)**: The WASM runtime for executing consensus-critical logic.
 - **Peer-to-Peer Networking**: The communication layer built on QUIC and libp2p.
