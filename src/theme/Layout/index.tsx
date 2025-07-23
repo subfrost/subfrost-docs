@@ -53,6 +53,7 @@ export default function Layout(props: Props): ReactNode {
 
   return (
     <LayoutProvider>
+      <SplashLoader loading={loading} />
       <div className="gradient-background"></div>
       <SnowflakeWatermark />
       <div className={clsx(styles.layout, { [styles.layoutHidden]: loading })}>
