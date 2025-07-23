@@ -5,7 +5,7 @@ sidebar_position: 1
 
 # `subfrost-node` CLI Reference
 
-This page provides a complete reference for all commands, subcommands, and flags available in the `subfrost-node` command-line interface. The `subfrost-node` is the core application for running a validator or full node on the SUBFROST network.
+This page provides a complete reference for all commands, subcommands, and flags available in the `subfrost-node` command-line interface. The `subfrost-node` is the core application for running a signer or full node on the SUBFROST network.
 
 ## Global Options
 
@@ -29,7 +29,7 @@ subfrost-node run [OPTIONS]
 **Options:**
 
 -   `--name <NAME>`: A human-readable name for your node.
--   `--validator`: Run the node in validator mode. This requires a key for signing blocks.
+-   `--signer`: Run the node in signer mode. This requires a key for signing blocks.
 -   `--chain <CHAIN_SPEC>`: Specifies the chain specification. Can be `dev`, `testnet`, or a path to a custom chain spec file.
 -   `--base-path <PATH>`: The path to the node's data directory.
 -   `--port <PORT>`: The port for peer-to-peer communication.
@@ -39,7 +39,7 @@ subfrost-node run [OPTIONS]
 
 ### `keygen`
 
-A utility command to generate a new secret key for a validator.
+A utility command to generate a new secret key for a signer.
 
 **Usage:**
 ```bash

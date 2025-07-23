@@ -207,7 +207,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 a {
   color: #1E3A8A; /* Dark blue for links */
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 .navbar__link {
@@ -261,4 +261,8 @@ a {
   height: 100%;
   background: linear-gradient(to bottom, #E0F2FE, #F0F9FF);
   z-index: -2;
+}
+
+.markdown a {
+  text-decoration: underline;
 }
