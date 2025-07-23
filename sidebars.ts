@@ -20,7 +20,7 @@ const sidebars: SidebarsConfig = {
   docs: [
     {
       type: 'category',
-      label: 'Overview',
+      label: 'SUBFROST Overview',
       items: [
         'index',
         'frbtc-overview',
