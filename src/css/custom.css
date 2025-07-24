@@ -208,6 +208,13 @@ h1, h2, h3, h4, h5, h6 {
 a {
   color: #1E3A8A; /* Dark blue for links */
   text-decoration: none;
+  transition: all 0.2s ease-in-out;
+}
+
+a:hover {
+  transform: scale(1.125);
+  color: white;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
 }
 
 .navbar__title {

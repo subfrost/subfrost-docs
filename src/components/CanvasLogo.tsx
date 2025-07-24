@@ -20,7 +20,7 @@ const CanvasLogo = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let frame = 0;
+    
     const size = 32; // The size of the navbar logo
     canvas.width = size;
     canvas.height = size;
@@ -55,17 +55,14 @@ const CanvasLogo = () => {
       ctx.save();
       
       // Simple animation: pulsing
-      const scale = 1 + Math.sin(frame * 0.05) * 0.05;
-      ctx.translate(size / 2, size / 2);
-      ctx.scale(scale, scale);
-      ctx.translate(-size / 2, -size / 2);
+      
 
 
       drawSnowflake(ctx, size / 2, size / 2, size * 0.45);
 
       ctx.restore();
-      frame++;
-      requestAnimationFrame(draw);
+      
+      
     };
 
     draw();
