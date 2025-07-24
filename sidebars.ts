@@ -25,7 +25,7 @@ const sidebars: SidebarsConfig = {
         'index',
         'frbtc-overview',
         'dxbtc-overview',
-        'developer-guide/frost-token',
+        'frost-token',
       ],
     },
     {
@@ -35,7 +35,7 @@ const sidebars: SidebarsConfig = {
         'user-guide/getting-started',
         'user-guide/creating-a-keystore',
         'user-guide/wrapping-frbtc',
-        'developer-guide/building-subrail-programs',
+        'user-guide/building-subrail-programs',
         'user-guide/amm',
       ],
     },
@@ -43,7 +43,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Security & Architecture',
       items: [
-        'technical-overview',
+        'developer-guide/technical-overview',
         'developer-guide/frost-protocol',
         
         'developer-guide/proof-of-stake',
