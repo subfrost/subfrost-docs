@@ -251,6 +251,21 @@ a:hover {
   transform: none;
 }
 
+/*
+ * Chadson: 2025-07-24
+ *
+ * Override Docusaurus default light blue for pagination and active menu links.
+ * Use the standard dark blue for consistency.
+ */
+.pagination-nav__link:hover {
+  border-color: #1E3A8A; /* Dark blue */
+}
+
+.menu__link--active,
+.menu__link--active:hover {
+  color: #1E3A8A; /* Dark blue */
+}
+
 .header-x-link, .header-github-link {
   display: inline-block;
   width: 20px;
