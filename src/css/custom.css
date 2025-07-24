@@ -187,7 +187,7 @@ body {
   body {
     @apply text-foreground;
     color: #1E3A8A; /* A darker blue for better readability */
-    background: linear-gradient(to bottom, #E0F2FE, #F0F9FF); /* Light frost gradient */
+    background: transparent;
   }
 }
 
@@ -264,7 +264,7 @@ a {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, #E0F2FE, #F0F9FF);
+  background: linear-gradient(to bottom, #bfdbfe, #eff6ff);
   z-index: -2;
 }
 

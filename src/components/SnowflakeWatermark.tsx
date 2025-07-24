@@ -62,7 +62,7 @@ export function SnowflakeWatermark() {
         ctx.moveTo(x, y)
         ctx.lineTo(x + radius * Math.cos(i * Math.PI / 3), y + radius * Math.sin(i * Math.PI / 3))
       }
-      ctx.strokeStyle = `rgba(183, 215, 253, ${opacity})`
+      ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`
       ctx.lineWidth = 1.5
       ctx.stroke()
     }
@@ -70,7 +70,7 @@ export function SnowflakeWatermark() {
     function drawBitcoin(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, opacity: number) {
       // Draw the Bitcoin 'B' symbol
       ctx.font = `${radius * 3.5}px Nunito`
-      ctx.fillStyle = `rgba(183, 215, 253, ${opacity})`
+      ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText('₿', x, y)
