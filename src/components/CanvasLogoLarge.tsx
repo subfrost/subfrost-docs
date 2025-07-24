@@ -21,7 +21,7 @@ const CanvasLogoLarge = () => {
     if (!ctx) return;
 
     let frame = 0;
-    const size = 150; // The size of the splash screen logo
+    const size = 75; // The size of the splash screen logo
     canvas.width = size;
     canvas.height = size;
 
