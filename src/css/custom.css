@@ -247,6 +247,10 @@ a:hover {
   text-decoration: none;
 }
 
+.menu__link:hover, .pagination-nav__link:hover, .table-of-contents__link:hover {
+  transform: none;
+}
+
 .header-x-link, .header-github-link {
   display: inline-block;
   width: 20px;
