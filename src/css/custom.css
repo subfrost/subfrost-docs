@@ -297,3 +297,9 @@ a:hover {
 .markdown a {
   text-decoration: underline;
 }
+
+@media (max-width: 996px) {
+  .navbar-sidebar__back {
+    display: none;
+  }
+}
