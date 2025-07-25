@@ -6,7 +6,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'SUBFROST',
-  tagline: 'Bitcoin Staking, Bitcoin Yield, and Trustless DeFi on the Alkanes Metaprotocol.',
+  tagline: 'SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1.',
   
  
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -61,11 +61,11 @@ const config: Config = {
     image: 'web-app-manifest-512x512.png',
     metadata: [
       {name: 'keywords', content: 'bitcoin, staking, yield, defi, alkanes, metaprotocol, amm, frost, subfrost'},
-      {name: 'description', content: 'SUBFROST is a decentralized custodian that enables Bitcoin staking and Bitcoin yield through a trustless DeFi ecosystem on the Alkanes Metaprotocol.'},
+      {name: 'description', content: 'SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1. SUBFROST is a Layer 0 system, building fraud proofs as ZK circuits to ensure the integrity of its operations.'},
     ],
     og: {
       title: 'SUBFROST | Bitcoin Staking & Yield',
-      description: 'A decentralized custodian for trustless DeFi on Bitcoin.',
+      description: 'SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1. SUBFROST is a Layer 0 system, building fraud proofs as ZK circuits to ensure the integrity of its operations.',
       image: 'web-app-manifest-512x512.png',
     },
     navbar: {

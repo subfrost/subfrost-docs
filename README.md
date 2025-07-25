@@ -6,7 +6,7 @@ This website is built using [Docusaurus](https://docusaurus.io/), a modern stati
 
 This repository contains the source code for the SUBFROST documentation website.
 
-SUBFROST is a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin. It operates as a Layer 0 system, building fraud proofs as ZK circuits to ensure the integrity of its operations.
+SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1. SUBFROST is a Layer 0 system, building fraud proofs as ZK circuits to ensure the integrity of its operations.
 
 ## Installation
 
