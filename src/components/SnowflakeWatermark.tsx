@@ -45,12 +45,12 @@ export function SnowflakeWatermark() {
 
     const particles: Particle[] = []
 
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 67; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         radius: Math.random() * 4 + 2,
-        speed: Math.random() * 0.5 + 0.1,
+        speed: Math.random() * 0.375 + 0.075,
         opacity: Math.random() * 0.7 + 0.3,
         type: Math.random() < 0.75 ? 'snowflake' : 'bitcoin' // 25% chance of being a Bitcoin logo
       })
