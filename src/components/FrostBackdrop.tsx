@@ -11,7 +11,7 @@ interface Particle {
   type: 'snowflake' | 'bitcoin'
 }
 
-export function SnowflakeWatermark() {
+export default function FrostBackdrop() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isMobile, setIsMobile] = useState(false)
 

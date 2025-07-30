@@ -9,7 +9,7 @@ import {
 } from '@docusaurus/theme-common/internal';
 import {DocsPreferredVersionContextProvider} from '@docusaurus/plugin-content-docs/client';
 import type {Props} from '@theme/Layout/Provider';
-import { SnowflakeWatermark } from '@site/src/components/SnowflakeWatermark';
+import FrostBackdrop from '@site/src/components/FrostBackdrop';
 
 const Provider = composeProviders([
   ColorModeProvider,
@@ -21,5 +21,5 @@ const Provider = composeProviders([
 ]);
 
 export default function LayoutProvider({children}: Props): ReactNode {
-  return <Provider><SnowflakeWatermark />{children}</Provider>;
+  return <Provider><FrostBackdrop />{children}</Provider>;
 }
