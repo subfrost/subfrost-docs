@@ -25,6 +25,7 @@ import LayoutProvider from '@theme/Layout/Provider';
 import ErrorPageContent from '@theme/ErrorPageContent';
 import type { Props } from '@theme/Layout';
 import styles from './styles.module.css';
+import FrostBackdrop from '@site/src/components/FrostBackdrop';
 import SplashLoader from '@site/src/components/SplashLoader';
 
 export default function Layout(props: Props): ReactNode {
@@ -54,6 +55,7 @@ export default function Layout(props: Props): ReactNode {
     <LayoutProvider>
       <SplashLoader loading={loading} />
       <div className="gradient-background"></div>
+      <FrostBackdrop loading={loading} />
       <div className={clsx(styles.layout, { [styles.layoutHidden]: loading })}>
         <PageMetadata title={title} description={description} />
 
