@@ -4,8 +4,8 @@
     File: src/theme/Navbar/Logo/index.tsx
     Purpose: Overrides the default Docusaurus logo to use the animated CanvasLogo.
     Project: SUBFROST Documentation
-    Date: 2025-07-25
-    Task: Replace the static navbar logo with the canvas logo.
+    Date: 2025-08-03
+    Task: Increase the size of the snowflake logo by 20%.
   */
 }
 import React, { type ReactNode } from 'react';
@@ -25,7 +25,7 @@ export default function NavbarLogo(): ReactNode {
       target={target}
       aria-label={title}
       className="navbar__brand">
-      <SnowflakeIcon style={{ width: '24px', height: '24px', marginRight: '0.375em', marginLeft: '0.07em' }} />
+      <SnowflakeIcon style={{ width: '29px', height: '29px', marginRight: '0.375em', marginLeft: '0.07em' }} />
       {title && <b className="navbar__title text--truncate">{title}</b>}
     </Link>
   );
