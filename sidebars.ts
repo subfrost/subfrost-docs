@@ -56,7 +56,7 @@ const sidebars: SidebarsConfig = {
         items: [
             'developer-guide/alkanes',
             'developer-guide/BRC 2.0 Metaprotocol',
-            'developer-guide/OP_NET Metaprotocol',
+            
 'developer-guide/Arch Network',
         ],
     },
