@@ -58,7 +58,7 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'web-app-manifest-512x512.png',
+    image: 'Logo.png',
     metadata: [
       {name: 'keywords', content: 'bitcoin, staking, yield, defi, alkanes, metaprotocol, amm, frost, subfrost'},
       {name: 'description', content: 'SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1. SUBFROST is a Layer 0 system, building fraud proofs as ZK circuits to ensure the integrity of its operations.'},
@@ -66,7 +66,7 @@ const config: Config = {
     og: {
       title: 'SUBFROST | Bitcoin Staking & Yield',
       description: 'SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1. SUBFROST is a Layer 0 system, building fraud proofs as ZK circuits to ensure the integrity of its operations.',
-      image: 'web-app-manifest-512x512.png',
+      image: 'Logo.png',
     },
     navbar: {
       title: 'SUBFROST',
