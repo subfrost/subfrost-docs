@@ -46,7 +46,7 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/subfrost/subfrost/tree/main/',
+            'https://github.com/subfrost//tree/main/',
         },
         blog: false,
         theme: {
@@ -82,7 +82,7 @@ const config: Config = {
           className: 'header-x-link',
         },
         {
-          href: 'https://github.com/subfrost/subfrost',
+          href: 'https://github.com/subfrost/',
           position: 'right',
           className: 'header-github-link',
         },
