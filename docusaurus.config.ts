@@ -93,7 +93,7 @@ const config: Config = {
       links: [],
       copyright: `Copyright © ${new Date().getFullYear()} Subzero Research Inc.`,
     },
-    favicon: 'img/favicon.ico',
+    favicon: 'Logo.png',
     prism: {
       theme: prismThemes.dracula,
       darkTheme: prismThemes.dracula,
