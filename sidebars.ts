@@ -21,22 +21,15 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'SUBFROST Overview',
+      link: {
+        type: 'doc',
+        id: 'subfrost-overview/subfrost-purpose',
+      },
       items: [
-        'index',
-        'frbtc-overview',
-        'dxbtc-overview',
-        'frost-token',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Technical User Guide',
-      items: [
-        'user-guide/getting-started',
-        'user-guide/creating-a-keystore',
-        'user-guide/wrapping-frbtc',
-        'user-guide/building-subrail-programs',
-        'user-guide/amm',
+        'subfrost-overview/subfrost-purpose',
+        'subfrost-overview/frbtc-overview',
+        'subfrost-overview/dxbtc-overview',
+        'subfrost-overview/frost-token',
       ],
     },
     {
@@ -48,6 +41,17 @@ const sidebars: SidebarsConfig = {
         
         'developer-guide/proof-of-stake',
         'developer-guide/subrail',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Technical User Guide',
+      items: [
+        'user-guide/getting-started',
+        'user-guide/creating-a-keystore',
+        'user-guide/wrapping-frbtc',
+        'user-guide/building-subrail-programs',
+        'user-guide/amm',
       ],
     },
     {
