@@ -12,7 +12,7 @@ import React, { type ReactNode } from 'react';
 import Link from '@docusaurus/Link';
 import { useThemeConfig } from '@docusaurus/theme-common';
 import type { NavbarLogo } from '@docusaurus/theme-common/internal';
-import SnowflakeIcon from '@site/src/components/SnowflakeIcon';
+import DownloadableSnowflake from '@site/src/components/DownloadableSnowflake';
 
 export default function NavbarLogo(): ReactNode {
   const { navbar: { title, logo } } = useThemeConfig();
@@ -25,7 +25,7 @@ export default function NavbarLogo(): ReactNode {
       target={target}
       aria-label={title}
       className="navbar__brand">
-      <SnowflakeIcon style={{ width: '29px', height: '29px', marginRight: '0.375em', marginLeft: '0.07em' }} />
+      <DownloadableSnowflake />
       {title && <b className="navbar__title text--truncate">{title}</b>}
     </Link>
   );

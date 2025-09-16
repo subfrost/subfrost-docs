@@ -33,3 +33,30 @@ Wrapping involves creating a Bitcoin transaction that performs two actions simul
 Unwrapping is the reverse process, the SUBFROST signers will cooperatively sign a Bitcoin transaction which is automated and secured by the SUBFROST protocol:
 1. **Burn frBTC:** `frBTC` is burned on the SUBFROST protocol.
 2. **Unlock BTC:** An equivalent amount of BTC is released from the multisig address back to the Bitcoin address the user specifies (typically their wallet).
+
+## `frBTC` in Subfrost
+
+The `subfrost-cli` provides a set of commands for wrapping and unwrapping `frBTC`. These commands allow you to:
+
+*   **Wrap BTC:** The `subfrost-cli wrap` command allows you to wrap BTC and mint `frBTC`.
+*   **Unwrap frBTC:** The `subfrost-cli unwrap` command allows you to unwrap `frBTC` and redeem BTC.
+
+### Wrapping BTC
+
+Here is an example of how to use the `subfrost-cli` to wrap BTC:
+
+```bash
+subfrost-cli wrap --amount 1.0 --address <your-subfrost-address>
+```
+
+This command will create a Bitcoin transaction that locks 1.0 BTC and mints 1.0 `frBTC` to your Subfrost address.
+
+### Unwrapping frBTC
+
+Here is an example of how to use the `subfrost-cli` to unwrap `frBTC`:
+
+```bash
+subfrost-cli unwrap --amount 1.0 --address <your-bitcoin-address>
+```
+
+This command will create a Bitcoin transaction that burns 1.0 `frBTC` and sends 1.0 BTC to your Bitcoin address.

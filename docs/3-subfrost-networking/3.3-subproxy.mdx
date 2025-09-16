@@ -1,0 +1,54 @@
+---
+sidebar_label: subproxy
+---
+
+# `subproxy`: Bridging to the `subp2p` Network
+
+`subproxy` is a versatile tool that acts as a bridge between the `subp2p` network and the traditional internet. It allows standard applications to access services running on the `subp2p` network, and it allows local services to be exposed to the `subp2p` network.
+
+`subproxy` can operate in two main modes: as a **SOCKS5 proxy** and as a **reverse proxy**.
+
+## SOCKS5 Proxy Mode
+
+When running as a SOCKS5 proxy, `subproxy` creates a local SOCKS5 server that applications can use to route their traffic to the `subp2p` network. This is particularly useful for applications that don't have native support for `subp2p`.
+
+For example, you could use `curl` to access a web server running on the `subp2p` network:
+
+```sh
+# Start subproxy in SOCKS5 mode
+subproxy --bind-proxy localhost:1080 --circuit p2p.subfrost.io
+
+# Use curl with the SOCKS5 proxy to access a service
+all_proxy=socks5://localhost:1080 curl http://my-service.rail
+```
+
+In this example, `subproxy` will resolve the `.rail` address `my-service.rail` using the name registration service on the `subp2p` network and then forward the HTTP request to the service.
+
+## Reverse Proxy Mode
+
+When running as a reverse proxy, `subproxy` exposes a local TCP service to the `subp2p` network. This allows you to make a service running on your local machine accessible to other peers on the `subp2p` network.
+
+For example, you could expose a local web server running on port 8080 to the `subp2p` network:
+
+```sh
+# Start subproxy in reverse proxy mode and register a name for the service
+subproxy --reverse-proxy localhost:8080 --register my-service.rail --circuit p2p.subfrost.io
+```
+
+In this example, `subproxy` will register the name `my-service.rail` on the `subp2p` network and forward any incoming traffic for that name to the local service on `localhost:8080`.
+
+This is a powerful feature that allows you to create decentralized services that can be accessed from anywhere on the `subp2p` network, without the need for a public IP address or complex firewall configuration.
+
+## `subproxy` in Subfrost
+
+The `subfrost-cli` can be used to run a `subproxy` server. This is useful for creating a bridge between the Subfrost network and the traditional internet.
+
+### Running a `subproxy` Server
+
+Here is an example of how to run a `subproxy` server in SOCKS5 mode:
+
+```bash
+subfrost-cli proxy --bind-proxy localhost:1080 --circuit p2p.subfrost.io
+```
+
+This command will start a `subproxy` server that listens on port 1080 for SOCKS5 connections. You can then configure your applications to use this proxy to access services on the Subfrost network.

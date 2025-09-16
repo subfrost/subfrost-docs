@@ -1,0 +1,66 @@
+---
+sidebar_label: Gossipsub & Encrypted Communication
+---
+
+# Gossipsub and Encrypted Communication
+
+Subfrost uses the [`gossipsub`](https://github.com/libp2p/specs/tree/master/pubsub/gossipsub) protocol for efficient and scalable real-time messaging between peers. `gossipsub` is a pub/sub (publish/subscribe) protocol where peers can subscribe to topics and receive messages that are published to those topics.
+
+This is a core component of the `subp2p` networking layer and is used for a variety of tasks, such as broadcasting transaction and block information, and coordinating multi-party computations like FROST signing ceremonies.
+
+## Topics
+
+`gossipsub` topics are simple strings that are used to identify a particular message channel. Peers can subscribe to any topic, and they will receive all messages that are published to that topic by their connected peers.
+
+In Subfrost, topics are used to create logical communication channels for different purposes. For example, there might be a topic for all messages related to a specific `frBTC` contract, or a topic for a particular FROST signing group.
+
+## Encrypted Communication Channels
+
+While all communication on the `subp2p` network is encrypted at the transport layer (using TLS), `gossipsub` itself does not provide end-to-end encryption for messages. This means that any peer that is subscribed to a topic can read all the messages that are published to that topic.
+
+However, it is possible to build a layer of end-to-end encryption on top of `gossipsub` to create private, encrypted communication channels. This is a powerful pattern that can be used to build secure group chat, private data sharing, and other applications that require confidentiality.
+
+### A Pattern for Secure Group Communication
+
+A common pattern for creating an encrypted communication channel on top of `gossipsub` is as follows:
+
+1.  **Establish a Shared Secret:** A group of peers who want to communicate privately must first agree on a shared secret key. This could be done using a key exchange protocol like Diffie-Hellman, or by deriving the key from a common secret, such as a FROST group public key.
+
+2.  **Derive a Topic and Encryption Key:** The shared secret can then be used to derive both a unique `gossipsub` topic and a symmetric encryption key. For example, the hash of the shared secret could be used as the topic, and the secret itself could be used as the encryption key.
+
+3.  **Encrypt and Publish:** When a peer wants to send a message to the group, it first encrypts the message using the shared encryption key, and then publishes the encrypted message to the derived `gossipsub` topic.
+
+4.  **Receive and Decrypt:** Only the peers who are part of the group and have access to the shared secret will be able to derive the topic, subscribe to it, and decrypt the messages.
+
+This pattern effectively creates a private, end-to-end encrypted communication channel over the public `gossipsub` network. It is a powerful example of how the modular components of Subfrost can be combined to build complex and secure decentralized applications.
+
+## `gossipsub` in Subfrost
+
+The `subfrost-cli` uses `gossipsub` to broadcast messages to the network and to participate in FROST signing ceremonies. When you run the `subfrost-cli`, it subscribes to a set of default topics that are used for general network communication. It also subscribes to topics that are specific to the FROST signing groups that it is a part of.
+
+### Publishing and Subscribing to a Topic
+
+Here is an example of how to use `gossipsub` to publish and subscribe to a topic:
+
+```rust
+use subp2p::Subp2p;
+use subp2p::gossipsub::{GossipsubEvent, IdentTopic as Topic};
+
+// Create a new subp2p node
+let mut subp2p = Subp2p::new().await?;
+
+// Subscribe to a topic
+let topic = Topic::new("my-topic");
+subp2p.subscribe(&topic)?;
+
+// Publish a message to the topic
+subp2p.publish(topic.clone(), "my-message".as_bytes())?;
+
+// Wait for a message to be received
+loop {
+    if let Subp2pEvent::Gossipsub(GossipsubEvent::Message { propagation_source, message_id, message }) = subp2p.next_event().await {
+        println!("Received message: {:?}", message.data);
+        break;
+    }
+}
+```
