@@ -26,7 +26,7 @@ const sidebars: SidebarsConfig = {
         'introduction/1.1-SUBFROST-Overview',
         {
           type: 'doc',
-          id: 'introduction/1.2-technical-overview',
+          id: 'introduction/1.2-Technical-Overview',
           label: 'Technical Overview',
         },
         'introduction/1.3-getting-started',
@@ -36,10 +36,10 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Core Concepts',
       items: [
-        'core-concepts/2.1-alkanes',
-        'core-concepts/2.2-frost-and-roast',
-        'core-concepts/2.3-schnorr-signatures',
-        'core-concepts/2.4-keystore-management',
+        'core-concepts/2.1-Alkanes',
+        'core-concepts/2.2-FROST-and-ROAST',
+        'core-concepts/2.3-Schnorr-Signatures',
+        'core-concepts/2.4-Keystore-Management',
         'core-concepts/2.5-Proof-of-Stake',
       ]
     },
@@ -47,19 +47,19 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Subfrost Networking',
       items: [
-        'subfrost-networking/3.1-introduction-to-subp2p',
-        'subfrost-networking/3.2-subrelay',
-        'subfrost-networking/3.3-subproxy',
-        'subfrost-networking/3.4-subtun',
-        'subfrost-networking/3.5-gossipsub-and-encrypted-communication',
-        'subfrost-networking/3.6-building-microservices-on-subp2p',
+        'subfrost-networking/3.1-Introduction-to-SubP2P',
+        'subfrost-networking/3.2-SubRelay',
+        'subfrost-networking/3.3-SubProxy',
+        'subfrost-networking/3.4-SubTun',
+        'subfrost-networking/3.5-GossipSub-and-Encrypted-Communication',
+        'subfrost-networking/3.6-Building-Microservices-on-SubP2P',
       ]
     },
     {
       type: 'category',
       label: 'Tokens',
       items: [
-        'tokens/4.1-fr-btc',
+        'tokens/4.1-Fr-BTC',
         'tokens/4.2-frBTC-Roadmap',
         'tokens/4.3-Wrapping-FrBTC',
         'tokens/4.4-Fr-BTC-Smart-Contracts',
@@ -73,7 +73,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'developer-guide/5.1-Subfrost-CLI',
         'developer-guide/5.2-Subfrost-Runtime',
-        'developer-guide/5.3-subrail',
+        'developer-guide/5.3-Subrail',
         'developer-guide/5.4-SubSwap',
       ]
     },
@@ -81,8 +81,8 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Reference',
       items: [
-        'reference/6.1-subfrost-node-cli-reference',
-        'reference/6.2-subfrost-cli-reference',
+        'reference/6.1-Subfrost-Node-CLI-Reference',
+        'reference/6.2-Subfrost-CLI-Reference',
         'reference/6.3-Subrail-CLI-Reference',
         'reference/6.4-Glossary',
       ]
