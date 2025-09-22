@@ -36,14 +36,14 @@ This two-phase process makes the online signing phase extremely fast and efficie
 
 -   **No Single Point of Failure:** The full private key never exists in one place, making it impossible for a single compromised signer (or a minority group) to steal the funds.
 -   **Scalability:** The protocol supports a large and dynamic set of signers. New signers can join and old ones can leave through a process called a "reshare" ceremony.
--   **Efficiency:** ROAST's asyncornous design makes the signing process fast and efficient, which is crucial for a high-performance system like SUBFROST.
--   **Flexibility:** FROST' is a flexible protocol that can be adapted to a variety of use cases, such as multisig wallets and their usage in complex decentralized applications like SUBFROST.
+-   **Efficiency:** ROAST's asynchronous design makes the signing process fast and efficient, which is crucial for a high-performance system like SUBFROST.
+-   **Flexibility:** FROST is a flexible protocol that can be adapted to a variety of use cases, such as multisig wallets and their usage in complex decentralized applications like SUBFROST.
 
 This trust-minimized setup is a significant improvement over traditional federated or centralized peg mechanisms, providing a far higher degree of security and decentralization for the assets, such as BTC, locked on the SUBFROST protocol.
 
 ## The SUBFROST Implementation
 
-SUBFROST's implementation of FROST and ROAST is built on top of the `frost-core` and `frost-secp256k1-tr` crates. The `subfrost-core` crate provides the core logic for the SUBFROST protocol, and it uses these crates to implement the FROST and ROAST signing protocols.
+SUBFROSTs implementation of FROST and ROAST is built on top of the `frost-core` and `frost-secp256k1-tr` crates. The `subfrost-core` crate provides the core logic for the SUBFROST protocol, and it uses these crates to implement the FROST and ROAST signing protocols.
 
 The `SUBFROSTEngine` is the main orchestrator of the signing process. It is responsible for:
 
