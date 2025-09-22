@@ -7,6 +7,7 @@
  * Last Modified: 2025-07-23
  * - Increased navbar title font size by 25%.
  * - Changed header icon colors to dark blue.
+ * - Changed the active breadcrumb item color to dark blue.
  */
 
 @font-face {
@@ -302,4 +303,8 @@ a:hover {
   .navbar-sidebar__back {
     display: none;
   }
+}
+
+.breadcrumbs__item--active .breadcrumbs__link {
+  color: #1E3A8A !important;
 }
