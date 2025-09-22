@@ -4,17 +4,17 @@ sidebar_label: Subrail Runtime
 
 # The Subrail Runtime
 
-`Subrail` is the high-performance WebAssembly (WASM) runtime at the heart of the Subfrost ecosystem. It is specifically designed to execute consensus-critical logic, such as the `frBTC` smart contract, and other state transition functions within the Subfrost protocol.
+`Subrail` is the high-performance WebAssembly (WASM) runtime at the heart of the SUBFROST ecosystem. It is specifically designed to execute consensus-critical logic, such as the `frBTC` smart contract, and other state transition functions within the SUBFROST protocol.
 
 ## Purpose and Design
 
-The primary purpose of `Subrail` is to provide a secure, deterministic, and fast execution environment for the programs that define the Subfrost protocol. By using WASM, `Subrail` allows for protocol logic to be developed in any language that can compile to a WASM target (such as Rust, C++, or Go), offering developers flexibility without sacrificing performance.
+The primary purpose of `Subrail` is to provide a secure, deterministic, and fast execution environment for the programs that define the SUBFROST protocol. By using WASM, `Subrail` allows for protocol logic to be developed in any language that can compile to a WASM target (such as Rust, C++, or Go), offering developers flexibility without sacrificing performance.
 
 ### `wasm32-wasip2`
 
 The `Subrail` runtime is based on the `wasm32-wasip2` target, which is a standardized interface for running WebAssembly modules on a variety of systems. `wasip2` provides a set of APIs that allow WASM programs to access system resources, such as the file system, environment variables, and networking, in a secure and portable way.
 
-By using `wasip2`, `Subrail` ensures that Subfrost applications are sandboxed and cannot access system resources that they are not explicitly given permission to access. This is a crucial security feature that protects users from malicious or buggy applications.
+By using `wasip2`, `Subrail` ensures that SUBFROST applications are sandboxed and cannot access system resources that they are not explicitly given permission to access. This is a crucial security feature that protects users from malicious or buggy applications.
 
 ### State Management and `metashrew` Integration
 
@@ -24,7 +24,7 @@ By using `wasip2`, `Subrail` ensures that Subfrost applications are sandboxed an
 
 ### Networking
 
-The `Subrail` runtime provides a restricted networking environment that is tightly integrated with the `subp2p` network. When a Subfrost program running in the runtime makes a network request, the runtime intercepts the request and routes it over the `subp2p` network.
+The `Subrail` runtime provides a restricted networking environment that is tightly integrated with the `subp2p` network. When a SUBFROST program running in the runtime makes a network request, the runtime intercepts the request and routes it over the `subp2p` network.
 
 The runtime provides a TCP bridge that allows WASM programs to make standard TCP connections to services on the `subp2p` network. When a program tries to connect to a TCP address, the runtime will:
 
@@ -37,7 +37,7 @@ This TCP bridging functionality makes it easy to port existing applications to t
 
 ## Execution Lifecycle
 
-When a Subfrost node processes a new block, the following occurs:
+When a SUBFROST node processes a new block, the following occurs:
 
 1.  **Data Ingestion:** The `metashrew` component of the node parses the block and identifies any transactions containing Runestones.
 2.  **Runtime Invocation:** The data from the Runestone (edicts, calldata, etc.) is passed to the `Subrail` runtime.
@@ -47,13 +47,13 @@ When a Subfrost node processes a new block, the following occurs:
 
 ## Writing and Deploying Subrail Programs
 
-Subrail programs are written in Rust and compiled to the `wasm32-wasip2` target. The Subfrost SDK provides a set of libraries and tools that make it easy to write programs that interact with the `subp2p` network and the Alkanes metaprotocol.
+Subrail programs are written in Rust and compiled to the `wasm32-wasip2` target. The SUBFROST SDK provides a set of libraries and tools that make it easy to write programs that interact with the `subp2p` network and the Alkanes metaprotocol.
 
 Once a program has been compiled to WASM, it can be deployed to the `Subrail` runtime using the `subfrost-cli`. The runtime will then execute the program in its secure sandbox, providing it with access to the `subp2p` network and other system resources as needed.
 
 This architecture separates the core node logic from the application-specific logic of the Alkanes, making the entire system more modular, secure, and upgradeable.
 
-## `subrail` in Subfrost
+## `subrail` in `subfrost-cli`
 
 The `subfrost-cli` provides a set of commands for deploying and running `subrail` programs. These commands allow you to:
 

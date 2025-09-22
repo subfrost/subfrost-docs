@@ -7,17 +7,17 @@ sidebar_position: 4
 # Glossary
 
 *   **FROST:** Flexible Round-Optimized Schnorr Threshold. A threshold signature scheme that allows a large, dynamic set of signers to collectively create a single Schnorr signature without any single signer ever possessing the full private key.
-*   **ROAST:** Round-Optimized Schnorr Threshold. An optimization of FROST that allows for a non-interactive signing session, assuming a single round of pre-computation has already been performed.
-*   **`subp2p`:** The foundational peer-to-peer networking layer of the Subfrost ecosystem.
-*   **`subrelay`:** A critical component of the Subfrost networking stack that acts as a rendezvous point, a traffic relay, and a name registrar for the `subp2p` network.
+*   **ROAST:** Robust Asynchronous Schnorr Threshold. An optimization of FROST that allows for a non-interactive signing session, assuming a single round of pre-computation has already been performed.
+*   **`subp2p`:** The foundational peer-to-peer networking layer of the SUBFROST ecosystem.
+*   **`subrelay`:** A critical component of the SUBFROST networking stack that acts as a rendezvous point, a traffic relay, and a name registrar for the `subp2p` network.
 *   **`subproxy`:** A versatile tool that acts as a bridge between the `subp2p` network and the traditional internet.
 *   **`subtun`:** A powerful component that creates a secure, peer-to-peer VPN over the `subp2p` network.
 *   **`frBTC`:** The Bitcoin DeFi-compatible asset pegged 1:1 to BTC and interoperable across every DeFi ecosystem on Bitcoin L1.
-*   **`dxBTC`:** A yield-generating synthetic Bitcoin asset built on top of the Subfrost ecosystem.
-*   **`FROST` Token:** The governance and utility token of the Subfrost ecosystem.
-*   **`subfrost-core`:** The core logic of the Subfrost protocol.
-*   **`subfrost-runtime`:** The core of the Subfrost node. It is a WASM program that contains the consensus logic for the Subfrost protocol.
-*   **`subrail`:** The high-performance WebAssembly (WASM) runtime at the heart of the Subfrost ecosystem.
+*   **`dxBTC`:** A yield-generating synthetic Bitcoin asset.
+*   **`FROST` Token:** The governance and utility token of the SUBFROST protocol
+*   **`subfrost-core`:** The core logic of the SUBFROST protocol.
+*   **`subfrost-runtime`:** The core of the SUBFROST node. It is a WASM program that contains the consensus logic for the SUBFROST protocol.
+*   **`subrail`:** The high-performance WebAssembly (WASM) runtime at the heart of the SUBFROST ecosystem.
 *   **`subswap`:** A suite of commands for interacting with the Automated Market Maker (AMM) functionality of the Alkanes metaprotocol.
 *   **Keystore:** A file that securely stores all the sensitive cryptographic material for a user.
 *   **Schnorr Signature:** A type of digital signature scheme that is known for its simplicity, provable security, and linearity.
@@ -44,7 +44,7 @@ sidebar_position: 4
 *   **AutoNAT:** A protocol that allows a peer to discover its own public IP address.
 *   **Hole Punching (DCUtR):** A technique that allows two peers behind NATs to establish a direct connection with the help of a relay.
 *   **Circuit Relay:** A technique that allows two peers to communicate with each other through a relay when a direct connection cannot be established.
-*   **`SubfrostNetworkBehaviour`:** A composite `libp2p` `NetworkBehaviour` that combines all the different protocols and behaviours used by Subfrost.
+*   **`SUBFROSTNetworkBehaviour`:** A composite `libp2p` `NetworkBehaviour` that combines all the different protocols and behaviours used by SUBFROST.
 *   **`gossipsub`:** A pub/sub (publish/subscribe) protocol where peers can subscribe to topics and receive messages that are published to those topics.
 *   **`mdns`:** A protocol that allows peers to discover each other on a local network without the need for a central server.
 *   **`kademlia`:** A distributed hash table (DHT) that is used for discovering peers on the public internet.
@@ -56,6 +56,6 @@ sidebar_position: 4
 *   **`request_response`:** A protocol for simple request-response interactions.
 *   **`proxy_stream`:** A custom protocol for creating generic, proxied duplex streams between peers.
 *   **`MetashrewProvider`:** A trait that abstracts the connection to a "metashrew" index.
-*   **`SubfrostWasmRunner`:** A trait that defines the interface for running the core consensus logic, which is compiled to WASM.
-*   **`SubfrostApiProvider`:** A trait that exposes the `subfrost_getbundle` API, which is likely the main entry point for users or other services to interact with the Subfrost node.
-*   **`SubfrostEngine`:** The main orchestrator that ties everything together.
+*   **`SUBFROSTWasmRunner`:** A trait that defines the interface for running the core consensus logic, which is compiled to WASM.
+*   **`SUBFROSTApiProvider`:** A trait that exposes the `subfrost_getbundle` API, which is likely the main entry point for users or other services to interact with the SUBFROST node.
+*   **`SUBFROSTEngine`:** The main orchestrator that ties everything together.

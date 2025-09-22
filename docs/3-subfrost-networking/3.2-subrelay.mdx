@@ -2,9 +2,9 @@
 sidebar_label: subrelay
 ---
 
-# `subrelay`: The Subfrost Relay
+# `subrelay`: The SUBFROST Relay
 
-`subrelay` is a critical component of the Subfrost networking stack. It acts as a rendezvous point, a traffic relay, and a name registrar for the `subp2p` network. By providing these essential services, `subrelay` enables peers to connect to each other reliably, even when they are behind restrictive firewalls or NATs.
+`subrelay` is a critical component of the SUBFROST networking stack. It acts as a rendezvous point, a traffic relay, and a name registrar for the `subp2p` network. By providing these essential services, `subrelay` enables peers to connect to each other reliably, even when they are behind restrictive firewalls or NATs.
 
 ## WebTransport and Censorship Resistance
 
@@ -43,9 +43,9 @@ Other peers can then resolve these names to get the `PeerId` and establish a con
 
 The name registration service is built on top of the `request_response` protocol in `libp2p`. A peer can send a `RegisterName` request to the `subrelay`, and the relay will store the mapping in its local memory. When another peer sends a `ResolveName` request, the relay will look up the name and return the corresponding `PeerId`.
 
-## `subrelay` in Subfrost
+## `subrelay` in SUBFROST
 
-The `subfrost-cli` can be used to run a `subrelay` server. This is useful for creating a private Subfrost network or for providing a relay for the public network.
+The `subfrost-cli` can be used to run a `subrelay` server. This is useful for creating a private SUBFROST network or for providing a relay for the public network.
 
 ### Running a `subrelay` Server
 

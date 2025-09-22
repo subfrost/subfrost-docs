@@ -7,13 +7,15 @@ sidebar_position: 4
 
 The Alkanes Metaprotocol is a powerful system for creating stateful, smart contract-like applications on top of the Bitcoin blockchain. It is the engine that powers synthetic assets like `frBTC` and enables complex logic to be executed in a way that is verifiable by the underlying SUBFROST consensus.
 
-## Core Idea: Runestones
+## Runestones
 
 Alkanes builds upon the concept of Runes, embedding protocol messages inside the `OP_RETURN` output of a Bitcoin transaction. This embedded data is called a **Runestone**.
 
-A Runestone is a structured piece of data that instructs the Alkanes protocol on how to alter the state of its "on-chain" programs. Because this data is part of a valid Bitcoin transaction, it inherits the security and immutability of the Bitcoin network.
+A Runestone is a structured piece of data that instructs the Alkanes metaprotocol on how to alter the state of its "on-chain" programs. Because this data is part of a valid Bitcoin transaction, **it inherits the security and immutability of the Bitcoin blockchain.**
 
 The SUBFROST protocol uses a `metashrew` indexer to read these `OP_RETURN` outputs, interpret the Runestones, and apply the resulting state changes to the Alkanes state database.
+
+This mechanism allows for a flexible and expressive way to manage digital assets and execute complex logic, all while **anchored to the security of the Bitcoin blockchain.**
 
 ## Structure of a Runestone
 
@@ -27,7 +29,7 @@ The Runestone token operation has several key fields:
 -   `pointer`: A default output index to assign any unassigned runes.
 -   `calldata`: An arbitrary byte array that can be used to pass data to the Alkane contract, effectively calling a function.
 
-### Example: Minting `frBTC`
+### Example: Minting `frBTC` (Wrapping)
 
 When a user wraps BTC, they create a transaction with a Runestone that looks something like this:
 
@@ -66,5 +68,3 @@ To unwrap, a user spends the UTXO containing `frBTC`. The Runestone in this tran
   }]
 }
 ```
-
-This mechanism allows for a flexible and expressive way to manage digital assets and execute complex logic, all while anchored to the security of the Bitcoin blockchain.

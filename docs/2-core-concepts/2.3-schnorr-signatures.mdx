@@ -4,7 +4,7 @@ sidebar_label: Schnorr Signatures
 
 # Schnorr Signatures
 
-Schnorr signatures are a type of digital signature scheme that is known for its simplicity, provable security, and linearity. They are a key building block of the Subfrost protocol, and they are what make FROST (Flexible Round-Optimized Schnorr Threshold) signatures possible.
+Schnorr signatures are a type of digital signature scheme that is known for its simplicity, provable security, and linearity. They are a key building block of the SUBFROST protocol, and what make FROST and ROAST signatures possible.
 
 ## What is a Digital Signature?
 
@@ -18,7 +18,7 @@ A digital signature scheme typically consists of three algorithms:
 
 ## Advantages of Schnorr Signatures
 
-For many years, the dominant digital signature scheme used in Bitcoin and other cryptocurrencies was the Elliptic Curve Digital Signature Algorithm (ECDSA). However, Schnorr signatures have several advantages over ECDSA, which is why they were included in the Bitcoin Taproot upgrade and why they are used in Subfrost.
+For many years, the dominant digital signature scheme used in Bitcoin and other cryptocurrencies was the Elliptic Curve Digital Signature Algorithm (ECDSA). However, Schnorr signatures have several advantages over ECDSA, which is why they were included in the Bitcoin Taproot upgrade and why they are used in SUBFROST.
 
 ### Linearity
 
@@ -36,17 +36,17 @@ Schnorr signatures are provably secure under standard cryptographic assumptions.
 
 ## Conclusion
 
-Schnorr signatures are a powerful cryptographic tool that provides a number of advantages over older signature schemes. Their linearity, smaller size, and provable security make them an ideal choice for use in cryptocurrencies and other decentralized systems. In Subfrost, Schnorr signatures are a key enabling technology for the FROST threshold signature scheme, which is used to secure the trustless Bitcoin bridge.
+Schnorr signatures are a powerful cryptographic tool that provides a number of advantages over older signature schemes. Their linearity, smaller size, and provable security make them an ideal choice for use in cryptocurrencies, other decentralized systems, and SUBFROST.
 
-## Schnorr Signatures in Subfrost
+## Schnorr Signatures in SUBFROST
 
-Subfrost uses Schnorr signatures extensively throughout the protocol. The `schnorrkel` crate is used to provide the core Schnorr signature functionality.
+SUBFROST uses Schnorr signatures extensively throughout the protocol. The `schnorrkel` crate is used to provide the core Schnorr signature functionality.
 
 ### `frBTC` and `dxBTC` Tokens
 
-The `frBTC` and `dxBTC` tokens are both secured by Schnorr signatures. When a user wants to mint `frBTC` tokens, they must first lock up their BTC in a Bitcoin address that is controlled by the Subfrost signer set. The private key for this address is a Schnorr key that is held by the signers.
+The `frBTC` and `dxBTC` tokens are both secured by Schnorr signatures. When a user wants to mint `frBTC` tokens, they must first lock up their BTC in a Bitcoin address that is controlled by the SUBFROST signer set. The private key for this address is a Schnorr key that is held by the signers.
 
-When a user wants to redeem their `frBTC` tokens for BTC, they must submit a request to the Subfrost network. The Subfrost signers will then use their Schnorr key to sign a Bitcoin transaction that sends the BTC to the user's address.
+When a user wants to redeem their `frBTC` tokens for BTC, they must submit a request to the SUBFROST network. The SUBFROST signers will then use their Schnorr key to sign a Bitcoin transaction that sends the BTC to the user's address.
 
 ### The `schnorrkel` Crate
 

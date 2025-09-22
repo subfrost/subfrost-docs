@@ -1,5 +1,5 @@
 ---
-sidebar_label: frBTC Smart Contracts
+sidebar_label: frBTC - Smart Contracts
 ---
 
 # `frBTC` Smart Contract
@@ -38,10 +38,10 @@ This atomic nature of the wrapping process ensures that users can instantly and 
 
 ### `unwrap` (Opcode 78)
 
-The `unwrap` method is used to convert `frBTC` back into native BTC. This process is orchestrated by the Subfrost nodes running the `subfrost_consensus.wasm` program:
+The `unwrap` method is used to convert `frBTC` back into native BTC. This process is orchestrated by the SUBFROST nodes running the `subfrost_consensus.wasm` program:
 
 1.  A user initiates an unwrap by calling the `unwrap` method on the `frBTC` smart contract. This burns their `frBTC` and creates a burn request in the contract's storage.
-2.  The Subfrost consensus nodes monitor the `frBTC` contract for new burn requests.
+2.  The SUBFROST consensus nodes monitor the `frBTC` contract for new burn requests.
 3.  When a new burn request is detected, the consensus nodes cooperatively sign a Bitcoin transaction to send the corresponding amount of BTC from the FROST-controlled multisig wallet to the user's specified Bitcoin address.
 
 This trust-minimized process ensures that users can always redeem their `frBTC` for native BTC.
@@ -54,7 +54,7 @@ This method is used to set the public key of the FROST signing group that is aut
 
 This method allows anyone to query the `frBTC` contract for a list of pending unwrapping requests. This provides transparency into the unwrapping process and allows users to track the status of their requests.
 
-## `frBTC` Smart Contract in Subfrost
+## `frBTC` in `subfrost-cli`
 
 The `subfrost-cli` provides a set of commands for interacting with the `frBTC` smart contract. These commands allow you to:
 
@@ -69,7 +69,7 @@ Here is an example of how to use the `subfrost-cli` to call the `wrap` method:
 subfrost-cli contract call --contract <contract-address> --method wrap --amount 1.0
 ```
 
-This command will create a Bitcoin transaction that calls the `wrap` method of the `frBTC` smart contract and sends 1.0 BTC to the FROST-controlled multisig wallet.
+This command will create a Bitcoin transaction that calls the `wrap` method of the `frBTC` smart contract and locks 1.0 BTC by sending it to the FROST-controlled multisig wallet.
 
 ### Calling the `unwrap` Method
 
@@ -79,4 +79,4 @@ Here is an example of how to use the `subfrost-cli` to call the `unwrap` method:
 subfrost-cli contract call --contract <contract-address> --method unwrap --amount 1.0 --address <your-bitcoin-address>
 ```
 
-This command will create a Bitcoin transaction that calls the `unwrap` method of the `frBTC` smart contract and burns 1.0 `frBTC`. The Subfrost consensus nodes will then sign a Bitcoin transaction to send 1.0 BTC to your Bitcoin address.
+This command will create a Bitcoin transaction that calls the `unwrap` method of the `frBTC` smart contract and burns 1.0 `frBTC`. The SUBFROST consensus nodes will then sign a Bitcoin transaction to send 1.0 BTC to your Bitcoin address.

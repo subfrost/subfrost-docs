@@ -39,9 +39,9 @@ In this example, `subproxy` will register the name `my-service.rail` on the `sub
 
 This is a powerful feature that allows you to create decentralized services that can be accessed from anywhere on the `subp2p` network, without the need for a public IP address or complex firewall configuration.
 
-## `subproxy` in Subfrost
+## `subproxy` in SUBFROST
 
-The `subfrost-cli` can be used to run a `subproxy` server. This is useful for creating a bridge between the Subfrost network and the traditional internet.
+The `subfrost-cli` can be used to run a `subproxy` server. This is useful for creating a bridge between the SUBFROST network and the traditional internet.
 
 ### Running a `subproxy` Server
 
@@ -51,4 +51,4 @@ Here is an example of how to run a `subproxy` server in SOCKS5 mode:
 subfrost-cli proxy --bind-proxy localhost:1080 --circuit p2p.subfrost.io
 ```
 
-This command will start a `subproxy` server that listens on port 1080 for SOCKS5 connections. You can then configure your applications to use this proxy to access services on the Subfrost network.
+This command will start a `subproxy` server that listens on port 1080 for SOCKS5 connections. You can then configure your applications to use this proxy to access services on the SUBFROST network.

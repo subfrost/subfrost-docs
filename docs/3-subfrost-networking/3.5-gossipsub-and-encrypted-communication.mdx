@@ -4,7 +4,7 @@ sidebar_label: Gossipsub & Encrypted Communication
 
 # Gossipsub and Encrypted Communication
 
-Subfrost uses the [`gossipsub`](https://github.com/libp2p/specs/tree/master/pubsub/gossipsub) protocol for efficient and scalable real-time messaging between peers. `gossipsub` is a pub/sub (publish/subscribe) protocol where peers can subscribe to topics and receive messages that are published to those topics.
+SUBFROST uses the [`gossipsub`](https://github.com/libp2p/specs/tree/master/pubsub/gossipsub) protocol for efficient and scalable real-time messaging between peers. `gossipsub` is a pub/sub (publish/subscribe) protocol where peers can subscribe to topics and receive messages that are published to those topics.
 
 This is a core component of the `subp2p` networking layer and is used for a variety of tasks, such as broadcasting transaction and block information, and coordinating multi-party computations like FROST signing ceremonies.
 
@@ -12,7 +12,7 @@ This is a core component of the `subp2p` networking layer and is used for a vari
 
 `gossipsub` topics are simple strings that are used to identify a particular message channel. Peers can subscribe to any topic, and they will receive all messages that are published to that topic by their connected peers.
 
-In Subfrost, topics are used to create logical communication channels for different purposes. For example, there might be a topic for all messages related to a specific `frBTC` contract, or a topic for a particular FROST signing group.
+In SUBFROST, topics are used to create logical communication channels for different purposes. For example, there might be a topic for all messages related to a specific `frBTC` contract, or a topic for a particular FROST signing group.
 
 ## Encrypted Communication Channels
 
@@ -32,9 +32,9 @@ A common pattern for creating an encrypted communication channel on top of `goss
 
 4.  **Receive and Decrypt:** Only the peers who are part of the group and have access to the shared secret will be able to derive the topic, subscribe to it, and decrypt the messages.
 
-This pattern effectively creates a private, end-to-end encrypted communication channel over the public `gossipsub` network. It is a powerful example of how the modular components of Subfrost can be combined to build complex and secure decentralized applications.
+This pattern effectively creates a private, end-to-end encrypted communication channel over the public `gossipsub` network. It is a powerful example of how the modular components of SUBFROST can be combined to build complex and secure decentralized applications.
 
-## `gossipsub` in Subfrost
+## `gossipsub` in SUBFROST
 
 The `subfrost-cli` uses `gossipsub` to broadcast messages to the network and to participate in FROST signing ceremonies. When you run the `subfrost-cli`, it subscribes to a set of default topics that are used for general network communication. It also subscribes to topics that are specific to the FROST signing groups that it is a part of.
 
