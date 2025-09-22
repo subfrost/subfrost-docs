@@ -34,7 +34,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Core Concepts',
+      label: 'Core Components',
       items: [
         'core-concepts/2.1-alkanes',
         'core-concepts/2.2-frost-and-roast',
@@ -45,7 +45,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Subfrost Networking',
+      label: 'SUBFROST Networking',
       items: [
         'subfrost-networking/3.1-introduction-to-subp2p',
         'subfrost-networking/3.2-subrelay',
@@ -64,7 +64,11 @@ const sidebars: SidebarsConfig = {
         'tokens/4.3-Wrapping-FrBTC',
         'tokens/4.4-Fr-BTC-Smart-Contracts',
         'tokens/4.5-Dx-BTC',
-        'tokens/4.6-FROST-Token',
+        {
+          type: 'doc',
+          id: 'tokens/4.6-FROST-Token',
+          label: 'FROST (Protocol Token)',
+        },
       ]
     },
     {

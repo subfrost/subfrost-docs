@@ -13,34 +13,28 @@ Signers are responsible for:
 -   **Validating Transactions:** Verifying the validity of transactions and state changes proposed by other signers.
 -   **Securing the Peg:** Participating in the FROST threshold signature scheme to sign for the release of BTC during the unwrapping process.
 
-To become a signer, a user must acquire and stake both `FROST` and `frBTC` tokens. The weight of a signers's influence in the consensus process (e.g., their probability of being chosen to propose a transaction) is proportional to the amount they have staked.
+The weight of a signers's influence in the consensus process (e.g., their probability of being chosen to propose a transaction) is proportional to the amount they have staked.
 
-## Tokens and Staking
+## Becoming A Signer
+To become a signer in the FROST threshold signature group, a user must stake `dxFROST` tokens, which are the liquidity provider (LP) tokens for the `FROST`/`frBTC` pool on a decentralized exchange.
 
-The PoS system revolves around two primary tokens:
+`dxFROST` is a yield-bearing, liquid staking token that a user recieves when they stake their `FROST` **and** `frBTC`.
 
-1. `FROST`: The native governance and staking token of the SUBFROST protocol.
-2. `dxFROST`: A yield-bearing, liquid staking token that a user recieves when they stake their `FROST` **and** `frBTC`.
+`dxFROST` automatically accrues staking rewards and can be freely traded or used in other DeFi applications while the underlying `FROST` and `frBTC` remain staked, providing capital efficiency.
 
-Note that `dxFROST` automatically accrues staking rewards and can be freely traded or used in other DeFi applications while the underlying `FROST` and `frBTC` remain staked, providing capital efficiency.
+*This opportunity is not currently available to the public, but explained in Phase 2 on the [**frBTC - Roadmap**](../4-tokens/4.2-frBTC-Roadmap.mdx) page.*
 
-## Economic Security
+## Security & Incentives
 
 The PoS mechanism provides economic security to the network in several ways:
 
--   **Incentives:** Signers are rewarded for their participation with a share of the network's transaction fees. This provides a strong financial incentive to operate a node reliably and honestly.
+-   **Incentives:** Signers are rewarded for their participation with a share of the protocol's transaction fees. This provides a strong financial incentive to operate a node reliably and honestly.
 -   **Slashing:** If a signer acts maliciously (e.g., by trying to double-spend or by signing a fraudulent transaction), their staked `FROST` **and** `frBTC` can be "slashed", meaning a portion of it is seized and burned. This threat of financial loss is a powerful deterrent against attacks.
-
-By requiring signers to have a significant economic stake in the system, the PoS model aligns their interests with the long-term health and security of the network.
-
-## Staking and Security
-
-The `FROST` token also plays a crucial role in the security of the SUBFROST protocol. To become a signer in the FROST threshold signature group, a user must stake `dxFROST` tokens, which are the liquidity provider (LP) tokens for the `FROST`/`frBTC` pool on a decentralized exchange.
 
 This staking mechanism provides several benefits:
 
-*   **Economic Security:** By requiring signers to have a significant economic stake in the system, it disincentivizes malicious behavior. If a signer misbehaves, their staked `dxFROST` can be slashed. This includes slashing **native BTC**.
+*   **Economic Security:** By requiring signers to have a significant economic stake in the system, the PoS model aligns their interests with the long-term health and security of the protocol.
 *   **Liquidity:** The staking requirement ensures that there is always a deep pool of liquidity for the `FROST`/`frBTC` trading pair, which is essential for the health of the ecosystem.
 *   **Alignment of Incentives:** By requiring signers to hold both `FROST` and `frBTC`, it ensures that they are invested in the long-term success of the entire SUBFROST protocol.
 
-Through its roles in governance, value accrual, and security, the `FROST` token is an integral part of the SUBFROST protocol, ensuring its long-term sustainability and growth.
+Through its roles in governance, value accrual, and security, the `FROST` token is an integral part of the SUBFROST protocol, ensuring its sustainability and growth. Learn more on the [**FROST token**](../4-tokens/4.6-FROST-Token.mdx) page.
