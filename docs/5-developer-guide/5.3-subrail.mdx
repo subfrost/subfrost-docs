@@ -1,0 +1,71 @@
+---
+sidebar_label: Subrail Runtime
+---
+
+# The Subrail Runtime
+
+`Subrail` is the high-performance WebAssembly (WASM) runtime at the heart of the Subfrost ecosystem. It is specifically designed to execute consensus-critical logic, such as the `frBTC` smart contract, and other state transition functions within the Subfrost protocol.
+
+## Purpose and Design
+
+The primary purpose of `Subrail` is to provide a secure, deterministic, and fast execution environment for the programs that define the Subfrost protocol. By using WASM, `Subrail` allows for protocol logic to be developed in any language that can compile to a WASM target (such as Rust, C++, or Go), offering developers flexibility without sacrificing performance.
+
+### `wasm32-wasip2`
+
+The `Subrail` runtime is based on the `wasm32-wasip2` target, which is a standardized interface for running WebAssembly modules on a variety of systems. `wasip2` provides a set of APIs that allow WASM programs to access system resources, such as the file system, environment variables, and networking, in a secure and portable way.
+
+By using `wasip2`, `Subrail` ensures that Subfrost applications are sandboxed and cannot access system resources that they are not explicitly given permission to access. This is a crucial security feature that protects users from malicious or buggy applications.
+
+### State Management and `metashrew` Integration
+
+`Subrail` integrates directly with the node's state database. It provides the WASM guest with an API to read from and write to the world state, but only in a controlled, transactional manner.
+
+`Subrail` is powered by `metashrew`, a specialized Bitcoin blockchain indexer. `metashrew` processes Bitcoin blocks, extracts relevant data (like `OP_RETURN` outputs containing Runestones), and provides this data to the `Subrail` runtime. This allows Alkane contracts to be aware of and react to events on the Bitcoin L1.
+
+### Networking
+
+The `Subrail` runtime provides a restricted networking environment that is tightly integrated with the `subp2p` network. When a Subfrost program running in the runtime makes a network request, the runtime intercepts the request and routes it over the `subp2p` network.
+
+The runtime provides a TCP bridge that allows WASM programs to make standard TCP connections to services on the `subp2p` network. When a program tries to connect to a TCP address, the runtime will:
+
+1.  **Intercept the connection:** The runtime will intercept the TCP `connect` call.
+2.  **Resolve the address:** If the address is a `.rail` or `.peer` address, the runtime will use the `subp2p` name resolution service to find the `PeerId` of the target service.
+3.  **Open a `subp2p` stream:** The runtime will then open a `subp2p` proxy stream to the target peer.
+4.  **Bridge the connection:** The runtime will then bridge the TCP connection over the `subp2p` stream, allowing the WASM program to communicate with the remote service as if it were a standard TCP connection.
+
+This TCP bridging functionality makes it easy to port existing applications to the `Subrail` runtime and to build new applications that can seamlessly communicate with services on the `subp2p` network.
+
+## Execution Lifecycle
+
+When a Subfrost node processes a new block, the following occurs:
+
+1.  **Data Ingestion:** The `metashrew` component of the node parses the block and identifies any transactions containing Runestones.
+2.  **Runtime Invocation:** The data from the Runestone (edicts, calldata, etc.) is passed to the `Subrail` runtime.
+3.  **WASM Execution:** `Subrail` loads the appropriate Alkane WASM module (e.g., the `frBTC` contract) and executes it, passing the Runestone data as input.
+4.  **State Transition:** The WASM module executes its logic. If it's a `mint` operation, it will calculate the new `frBTC` balance and use the `Subrail` API to write this new state to a pending state transition.
+5.  **State Commit:** Once the block is fully processed and consensus is reached, the pending state transitions are committed to the node's database, finalizing the changes.
+
+## Writing and Deploying Subrail Programs
+
+Subrail programs are written in Rust and compiled to the `wasm32-wasip2` target. The Subfrost SDK provides a set of libraries and tools that make it easy to write programs that interact with the `subp2p` network and the Alkanes metaprotocol.
+
+Once a program has been compiled to WASM, it can be deployed to the `Subrail` runtime using the `subfrost-cli`. The runtime will then execute the program in its secure sandbox, providing it with access to the `subp2p` network and other system resources as needed.
+
+This architecture separates the core node logic from the application-specific logic of the Alkanes, making the entire system more modular, secure, and upgradeable.
+
+## `subrail` in Subfrost
+
+The `subfrost-cli` provides a set of commands for deploying and running `subrail` programs. These commands allow you to:
+
+*   **Deploy a program:** The `subfrost-cli rail deploy` command allows you to deploy a `subrail` program to the `subp2p` network.
+*   **Run a program:** The `subfrost-cli rail run` command allows you to run a `subrail` program on your local machine.
+
+### Deploying a `subrail` Program
+
+Here is an example of how to use the `subfrost-cli` to deploy a `subrail` program:
+
+```bash
+subfrost-cli rail deploy --path my-program.wasm --name my-program.rail --circuit p2p.subfrost.io
+```
+
+This command will deploy the `my-program.wasm` file to the `subp2p` network and register the name `my-program.rail` with the `subrelay` at `p2p.subfrost.io`. You can then run this program from any other peer on the network.

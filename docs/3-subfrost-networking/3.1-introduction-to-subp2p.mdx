@@ -1,0 +1,92 @@
+---
+sidebar_label: Introduction to subp2p
+---
+
+# Introduction to `subp2p`
+
+`subp2p` is the foundational peer-to-peer networking layer of the Subfrost ecosystem. It is built on top of the powerful and flexible [`libp2p`](https://libp2p.io/) framework, providing a secure and robust foundation for all other Subfrost components to communicate with each other.
+
+## Core Concepts
+
+At its core, `subp2p` is responsible for:
+
+*   **Peer Discovery:** Finding and connecting to other peers on the network.
+*   **Transport:** Establishing secure and reliable communication channels between peers.
+*   **Stream Multiplexing:** Allowing multiple independent streams of communication to coexist over a single connection.
+*   **Protocol Negotiation:** Allowing peers to agree on which protocols to use for communication.
+
+## Key Features
+
+`subp2p` leverages the rich feature set of `libp2p` and extends it with Subfrost-specific functionality.
+
+### Multi-Transport Support
+
+`subp2p` supports multiple transport protocols, allowing it to operate in a variety of network environments:
+
+*   **TCP:** The standard transport protocol for most internet traffic.
+*   **QUIC:** A modern, encrypted transport protocol that provides faster connection establishment and better performance on lossy networks.
+*   **WebTransport:** A new protocol based on HTTP/3 and QUIC that allows for secure, multiplexed communication between web clients and servers. This is the primary transport used by Subfrost, as it allows `subp2p` nodes to run directly in the browser and to be easily proxied behind standard web servers and CDNs like Cloudflare.
+
+### Peer Discovery
+
+`subp2p` uses multiple mechanisms for peer discovery:
+
+*   **mDNS:** Multicast DNS allows peers to discover each other on a local network without the need for a central server.
+*   **Kademlia DHT:** A distributed hash table (DHT) is used for discovering peers on the public internet. Peers can publish their contact information to the DHT, and other peers can query the DHT to find them.
+
+### Secure and Private Communication
+
+All communication on the `subp2p` network is encrypted and authenticated using modern cryptographic protocols. `subp2p` uses `noise` for its encrypted handshake, ensuring that all communication between peers is private and secure.
+
+### Network Address Translation (NAT) Traversal
+
+`subp2p` incorporates several mechanisms for NAT traversal, allowing peers behind firewalls and NATs to connect to each other:
+
+*   **AutoNAT:** Allows a peer to discover its own public IP address.
+*   **Hole Punching (DCUtR):** Allows two peers behind NATs to establish a direct connection with the help of a relay.
+*   **Circuit Relay:** When a direct connection cannot be established, `subp2p` can use a relay peer to forward traffic between two peers.
+
+## `SubfrostNetworkBehaviour`
+
+The heart of a `subp2p` node is the `SubfrostNetworkBehaviour`. This is a composite `libp2p` `NetworkBehaviour` that combines all the different protocols and behaviours used by Subfrost:
+
+*   **`gossipsub`:** For pub/sub messaging.
+*   **`mdns`:** For local peer discovery.
+*   **`kademlia`:** For distributed peer discovery and content routing.
+*   **`relay_client` and `relay_server`:** For circuit relaying.
+*   **`dcutr`:** For direct connection upgrade through NATs.
+*   **`identify`:** For discovering the public address of a peer.
+*   **`autonat`:** For determining if a peer is behind a NAT.
+*   **`ping`:** For checking the liveness of a peer.
+*   **`request_response`:** For simple request-response interactions.
+*   **`proxy_stream`:** A custom protocol for creating generic, proxied duplex streams between peers.
+
+This modular and extensible architecture allows `subp2p` to provide a rich set of networking capabilities that can be easily leveraged by higher-level applications in the Subfrost ecosystem.
+
+## `subp2p` in Subfrost
+
+The `subfrost-cli` uses `subp2p` to connect to the Subfrost network and to communicate with other peers. When you run the `subfrost-cli`, it creates a `subp2p` node and joins the Subfrost network. This allows it to:
+
+*   **Discover other peers:** The `subfrost-cli` uses the Kademlia DHT to discover other peers on the network.
+*   **Communicate with other peers:** The `subfrost-cli` uses `gossipsub` to broadcast messages to the network and `request_response` to send direct messages to other peers.
+*   **Participate in FROST signing ceremonies:** The `subfrost-cli` uses `subp2p` to communicate with other signers during FROST signing ceremonies.
+
+### Creating a `subp2p` Node
+
+Here is an example of how to create a `subp2p` node:
+
+```rust
+use subp2p::Subp2p;
+
+// Create a new subp2p node
+let mut subp2p = Subp2p::new().await?;
+
+// Listen on a random TCP port
+subp2p.listen_on("/ip4/0.0.0.0/tcp/0".parse()?).await?;
+
+// Start the event loop
+loop {
+    let event = subp2p.next_event().await;
+    println!("New event: {:?}", event);
+}
+```

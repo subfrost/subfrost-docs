@@ -1,0 +1,74 @@
+---
+title: frBTC - Roadmap
+sidebar_label: frBTC - Roadmap
+---
+
+import Admonition from '@theme/Admonition';
+
+# frBTC Roadmap
+
+## Progressive Decentralization
+
+The launch of `frBTC` on [Alkanes](../2-core-concepts/2.1-Alkanes.mdx) marks a pivotal moment for Bitcoin DeFi. For the first time, users can access a truly native, decentralized BTC synthetic without leaving the Bitcoin L1 ecosystem.
+
+This roadmap outlines our "Progressive Decentralization" strategy — a transparent, two-phased approach designed to ensure maximum security as we transition from a system with elements of human-accountablility to one based purely on mathematical and economic guarantees.
+
+<Admonition type="info" title="A Note on Security">
+`frBTC` has undergone extensive ALPHA testing by our team and partners. While we have the utmost confidence in the SUBFROST protocol and have dedicated our life to it, this technology is the first of its kind on Bitcoin L1. Our phased rollout is designed to protect users as we progressively scale the system's trustlessness.
+</Admonition>
+
+### Core Technical Components
+
+The underlying technology remains consistent and robust across all phases, providing a stable and secure foundation for `frBTC`.
+- **Libp2p** for peer-to-peer networking.
+- **wasm32-wasip2** for deterministic, sandboxed computation.
+- **WebTransport (HTTP/3)** for efficient and secure communication.
+- **[FROST & ROAST](../2-core-concepts/2.2-FROST-and-ROAST.mdx)** for cutting-edge threshold signatures.
+
+The primary evolution across phases is the composition of the signer set.
+
+---
+
+## ALPHA
+### EXPECTED BY END OF SEPTEMBER
+
+The ALPHA phase on Alkanes establishes the core functionality of `frBTC` with an advanced multisig protocol managed by a trusted group of signers.
+
+- **9 key shares** are held by trusted participants with a significant vested interest in the long-term success of `frBTC`.
+- **6 signers** are randomly selected from this group to authorize unwrap transactions.
+- **Audits & Transparency:** Formal security audits will begin immediately, with progress communicated bi-weekly. We encourage users to review our materials and participate in this phase with a full understanding that although many of its componants have been auditted, the end-to-end SUBFROST protocol has not.
+
+Building is already underway on the **Arch Network** via the Titan Indexer, and on **BRC2.0** (as the 6-byte ticker "fr-BTC").
+
+## Phase 1
+### Improved Doxxed Multisig
+
+This phase distributes key shares among **publicly known** and trusted leaders in the Bitcoin and DeFi space.
+
+- **9 initial key shares** held by publically known entitites, but as Total Value Locked (TVL) grows, the number of key shares will grow as well.
+- A **quorum of 6 out of 9 signers** will be required for any action, ensuring broad consensus among these **publicly accountable participants.**
+
+## Phase 2
+### Trustless Economic Security
+
+The final phase transitions `frBTC` to a fully trustless and decentralized model secured by robust economic incentives.
+
+- The signers from Phase 2 will be replaced by up to **255 permissionless stakers** who must meet a significant economic threshold. This threshold will dynamically increase as the protocol’s TVL grows.
+- With up to 255 signers, **170 of the 255** will be randomly selected to sign unwrap transactions.
+- **Staking:** The stake is expected to be a combination of BTC in the form of frBTC, and the [FROST Token](./4.6-FROST-Token.mdx), creating a powerful incentive for honest participation. Learn more about SUBFROST's Proof-of-Stake [here](../2-core-concepts/2.5-Proof-of-Stake.mdx).
+
+---
+
+### Why a Phased Approach?
+
+This strategy is the most responsible way to build critical, decentralized, infrastructure on Bitcoin. It allows us to:
+1.  Launch `frBTC` on mainnet with an unparalleled level of security, immediately unlocking growth and innovation in Bitcoin DeFi.
+2.  Leverage the growth of `frBTC` to build the powerful economic incentives required to secure the SUBFROST protocol via a massive, decentralized staking network.
+
+### The Future is Bright for SUBFROST
+
+The SUBFROST protocol is designed to capture value from the growth it enables. A **-0.3% fee** on every on-chain wrap, and **+0.1% INCENTIVE** on unwrap transactions provide a sustainable revenue stream with a direct benefit to Bitcoin DeFi at large.
+
+Furthermore, future offerings like the yield-bearing **dxBTC** token are built upon the success and utilization of `frBTC`, creating a flywheel of value for stakers and users alike.
+
+The SUBFROST team has dedicated over seven years of research to solving the challenge of securing Bitcoin for productive use. We are proud to deliver on this vision and are more committed than ever to building the future of Bitcoin DeFi.

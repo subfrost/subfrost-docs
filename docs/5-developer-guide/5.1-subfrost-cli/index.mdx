@@ -1,0 +1,107 @@
+---
+sidebar_label: subfrost-cli
+---
+
+# `subfrost-cli`: The Subfrost Command Line Interface
+
+`subfrost-cli` is the primary command-line tool for interacting with the Subfrost network. It provides a rich set of commands for managing your FROST keystore, participating in signing ceremonies, and interacting with services running on the `subp2p` network.
+
+## Installation
+
+You can install `subfrost-cli` using `cargo`:
+
+```sh
+cargo install subfrost-cli
+```
+
+## Keystore Management
+
+A Subfrost keystore is a file that securely stores your cryptographic keys. `subfrost-cli` provides a set of commands for creating and managing your keystore.
+
+### Creating a Keystore
+
+To create a new keystore, you can use the `frost create` command:
+
+```sh
+subfrost-cli frost create --threshold 2 --signers 3 > keystore.json
+```
+
+This command will create a new keystore with a 2-of-3 threshold and save it to a file named `keystore.json`. You will be prompted to enter a passphrase to encrypt the keystore.
+
+### Inspecting a Keystore
+
+You can inspect the contents of a keystore using the `frost info` command:
+
+```sh
+subfrost-cli frost info --keystore keystore.json
+```
+
+This will print out the public information about the keystore, such as the group public key and the list of participants.
+
+## FROST Wallet
+
+The `frost` subcommand provides a complete FROST wallet that allows you to participate in Distributed Key Generation (DKG) and signing ceremonies.
+
+### Distributed Key Generation (DKG)
+
+To create a new FROST group, you and the other participants must perform a DKG ceremony. This is an interactive process where you will exchange messages with the other participants to collaboratively generate a group public key and your individual secret shares.
+
+To start a DKG ceremony, use the `frost dkg` command:
+
+```sh
+subfrost-cli frost dkg --keystore keystore.json --passphrase <your-passphrase> --threshold 2 --signers 3 --topic my-dkg-topic
+```
+
+This will start the DKG process and wait for the other participants to join the `my-dkg-topic` on the `subp2p` network.
+
+### Signing
+
+Once a FROST group has been created, you can use it to sign messages. To sign a message, use the `frost sign` command:
+
+```sh
+subfrost-cli frost sign --keystore keystore.json --passphrase <your-passphrase> --message "Hello, world!" --topic my-signing-topic
+```
+
+This will initiate a signing ceremony on the `my-signing-topic`. Once the required threshold of participants have joined and provided their partial signatures, the final aggregated signature will be printed to the console.
+
+## Interacting with `subp2p` Services
+
+The `rail` subcommand allows you to interact with any JSON-RPC service running on the `subp2p` network.
+
+```sh
+subfrost-cli rail <service-uri> <method> [params...]
+```
+
+*   `<service-uri>`: The `.rail` or `.peer` address of the service.
+*   `<method>`: The name of the JSON-RPC method to call.
+*   `[params...]`: The parameters to pass to the method.
+
+For example, to call the `get_height` method on a `subrail` service running at `my-consensus-node.rail`:
+
+```sh
+subfrost-cli rail subp2p://my-consensus-node.rail subrail_height
+```
+
+This powerful command allows you to interact with any service on the `subp2p` network directly from the command line, making it an invaluable tool for debugging and development.
+
+## `subfrost-cli` in Subfrost
+
+The `subfrost-cli` is the primary tool for interacting with the Subfrost network. It can be used to:
+
+*   **Manage your keystore:** Create, import, and export your Subfrost keystore.
+*   **Participate in FROST signing ceremonies:** Participate in DKG and signing ceremonies to create and use FROST threshold signatures.
+*   **Interact with `subp2p` services:** Interact with any JSON-RPC service running on the `subp2p` network.
+*   **Wrap and unwrap `frBTC`:** Wrap BTC to mint `frBTC` and unwrap `frBTC` to redeem BTC.
+*   **Mint and burn `dxBTC`:** Mint `dxBTC` by locking up `frBTC` and burn `dxBTC` to redeem `frBTC`.
+*   **Stake `dxFROST`:** Stake `dxFROST` tokens to become a signer in the FROST threshold signature group.
+*   **Participate in governance:** Vote on governance proposals.
+
+### Getting the Balance of an `frBTC` Address
+
+Here is an example of how to use the `subfrost-cli` to get the balance of an `frBTC` address:
+
+```bash
+subfrost-cli rail subp2p://my-consensus-node.rail fr_btc_balance --address <your-subfrost-address>
+```
+
+This command will call the `fr_btc_balance` method on the `subrail` service running at `my-consensus-node.rail` and return the balance of the specified address.
