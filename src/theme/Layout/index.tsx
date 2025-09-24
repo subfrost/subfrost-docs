@@ -1,14 +1,15 @@
 {
   /*
-    Chadson v69.1.0
+    Chadson v69.69
     File: src/theme/Layout/index.tsx
     Purpose: Main layout component for the Docusaurus site. Integrates the splash loader and sticky footer.
     Project: SUBFROST Documentation
-    Date: 2025-07-16
-    Task: Implement sticky footer.
+    Date: 2025-09-24
+    Task: Add Google Tag to all pages.
   */
 }
 import React, { useState, useEffect, type ReactNode } from 'react';
+import Head from '@docusaurus/Head';
 import clsx from 'clsx';
 import ErrorBoundary from '@docusaurus/ErrorBoundary';
 import {
@@ -53,6 +54,22 @@ export default function Layout(props: Props): ReactNode {
 
   return (
     <LayoutProvider>
+      <Head>
+        {/* Google tag (gtag.js) */}
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-2NV4F5YNHJ"
+        />
+        <script>
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-2NV4F5YNHJ');
+          `}
+        </script>
+      </Head>
       <SplashLoader loading={loading} />
       <div className="gradient-background"></div>
       <FrostBackdrop loading={loading} />
