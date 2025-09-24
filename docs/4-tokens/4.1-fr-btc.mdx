@@ -12,18 +12,24 @@ This is achieved through a trust-minimized process that locks BTC on the Bitcoin
 
 ## How to Get frBTC
 
-SUBFROST will first launch `frBTC` wrapping through partner integrations, like OYL, Ordiscan, Satonomy, etc. on Alkanes. This will allow users to conveniently wrap/unwrap their BTC without leaving these DeFi applications.
+SUBFROST will first launch `frBTC` wrapping through partner integrations, like OYL, iDclub, Ordiscan, Satonomy, etc. on Alkanes.
 
-Additionally, the team is already collaborating with these partners to integrate the `frBTC` wrap contract into the front of their transactions. This enables users, in a **single transaction**, to enter advanced DeFi apps on Bitcoin L1 with native BTC, **completely abstracting-away** the need to wrap their BTC first.
+This allows users to conveniently wrap/unwrap their BTC without leaving these DeFi applications.
+
+Additionally, the team is already collaborating with these partners to integrate the `frBTC` wrap contract into the front of their transactions.
+
+This enables users, in a **single transaction**, to enter advanced DeFi apps on Bitcoin L1 with native BTC, **completely abstracting-away** the need to wrap their BTC first.
 
 ![frBTC diagram](../Diagrams/frBTC_flow.png)
-This is the first time in history, across any blockchain, that a user can swap native **BTC** to something like a USD stablecoin, atomically, in an entirely decentralized manner with minimal trust assumptions (Bitcoin consensus + FROST & ROAST cryptography).
+This is the first time across any blockchain, that a user can swap native **BTC** to something like a USD stablecoin, atomically, in an entirely decentralized manner with minimal trust assumptions (Bitcoin consensus + FROST & ROAST cryptography).
 
-`frBTC` will be live on Alkanes shortly in ALPHA, and our team has already begun building it into BRC 2.0 (as the 6-byte "fr-BTC" ticker) and Arch Network (via the Titan Indexer). 
+`frBTC` is live on Alkanes in ALPHA, and our team has already begun building it into **BRC 2.0** (as the 6-byte "fr-BTC" ticker) and **Arch Network** (via the Titan Indexer). 
+
+Learn more about our frBTC roadmap [**here.**](./4.2-frBTC-Roadmap.mdx)
 
 ## Wrapping Overview
 
-Wrapping involves creating a Bitcoin transaction that performs two actions simultaneously:
+Wrapping involves creating one Bitcoin transaction that performs two actions simultaneously:
 1.  **Lock BTC:** Your BTC is sent to a secure, multisignature address controlled by the SUBFROST signers.
 2.  **Mint frBTC:** An `OP_RETURN` output in the same transaction contains instructions for the Alkanes metaprotocol to mint an equivalent amount of `frBTC` and assign it to your Bitcoin address.
 

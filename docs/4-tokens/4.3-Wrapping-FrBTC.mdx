@@ -13,13 +13,13 @@ This guide will walk you through the process using the `subrail-cli` CLI.
 
 ## Wrapping Process
 
-Wrapping involves creating a Bitcoin transaction that performs two actions simultaneously:
+Wrapping involves creating one Bitcoin transaction that performs two actions simultaneously:
 1.  **Locks BTC:** Your BTC is sent to a secure, multisignature address controlled by the SUBFROST signers.
-2.  **Mints frBTC:** An `OP_RETURN` output in the same transaction contains instructions for the Alkanes metaprotocol to mint an equivalent amount of `frBTC` and assign it to your SUBFROST address.
+2.  **Mints frBTC:** An `OP_RETURN` output in the same transaction contains instructions for the Alkanes metaprotocol to mint an equivalent amount of `frBTC` and assign it to your Bitcoin address.
 
 ### 1. Generate a SUBFROST Wallet
 
-If you haven't already, you need a SUBFROST wallet to receive your `frBTC`.
+For technical users, if you haven't already, you need a SUBFROST wallet to receive your `frBTC`.
 
 ```bash
 subrail-cli wallet create
@@ -65,7 +65,7 @@ subrail-cli balance --address <your-subfrost-address>
 
 ## Unwrapping Process
 
-Unwrapping is the reverse process: `frBTC` is burned and the equivalent amount of BTC is released from the multisig address back to a Bitcoin address you specify.
+Unwrapping is the reverse process: `frBTC` is burned and the equivalent amount of BTC is released from the SUBFROST multisig address back to a Bitcoin address you specify.
 
 ### 1. Initiate the Unwrap
 
@@ -90,4 +90,4 @@ subrail-cli alkanes execute \
 
 ### 2. Receive Your BTC
 
-Once the Unwrap transaction is finalized, the signers will cooperatively sign a Bitcoin transaction to release the locked BTC to your specified destination address. This process is automated and secured by the SUBFROST Protocol.
+Once the Unwrap transaction is finalized, the SUBFROST signers will cooperatively sign a Bitcoin transaction to release the locked BTC to your specified destination address. This process is automated and secured by the SUBFROST Protocol.
