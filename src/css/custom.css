@@ -303,8 +303,13 @@ a:hover {
   .navbar-sidebar__back {
     display: none;
   }
+  .theme-doc-toc-mobile, .theme-doc-toc-desktop {
+    display: none;
+  }
 }
 
 .breadcrumbs__item--active .breadcrumbs__link {
   color: #1E3A8A !important;
 }
+
+
