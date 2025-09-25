@@ -33,7 +33,7 @@ Wrapping involves creating one Bitcoin transaction that performs two actions sim
 1.  **Lock BTC:** Your BTC is sent to a secure, multisignature address controlled by the SUBFROST signers.
 2.  **Mint frBTC:** An `OP_RETURN` output in the same transaction contains instructions for the Alkanes metaprotocol to mint an equivalent amount of `frBTC` and assign it to your Bitcoin address.
 
-**Fee:** A small -0.3% fee is charged on every on-chain wrap.
+**Fee:** A small 0.1% fee is charged on every on-chain wrap.
 
 ## Unwrapping Overview
 
@@ -41,6 +41,6 @@ Unwrapping is the reverse process, the SUBFROST signers will cooperatively sign 
 1. **Burn frBTC:** `frBTC` is burned on the SUBFROST protocol.
 2. **Unlock BTC:** An equivalent amount of BTC is released from the multisig address back to the Bitcoin address the user specifies (typically their wallet).
 
-**Incentive:** Rather than a fee, a +0.1% INCENTIVE is provided on every unwrap transaction.
+**Fee:** A small 0.1% fee is charged on every unwrap transaction.
 
 To learn more about these processes on a technical level, please look at the [**frBTC - Wrapping/Unwrapping**](./4.3-Wrapping-FrBTC) and [**frBTC - Smart Contracts**](./4.4-Fr-BTC-Smart-Contracts) pages.
