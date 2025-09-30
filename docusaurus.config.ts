@@ -120,7 +120,7 @@ const config: Config = {
       insights: true,
       translations: {
         button: {
-          buttonText: 'keyword search',
+          buttonText: 'Search',
         },
       },
     },
