@@ -115,7 +115,7 @@ const config: Config = {
     algolia: {
       appId: '828A36RRFA',
       apiKey: '1d544d5ae2a793a8c24381689a059590',
-      indexName: 'subfrost-docs-crawler',
+      indexName: 'subfrost docs crawler',
       contextualSearch: true,
       insights: true,
       translations: {
