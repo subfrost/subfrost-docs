@@ -75,7 +75,7 @@ const sidebars: SidebarsConfig = {
         {
           type: 'doc',
           id: 'tokens/4.6-FROST-Token',
-          label: 'FROST (Protocol Token)',
+          label: 'FROST - Protocol Token',
         },
       ]
     },
