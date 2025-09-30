@@ -11,11 +11,13 @@ This is achieved through a trust-minimized process that locks BTC on the Bitcoin
 
 This guide will walk you through the process using the `subrail-cli` CLI.
 
-## Wrapping Process
+## Wrapping Overview
 
 Wrapping involves creating one Bitcoin transaction that performs two actions simultaneously:
-1.  **Locks BTC:** Your BTC is sent to a secure, multisignature address controlled by the SUBFROST signers.
-2.  **Mints frBTC:** An `OP_RETURN` output in the same transaction contains instructions for the Alkanes metaprotocol to mint an equivalent amount of `frBTC` and assign it to your Bitcoin address.
+1.  **Lock BTC:** Your BTC is sent to a secure, multisignature address controlled by the SUBFROST signers.
+2.  **Mint frBTC:** An `OP_RETURN` output in the same transaction contains instructions for the Alkanes metaprotocol to mint an equivalent amount of `frBTC` and assign it to your Bitcoin address.
+
+**Fee:** A small 0.1% fee is charged on every on-chain wrap.
 
 ### 1. Generate a SUBFROST Wallet
 
@@ -57,7 +59,7 @@ subrail-cli alkanes execute \
 
 ### 3. Confirm Your `frBTC` Balance
 
-After the Bitcoin transaction is confirmed, the `frBTC` will be minted on the SUBFROST protocol. You can check your balance using `subrail-cli`.
+After the Bitcoin transaction is confirmed, the frBTC will be minted on the target protocol. You can check your balance using `subrail-cli`.
 
 ```bash
 subrail-cli balance --address <your-subfrost-address>
@@ -65,7 +67,15 @@ subrail-cli balance --address <your-subfrost-address>
 
 ## Unwrapping Process
 
-Unwrapping is the reverse process: `frBTC` is burned and the equivalent amount of BTC is released from the SUBFROST multisig address back to a Bitcoin address you specify.
+Unwrapping is the reverse process: `frBTC` is burned (or, melted!) and the equivalent amount of BTC is released from the SUBFROST multisig address back to a Bitcoin address you specify.
+
+## Unwrapping Overview
+
+Unwrapping is the reverse process, the SUBFROST signers will cooperatively sign a Bitcoin transaction which is automated and secured by the SUBFROST protocol:
+1. **Burn frBTC:** `frBTC` is burned on the SUBFROST protocol.
+2. **Unlock BTC:** An equivalent amount of BTC is released from the multisig address back to the Bitcoin address the user specifies (typically their wallet).
+
+**Fee:** A small 0.1% fee is charged on every unwrap transaction.
 
 ### 1. Initiate the Unwrap
 

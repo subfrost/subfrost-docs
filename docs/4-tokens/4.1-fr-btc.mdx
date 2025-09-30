@@ -10,37 +10,18 @@ sidebar_position: 2
 
 This is achieved through a trust-minimized process that locks BTC on the Bitcoin mainnet (Layer-1) and **atomically** mints a corresponding amount of `frBTC` for the user.
 
-## How to Get frBTC
+## How can I use frBTC?
 
-SUBFROST will first launch `frBTC` wrapping through partner integrations, like OYL, iDclub, Ordiscan, Satonomy, etc. on Alkanes.
+SUBFROST will first launch `frBTC` wrapping through partner integrations, like the OYL AMM, iDclub, Ordiscan, Satonomy, and others on Alkanes. This allows users to conveniently wrap/unwrap their BTC without leaving these DeFi applications.
 
-This allows users to conveniently wrap/unwrap their BTC without leaving these DeFi applications.
+Even better, teams are already collaborating to integrate the `frBTC` wrap contract into the front of their transactions.
 
-Additionally, the team is already collaborating with these partners to integrate the `frBTC` wrap contract into the front of their transactions.
-
-This enables users, in a **single transaction**, to enter advanced DeFi apps on Bitcoin L1 with native BTC, **completely abstracting-away** the need to wrap their BTC first.
-
+:::danger FOR THE FIRST TIME ACROSS ANY BLOCKCHAIN✨ 
+Users, in a **single transaction**, will be able to enter advanced DeFi apps on Bitcoin L1 with native BTC, completely abstracting-away the need to wrap their BTC first.
+:::
+The example below illustrates a user swapping native **BTC** to a USD stablecoin (this could also be a memecoin), atomically, in a decentralized, permissionless manner with minimal trust assumptions (Bitcoin consensus + FROST & ROAST cryptography).
 ![frBTC diagram](../Diagrams/frBTC_flow.png)
-This is the first time across any blockchain, that a user can swap native **BTC** to something like a USD stablecoin, atomically, in an entirely decentralized manner with minimal trust assumptions (Bitcoin consensus + FROST & ROAST cryptography).
 
 `frBTC` is live on Alkanes in ALPHA, and our team has already begun building it into **BRC 2.0** (as the 6-byte "fr-BTC" ticker) and **Arch Network** (via the Titan Indexer). 
 
 Learn more about our frBTC roadmap [**here.**](./4.2-frBTC-Roadmap.mdx)
-
-## Wrapping Overview
-
-Wrapping involves creating one Bitcoin transaction that performs two actions simultaneously:
-1.  **Lock BTC:** Your BTC is sent to a secure, multisignature address controlled by the SUBFROST signers.
-2.  **Mint frBTC:** An `OP_RETURN` output in the same transaction contains instructions for the Alkanes metaprotocol to mint an equivalent amount of `frBTC` and assign it to your Bitcoin address.
-
-**Fee:** A small 0.1% fee is charged on every on-chain wrap.
-
-## Unwrapping Overview
-
-Unwrapping is the reverse process, the SUBFROST signers will cooperatively sign a Bitcoin transaction which is automated and secured by the SUBFROST protocol:
-1. **Burn frBTC:** `frBTC` is burned on the SUBFROST protocol.
-2. **Unlock BTC:** An equivalent amount of BTC is released from the multisig address back to the Bitcoin address the user specifies (typically their wallet).
-
-**Fee:** A small 0.1% fee is charged on every unwrap transaction.
-
-To learn more about these processes on a technical level, please look at the [**frBTC - Wrapping/Unwrapping**](./4.3-Wrapping-FrBTC) and [**frBTC - Smart Contracts**](./4.4-Fr-BTC-Smart-Contracts) pages.

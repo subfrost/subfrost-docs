@@ -59,11 +59,19 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Tokens',
       items: [
-        'tokens/4.1-fr-btc',
+        {
+          type: 'doc',
+          id: 'tokens/4.1-fr-btc',
+          label: 'frBTC - Defi-compatible BTC',
+        },
         'tokens/4.2-frBTC-Roadmap',
         'tokens/4.3-Wrapping-FrBTC',
         'tokens/4.4-Fr-BTC-Smart-Contracts',
-        'tokens/4.5-Dx-BTC',
+        {
+          type: 'doc',
+          id: 'tokens/4.5-Dx-BTC',
+          label: 'dxBTC - Yield-bearing BTC',
+        },
         {
           type: 'doc',
           id: 'tokens/4.6-FROST-Token',
