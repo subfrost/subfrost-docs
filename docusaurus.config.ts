@@ -26,7 +26,12 @@ const config: Config = {
   projectName: 'subfrost-docs', // Usually your repo name.
 
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
+
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
+  },
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
@@ -77,6 +82,10 @@ const config: Config = {
       },
       items: [
         {
+          type: 'search',
+          position: 'right',
+        },
+        {
           href: 'https://x.com/SUBFROSTio/',
           position: 'right',
           className: 'header-x-link',
@@ -102,6 +111,12 @@ const config: Config = {
       defaultMode: 'light',
       disableSwitch: true,
       respectPrefersColorScheme: false,
+    },
+    algolia: {
+      appId: '828A36RRFA',
+      apiKey: '1d544d5ae2a793a8c24381689a059590',
+      indexName: 'subfrost-docs-crawler',
+      contextualSearch: true,
     },
   } satisfies Preset.ThemeConfig,
 
