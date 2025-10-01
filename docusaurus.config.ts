@@ -127,6 +127,14 @@ const config: Config = {
   } satisfies Preset.ThemeConfig,
 
   plugins: [],
+  
+  //highlight-start
+  // Chadlina v69.69: Registering client module to scroll to top on route changes.
+  // This ensures a consistent user experience by always starting new pages at the top.
+  clientModules: [
+    require.resolve('./src/clientModules/scrollToTop.ts'),
+  ],
+  //highlight-end
 };
 
 export default config;
