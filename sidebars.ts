@@ -23,80 +23,87 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Introduction',
       items: [
-        'introduction/1.1-SUBFROST-Overview',
+        'introduction/subfrost-overview',
         {
           type: 'doc',
-          id: 'introduction/1.2-technical-overview',
+          id: 'introduction/technical-overview',
           label: 'Technical Overview',
         },
-        'introduction/1.3-getting-started',
-      ]
+        ]
     },
     {
       type: 'category',
-      label: 'Core Components',
+      label: 'Developer Guide',
       items: [
-        'core-concepts/2.1-alkanes',
-        'core-concepts/2.2-frost-and-roast',
-        'core-concepts/2.3-schnorr-signatures',
-        'core-concepts/2.4-keystore-management',
-        'core-concepts/2.5-Proof-of-Stake',
+        'developer-guide/getting-started',
+        'developer-guide/subfrost-cli',
+        'developer-guide/subfrost-runtime',
+        'developer-guide/subrail',
+        'developer-guide/SubSwap',
       ]
     },
     {
       type: 'category',
-      label: 'SUBFROST Networking',
-      items: [
-        'subfrost-networking/3.1-introduction-to-subp2p',
-        'subfrost-networking/3.2-subrelay',
-        'subfrost-networking/3.3-subproxy',
-        'subfrost-networking/3.4-subtun',
-        'subfrost-networking/3.5-gossipsub-and-encrypted-communication',
-        'subfrost-networking/3.6-building-microservices-on-subp2p',
-      ]
-    },
-    {
-      type: 'category',
-      label: 'Tokens',
+      label: 'Tokens (frBTC, dxBTC, FROST)',
       items: [
         {
           type: 'doc',
-          id: 'tokens/4.1-fr-btc',
+          id: 'tokens/frBTC-overview',
           label: 'frBTC - Defi-compatible BTC',
         },
-        'tokens/4.2-frBTC-Roadmap',
-        'tokens/4.3-Wrapping-FrBTC',
-        'tokens/4.4-Fr-BTC-Smart-Contracts',
+        'tokens/frBTC-roadmap',
+        'tokens/wrapping-frBTC',
+        'tokens/frBTC-smart-contracts',
         {
           type: 'doc',
-          id: 'tokens/4.5-Dx-BTC',
+          id: 'tokens/dxBTC-overview',
           label: 'dxBTC - Yield-bearing BTC',
         },
         {
           type: 'doc',
-          id: 'tokens/4.6-FROST-Token',
+          id: 'tokens/minting-dxBTC',
+          label: 'dxBTC - Minting/Burning',
+        },
+        {
+          type: 'doc',
+          id: 'tokens/FROST-token',
           label: 'FROST - Protocol Token',
         },
       ]
     },
     {
       type: 'category',
-      label: 'Developer Guide',
+      label: 'Key Technical Components',
       items: [
-        'developer-guide/5.1-Subfrost-CLI',
-        'developer-guide/5.2-Subfrost-Runtime',
-        'developer-guide/5.3-subrail',
-        'developer-guide/5.4-SubSwap',
+        'key-components/alkanes',
+        'key-components/frost-and-roast',
+        'key-components/schnorr-signatures',
+        'key-components/keystore-management',
+        'key-components/proof-of-stake',
       ]
+    },
+    {
+      type: 'category',
+      label: 'SUBFROST Networking',
+      items: [
+        'subfrost-networking/introduction-to-subp2p',
+        'subfrost-networking/subrelay',
+        'subfrost-networking/subproxy',
+        'subfrost-networking/subtun',
+        'subfrost-networking/gossipsub-and-encrypted-communication',
+        'subfrost-networking/building-microservices-on-subp2p',
+      ]
+    },
+    {
     },
     {
       type: 'category',
       label: 'Reference',
       items: [
-        'reference/6.1-subfrost-node-cli-reference',
-        'reference/6.2-subfrost-cli-reference',
-        'reference/6.3-Subrail-CLI-Reference',
-        'reference/6.4-Glossary',
+        'reference/subfrost-node-cli-reference',
+        'reference/subfrost-cli-reference',
+        'reference/Subrail-CLI-Reference',
+        'reference/Glossary',
       ]
     },
   ],

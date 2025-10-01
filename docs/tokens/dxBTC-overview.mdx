@@ -3,7 +3,7 @@ sidebar_label: dxBTC - Yield-bearing BTC
 ---
 
 # `dxBTC` Overview
-## The Yield-bearing BTC of Bitcoin L1
+## Yield-bearing BTC of Bitcoin L1
 
 `dxBTC` is a yield-generating synthetic Bitcoin asset built on top of the SUBFROST ecosystem. It is designed to provide Bitcoin holders with a way to earn a sustainable yield on their assets in a trust-minimized and decentralized manner.
 
@@ -33,37 +33,10 @@ The profits generated from these strategies are then distributed back to the `dx
 
 ## The Role of SUBFROST Governance
 
-SUBFROST governance plays a crucial role in `dxBTC`. The governance is responsible for:
+**<a href="/key-components/proof-of-stake">SUBFROST governance</a>** plays a crucial role in `dxBTC`. The governance is responsible for:
 
 *   **Selecting and managing yield-generating strategies:** The governance researches, vets, and selects the most promising and secure yield-generating strategies for the locked `frBTC`.
 *   **Monitoring and rebalancing:** The governance continuously monitors the performance of the selected strategies and rebalances the portfolio as needed to optimize yield and manage risk.
 *   **Distributing profits:** The governance ensures that the profits generated from the yield-generating strategies are distributed fairly to all `dxBTC` holders.
 
 By combining the security and decentralization of SUBFROST with the yield-generating potential of DeFi, `dxBTC` provides a powerful new tool for Bitcoin holders to grow their wealth.
-
-## `dxBTC` in `subfrost-cli`
-
-The `subfrost-cli` provides a set of commands for minting and burning `dxBTC`. These commands allow you to:
-
-*   **Mint `dxBTC`:** The `subfrost-cli mint-dx-btc` command allows you to mint `dxBTC` by locking up `frBTC`.
-*   **Burn `dxBTC`:** The `subfrost-cli burn-dx-btc` command allows you to burn `dxBTC` and redeem `frBTC`.
-
-### Minting `dxBTC`
-
-Here is an example of how to use the `subfrost-cli` to mint `dxBTC`:
-
-```bash
-subfrost-cli mint-dx-btc --amount 1.0
-```
-
-This command will lock up 1.0 `frBTC` and mint an equivalent amount of `dxBTC` to your Bitcoin address.
-
-### Burning `dxBTC`
-
-Here is an example of how to use the `subfrost-cli` to burn `dxBTC`:
-
-```bash
-subfrost-cli burn-dx-btc --amount 1.0
-```
-
-This command will burn 1.0 `dxBTC` and unlock an equivalent amount of `frBTC` to your Bitcoin address.
