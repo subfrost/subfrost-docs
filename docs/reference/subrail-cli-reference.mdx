@@ -1,0 +1,49 @@
+---
+title: subrail-cli
+sidebar_label: subrail-cli
+sidebar_position: 3
+---
+
+# `subrail-cli` Reference
+
+This page provides a complete reference for all commands, subcommands, and flags available in the `subrail-cli` command-line interface. The `subrail-cli` is the primary tool for interacting with the Subrail runtime.
+
+## Global Options
+
+These options can be used with any command.
+
+-   `--help`: Displays help information.
+-   `--version`: Displays version information.
+
+## Main Commands
+
+### `rail`
+
+Commands for interacting with the Subrail runtime.
+
+**Usage:**
+```bash
+subrail-cli rail <SUBCOMMAND>
+```
+
+**Subcommands:**
+
+-   `deploy`: Deploys a Subrail program to the `subp2p` network.
+-   `run`: Runs a Subrail program on your local machine.
+
+### `alkanes`
+
+Commands for interacting with the Automated Market Maker (AMM) functionality of the Alkanes metaprotocol.
+
+**Usage:**
+```bash
+subrail-cli alkanes <SUBCOMMAND>
+```
+
+**Subcommands:**
+
+-   `create-pool`: Creates a new liquidity pool.
+-   `add-liquidity`: Adds liquidity to an existing pool.
+-   `remove-liquidity`: Removes liquidity from a pool.
+-   `swap`: Swaps one token for another in a liquidity pool.
+-   `execute`: Executes a transaction on the Alkanes metaprotocol.

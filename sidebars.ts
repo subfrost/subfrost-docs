@@ -95,17 +95,16 @@ const sidebars: SidebarsConfig = {
       ]
     },
     {
-    },
-    {
       type: 'category',
       label: 'Reference',
       items: [
         'reference/subfrost-node-cli-reference',
         'reference/subfrost-cli-reference',
-        'reference/Subrail-CLI-Reference',
-        'reference/Glossary',
+        'reference/subrail-cli-reference',
+        'reference/glossary',
       ]
     },
+    
   ],
 };
 
