@@ -48,10 +48,7 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           routeBasePath: '/', // Set docs as the root
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/subfrost//tree/main/',
+          
         },
         blog: false,
         theme: {
