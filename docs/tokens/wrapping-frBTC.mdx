@@ -18,6 +18,7 @@ Wrapping involves creating one Bitcoin transaction that performs two actions sim
 2.  **Mint frBTC:** An `OP_RETURN` output in the same transaction contains instructions for the Alkanes metaprotocol to mint an equivalent amount of `frBTC` and assign it to your Bitcoin address.
 
 **Fee:** A small 0.1% fee is charged on every on-chain wrap.
+Note: Platforms that integrate wrap/unwrap may charge an additional platform fee.
 
 ### 1. Generate a SUBFROST Wallet
 
@@ -76,6 +77,7 @@ Unwrapping is the reverse process, the SUBFROST signers will cooperatively sign 
 2. **Unlock BTC:** An equivalent amount of BTC is released from the multisig address back to the Bitcoin address the user specifies (typically their wallet).
 
 **Fee:** A small 0.1% fee is charged on every unwrap transaction.
+Note: Platforms that integrate wrap/unwrap may charge an additional platform fee.
 
 ### 1. Initiate the Unwrap
 
