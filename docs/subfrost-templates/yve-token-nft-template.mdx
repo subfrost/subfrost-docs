@@ -40,7 +40,7 @@ pub struct VaultPosition {
 pub struct PositionMetadata {
     pub strategy: String,
     pub risk_level: u8,
-    pub custom_data: Vec<u8>,
+    pub custom_data: Vec<u8&gt;,
 }
 ```
 
@@ -102,7 +102,7 @@ fn deposit(&self, amount: u128) -> Result<AlkaneId> {
 
 ```rust
 #[opcode(2)]
-fn withdraw(&self, position_id: AlkaneId) -> Result<u128> {
+fn withdraw(&self, position_id: AlkaneId) -> Result<u128&gt; {
     let ctx = self.context()?;
     let position = self.positions().get(&position_id)?;
     

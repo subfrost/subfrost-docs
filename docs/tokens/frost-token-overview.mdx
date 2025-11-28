@@ -53,12 +53,12 @@ FROST is the governance and utility token for the SUBFROST protocol.
 # Check FROST balance
 alkanes alkanes getbalance \
   --address "bc1p..." \
-  --alkane-id "<block>:<tx>"
+  --alkane-id "`<block>`:`<tx>`"
 
 # Transfer FROST
 alkanes alkanes execute \
-  --protostones "[<block>,<tx>,1,<recipient>,<amount>]" \
-  --inputs "FROST:<amount>" \
+  --protostones "[`<block>`,`<tx>`,1,<recipient>,`<amount>`]" \
+  --inputs "FROST:`<amount>`" \
   --to "bc1p..." \
   -y
 ```

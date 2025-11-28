@@ -85,10 +85,10 @@ pub struct Runestone {
     pub edicts: Vec<Edict>,
     pub etching: Option<Etching>,
     pub mint: Option<RuneId>,
-    pub pointer: Option<u32>,
+    pub pointer: Option<u32&gt;,
     
     // Protorunes extension
-    pub protocol: Option<Vec<u128>>,
+    pub protocol: Option<Vec``<u128>``>,
 }
 ```
 
@@ -106,7 +106,7 @@ All Runestone data encoded as LEB128 varints:
 
 ```rust
 // Encoding example
-fn encode_varint(value: u128) -> Vec<u8> {
+fn encode_varint(value: u128) -> Vec<u8&gt; {
     let mut encoded = Vec::new();
     let mut n = value;
     loop {
@@ -203,7 +203,7 @@ Protocol: [protocol_tag, opcode, alkane_block, alkane_tx, ...args]
 2. **opcode** (u128): Function to call
 3. **alkane_block** (u128): Contract block number
 4. **alkane_tx** (u128): Contract tx index
-5. **args** (Vec<u128>): Function arguments
+5. **args** (Vec``<u128>``): Function arguments
 
 ### Common Opcodes
 
@@ -261,12 +261,12 @@ Protocol: [1, 5, 5, 3, 10000, 9500]
 ```rust
 pub struct Protostone {
     pub protocol_tag: u128,
-    pub message: Vec<u128>,
+    pub message: Vec``<u128>``,
     pub edicts: Vec<ProtoruneRuneId>,
     pub burn: Option<ProtoruneRuneId>,
-    pub refund: Option<u32>,
-    pub pointer: Option<u32>,
-    pub from: Option<Vec<u32>>,
+    pub refund: Option<u32&gt;,
+    pub pointer: Option<u32&gt;,
+    pub from: Option<Vec<u32&gt;>,
 }
 ```
 
@@ -301,7 +301,7 @@ ALKANES uses a simpler "cellpack" format for common cases:
 
 ```rust
 // Cellpack: [opcode, alkane_block, alkane_tx, ...args]
-type Cellpack = Vec<u128>;
+type Cellpack = Vec``<u128>``;
 
 // Converted internally to full Protostone
 ```

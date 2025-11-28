@@ -50,7 +50,7 @@ The Protocol field contains a varint list encoding the following structure:
 ```rust
 struct ProtocolMessage {
     protocol_tag: u128,      // Identifies the subprotocol
-    protocol_message: Vec<u128>,  // Subprotocol-specific message
+    protocol_message: Vec<u128&gt;,  // Subprotocol-specific message
 }
 ```
 
@@ -79,7 +79,7 @@ pub struct Protostone {
     pub protocol_tag: u128,
     
     /// Variable-length message (opcode + args)
-    pub message: Vec<u128>,
+    pub message: Vec<u128&gt;,
     
     /// Asset transfers (protorune RuneIds + amounts)
     pub edicts: Vec<ProtoruneRuneId>,
@@ -88,13 +88,13 @@ pub struct Protostone {
     pub burn: Option<ProtoruneRuneId>,
     
     /// Output index for refunds on failure
-    pub refund: Option<u32>,
+    pub refund: Option<u32&gt;,
     
     /// Output index for results on success
-    pub pointer: Option<u32>,
+    pub pointer: Option<u32&gt;,
     
     /// Source edict indices
-    pub from: Option<Vec<u32>>,
+    pub from: Option<Vec<u32&gt;>,
 }
 ```
 

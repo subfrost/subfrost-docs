@@ -27,7 +27,7 @@ subfrost-cli frost dkg \
 ```bash
 # Sign Bitcoin PSBT
 subfrost-cli frost sign-psbt \
-    --psbt <base64> \
+    --psbt `<base64>` \
     --topic signing-session
 ```
 
@@ -82,7 +82,7 @@ Aggregation:
 
 ## Security
 
-✅ **Unforgeable**: <t parties cannot forge  
+✅ **Unforgeable**: Fewer than t parties cannot forge signatures  
 ✅ **Robust**: Continue despite non-responsive parties (ROAST)  
 ✅ **Standard**: Output is normal Schnorr signature
 

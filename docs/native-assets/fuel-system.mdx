@@ -111,7 +111,7 @@ vfsize = 0  // Not an ALKANES transaction
 ### Allocation Algorithm
 
 ```rust
-fn allocate_fuel(block_txs: &[Transaction]) -> Vec<u64> {
+fn allocate_fuel(block_txs: &[Transaction]) -> Vec<u64&gt; {
     let mut remaining_fuel = TOTAL_FUEL;
     let mut allocations = vec![];
     
@@ -224,7 +224,7 @@ fn set_value(&self, value: u128) -> Result<()> {
 }
 
 #[opcode(2)]
-fn get_value(&self) -> Result<u128> {
+fn get_value(&self) -> Result<u128&gt; {
     let ptr = self.value_pointer();
     let value = ptr.get_value();  // FUEL_LOAD + FUEL_REQUEST = 1000
     Ok(value)
@@ -418,7 +418,7 @@ fn process_transfers(&self, transfers: &[Transfer]) -> Result<()> {
 ```rust
 fn process_transfers(&self, transfers: &[Transfer]) -> Result<()> {
     // Load all balances once
-    let balances: HashMap<Address, u128> = self.load_all_balances()?;
+    let balances: HashMap<Address, u128&gt; = self.load_all_balances()?;
     
     for transfer in transfers {
         let balance = balances.get(&transfer.from).unwrap();
@@ -613,7 +613,7 @@ ALKANES_PROFILE_FUEL=1 cargo test test_my_contract
 ## Next Steps
 
 - [Build Optimized Contracts →](/developer-guide/alkanes-quickstart)
-- [Profile Your Contract →](/developer-guide/profiling)
+- Profile Your Contract (see test suite)
 - [Contract Examples →](https://github.com/kungfuflex/alkanes-rs/tree/main/alkanes)
 
 ## Resources

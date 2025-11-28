@@ -148,7 +148,7 @@ Command-line interface for threshold operations:
 subfrost-cli frost dkg --threshold 2 --max-signers 3 --topic my-group
 
 # Sign Bitcoin PSBT
-subfrost-cli frost sign-psbt --psbt <base64> --topic signing-session
+subfrost-cli frost sign-psbt --psbt <base64&gt; --topic signing-session
 
 # Get threshold address
 subfrost-cli frost address --topic my-group
@@ -160,10 +160,10 @@ subfrost-cli frost address --topic my-group
 subfrost-cli cggmp dkg --threshold 2 --max-signers 3 --topic eth-group
 
 # Sign Ethereum transaction
-subfrost-cli cggmp sign-eth --tx <tx-data> --topic eth-signing
+subfrost-cli cggmp sign-eth --tx `<tx-data>` --topic eth-signing
 
 # Sign for any ECDSA chain
-subfrost-cli cggmp sign --chain cosmos --tx <tx> --topic cosmos-group
+subfrost-cli cggmp sign --chain cosmos --tx `<tx>` --topic cosmos-group
 ```
 
 **Alkanes Operations:**
@@ -298,7 +298,7 @@ pub extern "C" fn __execute() -> i32 {
 | `__balance(ptr)` | Query balance of AlkaneId |
 | `__height()` | Current block height |
 
-[Full ABI reference →](/native-assets/alkanes-abi)
+Full ABI reference in execution environment
 
 #### Fuel System
 
@@ -383,12 +383,12 @@ enum Tag {
 ```rust
 struct Protostone {
     protocol_tag: u128,        // Subprotocol identifier (1 = alkanes)
-    message: Vec<u128>,        // Variable-length message
+    message: Vec<u128&gt;,        // Variable-length message
     edicts: Vec<ProtoruneRuneId>,  // Asset transfers
     burn: Option<ProtoRuneRuneId>,  // Assets to burn
-    refund: Option<u32>,       // Output for refunds
-    pointer: Option<u32>,      // Output for results
-    from: Option<Vec<u32>>,    // Edict indices to source
+    refund: Option<u32&gt;,       // Output for refunds
+    pointer: Option<u32&gt;,      // Output for results
+    from: Option<Vec<u32&gt;>,    // Edict indices to source
 }
 ```
 
@@ -713,9 +713,9 @@ API Types: jsonrpc, api, subfrost
 
 ### P2P Latency
 
-- **Direct QUIC**: <50ms typical
-- **WebTransport**: <100ms typical
-- **Circuit Relay**: <200ms typical
+- **Direct QUIC**: &lt;50ms typical
+- **WebTransport**: &lt;100ms typical
+- **Circuit Relay**: &lt;200ms typical
 - **Hole Punching**: 80%+ success rate
 
 ### Threshold Signing
@@ -729,5 +729,5 @@ API Types: jsonrpc, api, subfrost
 
 - [Alkanes Metaprotocol Deep Dive →](/native-assets/alkanes-overview)
 - [Build Your First Contract →](/developer-guide/alkanes-quickstart)
-- [Deploy a FROST Signing Group →](/subfrost-runtime/frost-dkg)
+- [FROST Signatures →](/subfrost-runtime/frost-signatures)
 - [Explore the API →](/subfrost-api/overview)

@@ -125,12 +125,12 @@ fn withdraw(&self, amount: u128) -> Result<()> {
 
 ```rust
 #[opcode(3)]
-fn claim(&self) -> Result<u128> {
+fn claim(&self) -> Result<u128&gt; {
     let ctx = self.context()?;
     self.claim_internal(&ctx.caller)
 }
 
-fn claim_internal(&self, user: &Address) -> Result<u128> {
+fn claim_internal(&self, user: &Address) -> Result<u128&gt; {
     let position = self.positions().get(user)?;
     let current_height = self.context()?.height;
     
@@ -191,7 +191,7 @@ fn update_boost(&self) -> Result<()> {
 #### Calculate Boost
 
 ```rust
-fn calculate_boost(&self, user: &Address) -> Result<u128> {
+fn calculate_boost(&self, user: &Address) -> Result<u128&gt; {
     let ve_balance = self.get_ve_token_balance(user)?;
     let user_stake = self.get_user_stake(user)?;
     let total_stake = self.total_staked().get()?;

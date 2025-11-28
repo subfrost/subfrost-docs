@@ -235,7 +235,7 @@ let result_size = __call(...);
 if result_size > 0 {
     let dest = allocate(result_size);
     __returndatacopy(dest);
-    let response: Vec<u128> = deserialize(dest, result_size);
+    let response: Vec<u128&gt; = deserialize(dest, result_size);
 }
 ```
 
@@ -318,7 +318,7 @@ Contracts must manage their own memory:
 ```rust
 // Allocate n bytes
 fn allocate(size: usize) -> i32 {
-    let layout = Layout::array::<u8>(size + 4).unwrap();
+    let layout = Layout::array::<u8&gt;(size + 4).unwrap();
     let ptr = unsafe { alloc(layout) };
     unsafe {
         *(ptr as *mut u32) = size as u32;  // Store length
@@ -343,7 +343,7 @@ WASM has no garbage collection - contracts responsible:
 
 ```rust
 fn deallocate(ptr: i32, size: usize) {
-    let layout = Layout::array::<u8>(size + 4).unwrap();
+    let layout = Layout::array::<u8&gt;(size + 4).unwrap();
     unsafe {
         dealloc((ptr - 4) as *mut u8, layout);
     }
@@ -646,7 +646,7 @@ let result = __staticcall(cellpack, empty_value, checkpoint, fuel);
 - [Fuel System Details →](/native-assets/fuel-system)
 - [Build Your First Contract →](/developer-guide/alkanes-quickstart)
 - [Contract Examples →](https://github.com/kungfuflex/alkanes-rs/tree/main/alkanes)
-- [alkanes-runtime API →](https://docs.rs/alkanes-runtime)
+- [alkanes-runtime Docs](https://docs.rs/alkanes-runtime)
 
 ## Resources
 
