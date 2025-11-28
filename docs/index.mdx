@@ -1,0 +1,63 @@
+---
+slug: /
+title: SUBFROST Documentation
+---
+
+# SUBFROST Overview
+
+Welcome to SUBFROST, a comprehensive Layer-0 (L0) consensus framework and Bitcoin-native DeFi ecosystem that operates above all blockchains, providing real-time signal-based reactive consensus for cross-chain coordination, threshold cryptography, and trustless settlement.
+
+## What is SUBFROST?
+
+SUBFROST is a multi-layered protocol stack that combines:
+
+1. **Layer-0 Consensus Framework** - Blockchain-agnostic coordination layer
+2. **Alkanes Metaprotocol** - Programmable smart contracts on Bitcoin L1
+3. **Threshold Cryptography** - FROST (Schnorr) and CGGMP24 (ECDSA) signatures
+4. **P2P Infrastructure** - WebTransport-based networking with libp2p
+5. **Cross-Chain Bridges** - Direct settlement to any L1 without wrapped assets
+
+## Core Innovations
+
+### Bitcoin-Native Programmability
+
+SUBFROST introduces the **Alkanes metaprotocol**, a WASM-based smart contract environment that runs entirely on Bitcoin Layer 1. Unlike other solutions that require L2 chains or wrapped tokens, Alkanes contracts:
+
+- Execute directly on Bitcoin's blockchain
+- Use Bitcoin's native security model
+- Require only Bitcoin transaction fees
+- Support complex DeFi primitives (AMMs, vaults, gauges)
+
+### Layer-0 Consensus
+
+The SUBFROST consensus framework enables **arbitrary L0 programs** to coordinate cross-chain operations through signal-based reactive consensus. Key features:
+
+- **WASI-P2 Programs**: Write consensus logic in safe, deterministic WASM
+- **Cryptography-Free Consensus**: Host runtime handles all signing operations
+- **Chain-Agnostic**: Same L0 program coordinates multiple blockchains
+- **Real-Time Reactive**: Instant updates via signal filesystem
+
+### Universal Blockchain Support
+
+SUBFROST natively supports threshold signatures for all mainstream blockchains:
+
+- **Schnorr (FROST)**: Bitcoin, Cardano, Polkadot, and more
+- **ECDSA (CGGMP24)**: Ethereum, Cosmos, Solana, Zcash, and more
+- **Direct Settlement**: Transactions settle directly to L1s
+- **No Wrapped Assets**: Users receive native tokens, not synthetic representations
+
+## Getting Started
+
+Explore the documentation to learn more:
+
+- **[Introduction](/introduction/subfrost-overview)** - Deep dive into SUBFROST architecture
+- **[Native Assets](/native-assets/alkanes-overview)** - Learn about Alkanes metaprotocol
+- **[Tokens](/tokens/frbtc-overview)** - Discover frBTC, dxBTC, and FROST tokens
+- **[Developer Guide](/developer-guide/getting-started)** - Start building on SUBFROST
+- **[SUBFROST API](/subfrost-api/overview)** - Integrate with our APIs
+
+## Quick Links
+
+- [GitHub](https://github.com/subfrost/)
+- [Twitter/X](https://x.com/SUBFROSTio/)
+- [Website](https://subfrost.io)
