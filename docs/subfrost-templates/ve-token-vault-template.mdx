@@ -1,0 +1,260 @@
+# ve-token-vault-template
+
+The ve-token-vault-template provides a vote-escrowed (ve) token vault pattern for building governance-enabled yield vaults on Alkanes.
+
+## Overview
+
+**Pattern**: Vote-Escrowed Token Vault  
+**Inspired by**: Curve Finance veToken model  
+**Use Case**: Governance + yield optimization
+
+## Architecture
+
+```
+User locks TOKEN
+    ↓
+Receive ve-TOKEN (non-transferable)
+    ↓
+ve-TOKEN provides:
+  - Voting power
+  - Boost multipliers (up to 2.5x)
+  - Protocol fee share
+```
+
+## Key Features
+
+### 1. Time-Locked Deposits
+
+```rust
+pub struct VeLock {
+    pub amount: u128,
+    pub unlock_time: u128,  // Block height
+    pub lock_duration: u128,
+}
+```
+
+**Longer lock = More ve-TOKEN**
+
+### 2. Voting Power
+
+```
+voting_power = amount * (lock_duration / MAX_LOCK_DURATION)
+```
+
+### 3. Boost Mechanics
+
+```
+boost = min(1 + (ve_token * total_stake) / (stake * total_ve_token), 2.5)
+```
+
+**Example:**
+```
+User: 1000 TOKEN locked for 4 years
+MAX_LOCK: 4 years
+ve-TOKEN: 1000 * (4/4) = 1000
+
+Boost in gauge: 1x to 2.5x depending on pool size
+```
+
+## Implementation
+
+### Deploy Template
+
+```bash
+# Clone and customize template
+cp -r alkanes/ve-token-vault-template alkanes/my-ve-vault
+
+# Customize parameters
+vim alkanes/my-ve-vault/src/lib.rs
+
+# Build
+cd alkanes/my-ve-vault
+cargo build --target wasm32-unknown-unknown --release
+```
+
+### Core Operations
+
+#### Lock (Create ve-TOKEN)
+
+```rust
+#[opcode(1)]
+fn lock(&self, amount: u128, duration: u128) -> Result<()> {
+    let ctx = self.context()?;
+    let unlock_time = ctx.height + duration;
+    
+    // Check duration limits
+    require!(duration <= MAX_LOCK_DURATION);
+    
+    // Calculate ve-TOKEN amount
+    let ve_amount = amount * duration / MAX_LOCK_DURATION;
+    
+    // Store lock
+    self.locks().set(&ctx.caller, VeLock {
+        amount,
+        unlock_time,
+        lock_duration: duration,
+    })?;
+    
+    // Mint ve-TOKEN
+    self.mint_ve_token(&ctx.caller, ve_amount)?;
+    
+    Ok(())
+}
+```
+
+#### Increase Amount
+
+```rust
+#[opcode(2)]
+fn increase_amount(&self, additional: u128) -> Result<()> {
+    let ctx = self.context()?;
+    let mut lock = self.locks().get(&ctx.caller)?;
+    
+    // Recalculate ve-TOKEN
+    lock.amount += additional;
+    let new_ve = calculate_ve_amount(&lock);
+    
+    self.update_ve_token(&ctx.caller, new_ve)?;
+    self.locks().set(&ctx.caller, lock)?;
+    
+    Ok(())
+}
+```
+
+#### Extend Lock
+
+```rust
+#[opcode(3)]
+fn extend_lock(&self, new_unlock: u128) -> Result<()> {
+    let ctx = self.context()?;
+    let mut lock = self.locks().get(&ctx.caller)?;
+    
+    require!(new_unlock > lock.unlock_time);
+    require!(new_unlock <= ctx.height + MAX_LOCK_DURATION);
+    
+    lock.unlock_time = new_unlock;
+    let new_ve = calculate_ve_amount(&lock);
+    
+    self.update_ve_token(&ctx.caller, new_ve)?;
+    self.locks().set(&ctx.caller, lock)?;
+    
+    Ok(())
+}
+```
+
+#### Withdraw
+
+```rust
+#[opcode(4)]
+fn withdraw(&self) -> Result<()> {
+    let ctx = self.context()?;
+    let lock = self.locks().get(&ctx.caller)?;
+    
+    // Check unlock time
+    require!(ctx.height >= lock.unlock_time);
+    
+    // Burn ve-TOKEN
+    self.burn_ve_token(&ctx.caller)?;
+    
+    // Return original tokens
+    self.transfer_token(&ctx.caller, lock.amount)?;
+    
+    // Remove lock
+    self.locks().remove(&ctx.caller)?;
+    
+    Ok(())
+}
+```
+
+## Configuration
+
+### Template Parameters
+
+```rust
+pub const MAX_LOCK_DURATION: u128 = 144 * 365 * 4;  // 4 years in blocks
+pub const MIN_LOCK_DURATION: u128 = 144 * 7;        // 1 week
+pub const MAX_BOOST: f64 = 2.5;
+pub const BASE_BOOST: f64 = 1.0;
+```
+
+### Customization
+
+```rust
+// In your implementation
+impl MyVeVault {
+    const MAX_LOCK: u128 = 144 * 365 * 2;  // 2 years
+    const BOOST_MULTIPLIER: u128 = 3;       // 3x max boost
+    
+    fn custom_boost_formula(&self, ve_balance: u128, stake: u128) -> u128 {
+        // Your custom formula
+    }
+}
+```
+
+## Integration Example
+
+```bash
+# Lock tokens for 1 year
+alkanes alkanes execute \
+  --protostones "[<vault_block>,<vault_tx>,1,100000,52560]" \
+  --inputs "TOKEN:100000" \
+  --to "bc1p..." \
+  -y
+
+# Parameters:
+# - opcode: 1 (lock)
+# - amount: 100000
+# - duration: 52560 (1 year in blocks)
+
+# Check ve-TOKEN balance
+alkanes alkanes execute \
+  --protostones "[<vault_block>,<vault_tx>,99]" \
+  --to "bc1p..."
+```
+
+## Use Cases
+
+### 1. Governance Vault
+
+```
+- Lock FROST for veFROST
+- Vote on protocol parameters
+- Earn protocol fees
+```
+
+### 2. Yield Boost Vault
+
+```
+- Lock DIESEL for veDIESEL
+- Boost gauge rewards (1x → 2.5x)
+- Auto-compound 10% of harvest
+```
+
+### 3. Liquidity Mining
+
+```
+- Lock LP tokens
+- Earn boosted emissions
+- Long-term liquidity incentives
+```
+
+## Testing
+
+```bash
+# Run template tests
+cd alkanes/ve-token-vault-template
+cargo test --target wasm32-unknown-unknown
+
+# Test scenarios:
+# - Lock and unlock
+# - Increase amount
+# - Extend lock duration
+# - Early unlock (should fail)
+# - Boost calculation
+```
+
+## Resources
+
+- **Template Source**: [ve-token-vault-template](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/ve-token-vault-template)
+- **Example**: [ve-diesel-vault](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/ve-diesel-vault)
+- **Curve Finance**: [veCRV model](https://curve.fi/vecrv)

@@ -1,0 +1,311 @@
+# yve-token-nft-template
+
+The yve-token-nft-template provides an NFT-based yield vault pattern where each vault position is represented as a non-fungible token, inspired by Yearn v2 vaults and Uniswap V3 positions.
+
+## Overview
+
+**Pattern**: NFT-Wrapped Vault Positions  
+**Inspired by**: Yearn v2 + Uniswap V3 NFT positions  
+**Use Case**: Tradeable vault shares with metadata
+
+## Architecture
+
+```
+User deposits TOKEN
+    ↓
+Mint NFT (AlkaneId = position ID)
+    ↓
+NFT represents:
+  - Vault shares
+  - Entry price
+  - Metadata (time, amount, strategy)
+    ↓
+NFT is tradeable/transferable
+```
+
+## Key Features
+
+### 1. NFT Position Representation
+
+```rust
+pub struct VaultPosition {
+    pub owner: Address,
+    pub shares: u128,
+    pub deposited_amount: u128,
+    pub entry_height: u128,
+    pub entry_price: u128,
+    pub metadata: PositionMetadata,
+}
+
+pub struct PositionMetadata {
+    pub strategy: String,
+    pub risk_level: u8,
+    pub custom_data: Vec<u8>,
+}
+```
+
+### 2. Transferable Positions
+
+```rust
+// NFT can be transferred
+transfer_nft(position_id, new_owner)
+
+// Or traded on marketplace
+list_on_marketplace(position_id, price)
+```
+
+### 3. Yield Tracking Per Position
+
+```
+position_yield = (current_shares_value - entry_value) / entry_value
+```
+
+## Implementation
+
+### Core Operations
+
+#### Deposit (Mint NFT)
+
+```rust
+#[opcode(1)]
+fn deposit(&self, amount: u128) -> Result<AlkaneId> {
+    let ctx = self.context()?;
+    
+    // Calculate shares
+    let shares = self.calculate_shares(amount)?;
+    let entry_price = self.get_share_price()?;
+    
+    // Create position
+    let position = VaultPosition {
+        owner: ctx.caller,
+        shares,
+        deposited_amount: amount,
+        entry_height: ctx.height,
+        entry_price,
+        metadata: PositionMetadata::default(),
+    };
+    
+    // Generate unique position ID
+    let position_id = self.next_position_id()?;
+    
+    // Store position
+    self.positions().set(&position_id, position)?;
+    
+    // Mint NFT (represented as unique AlkaneId)
+    self.mint_position_nft(&ctx.caller, position_id)?;
+    
+    Ok(position_id)
+}
+```
+
+#### Withdraw (Burn NFT)
+
+```rust
+#[opcode(2)]
+fn withdraw(&self, position_id: AlkaneId) -> Result<u128> {
+    let ctx = self.context()?;
+    let position = self.positions().get(&position_id)?;
+    
+    // Verify ownership
+    require!(position.owner == ctx.caller);
+    
+    // Calculate payout (shares → tokens)
+    let payout = self.shares_to_tokens(position.shares)?;
+    
+    // Burn NFT
+    self.burn_position_nft(&ctx.caller, position_id)?;
+    
+    // Remove position
+    self.positions().remove(&position_id)?;
+    
+    // Return tokens
+    self.transfer(&ctx.caller, payout)?;
+    
+    Ok(payout)
+}
+```
+
+#### Transfer NFT
+
+```rust
+#[opcode(3)]
+fn transfer_position(&self, position_id: AlkaneId, to: Address) -> Result<()> {
+    let ctx = self.context()?;
+    let mut position = self.positions().get(&position_id)?;
+    
+    // Verify ownership
+    require!(position.owner == ctx.caller);
+    
+    // Update owner
+    position.owner = to;
+    self.positions().set(&position_id, position)?;
+    
+    // Transfer NFT
+    self.transfer_nft(position_id, &ctx.caller, &to)?;
+    
+    Ok(())
+}
+```
+
+#### Get Position Info
+
+```rust
+#[opcode(99)]
+#[returns(PositionInfo)]
+fn get_position(&self, position_id: AlkaneId) -> Result<PositionInfo> {
+    let position = self.positions().get(&position_id)?;
+    let current_value = self.shares_to_tokens(position.shares)?;
+    let profit = current_value.saturating_sub(position.deposited_amount);
+    
+    Ok(PositionInfo {
+        owner: position.owner,
+        shares: position.shares,
+        deposited: position.deposited_amount,
+        current_value,
+        profit,
+        entry_height: position.entry_height,
+        entry_price: position.entry_price,
+    })
+}
+```
+
+## NFT Metadata
+
+### On-Chain Metadata
+
+```rust
+pub struct NFTMetadata {
+    pub name: String,             // "yvfrBTC Position #123"
+    pub description: String,      // "Yearn vault position"
+    pub image: String,            // IPFS or data URI
+    pub attributes: Vec<Attribute>,
+}
+
+pub struct Attribute {
+    pub trait_type: String,
+    pub value: String,
+}
+```
+
+### Metadata Example
+
+```json
+{
+  "name": "yvfrBTC Position #123",
+  "description": "Yearn-style frBTC vault position",
+  "image": "ipfs://QmXxx...",
+  "attributes": [
+    {"trait_type": "Strategy", "value": "Conservative Yield"},
+    {"trait_type": "Entry Height", "value": "880000"},
+    {"trait_type": "Shares", "value": "100000"},
+    {"trait_type": "Profit", "value": "+12.5%"}
+  ]
+}
+```
+
+## Use Cases
+
+### 1. Tradeable Vault Positions
+
+```
+Alice deposits → Receives NFT #1
+Alice wants liquidity → Sells NFT #1 to Bob
+Bob now owns vault position → Can withdraw anytime
+```
+
+### 2. NFT Marketplace Integration
+
+```
+List positions on marketplace
+Price discovery for vault shares
+Secondary market liquidity
+```
+
+### 3. Collateralized Lending
+
+```
+User deposits to vault → Receives NFT
+Uses NFT as collateral → Borrows against position
+Maintains yield exposure → Gets liquidity
+```
+
+### 4. Position Composability
+
+```
+Vault position NFT → Stake in gauge
+Gauge receipt → Collateral in lending
+Multi-layer DeFi strategies
+```
+
+## Integration Example
+
+```bash
+# Deposit and mint NFT
+alkanes alkanes execute \
+  --protostones "[<vault_block>,<vault_tx>,1,100000]" \
+  --inputs "frBTC:100000" \
+  --to "bc1p..." \
+  -y
+
+# Response includes position_id: [5, 123]
+
+# Check position value
+alkanes alkanes execute \
+  --protostones "[<vault_block>,<vault_tx>,99,5,123]" \
+  --to "bc1p..."
+
+# Transfer NFT to another address
+alkanes alkanes execute \
+  --protostones "[<vault_block>,<vault_tx>,3,5,123,<new_owner>]" \
+  --to "bc1p..." \
+  -y
+
+# Withdraw (burn NFT)
+alkanes alkanes execute \
+  --protostones "[<vault_block>,<vault_tx>,2,5,123]" \
+  --to "bc1p..." \
+  -y
+```
+
+## Testing
+
+```bash
+# Run tests
+cd alkanes/yve-token-nft-template
+cargo test --target wasm32-unknown-unknown
+
+# Test scenarios:
+# - Deposit and mint NFT
+# - Multiple positions per user
+# - Transfer NFT
+# - Withdraw and burn
+# - Position value tracking
+```
+
+## Customization
+
+```rust
+// Custom position types
+pub enum PositionType {
+    Conservative,
+    Balanced,
+    Aggressive,
+}
+
+// Risk-based strategies
+impl MyVault {
+    fn deposit_with_strategy(
+        &self,
+        amount: u128,
+        strategy: PositionType
+    ) -> Result<AlkaneId> {
+        // Custom logic per strategy
+    }
+}
+```
+
+## Resources
+
+- **Template Source**: [yve-token-nft-template](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/yve-token-nft-template)
+- **Example**: [yve-diesel-vault](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/yve-diesel-vault)
+- **Uniswap V3 NFTs**: [NFT Position Manager](https://docs.uniswap.org/contracts/v3/reference/periphery/NonfungiblePositionManager)

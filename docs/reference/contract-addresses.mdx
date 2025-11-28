@@ -1,0 +1,65 @@
+# Contract Addresses
+
+Deployed SUBFROST contract addresses across networks.
+
+## Mainnet Contracts
+
+### Core Tokens
+
+| Token | AlkaneId | Description |
+|-------|----------|-------------|
+| frBTC | [32, 0] | Synthetic Bitcoin |
+| ftrBTC | [31, 0] | Future Bitcoin (Master) |
+| FROST | TBD | Protocol governance token |
+
+### Vaults
+
+| Vault | AlkaneId | Type |
+|-------|----------|------|
+| yvfrBTC | TBD | Yield vault |
+| dxnormBTC | TBD | Normal pool vault |
+
+### DEX
+
+| Contract | AlkaneId | Description |
+|----------|----------|-------------|
+| AMM Pool | TBD | DIESEL/frBTC pool |
+| Gauge | TBD | LP rewards |
+
+## Signet Contracts
+
+Same AlkaneIds as mainnet but on signet network.
+
+## Testnet Contracts
+
+Same AlkaneIds as mainnet but on testnet network.
+
+## Regtest Deployment
+
+Use deployment scripts:
+
+```bash
+cd alkanes-rs/scripts
+./deploy-regtest.sh
+```
+
+Default addresses:
+- frBTC: [32, 0]
+- ftrBTC: [31, 0]
+- yvfrBTC: [4, n] (check script output)
+- dxnormBTC: [4, n+1] (check script output)
+
+## Verification
+
+Verify contract bytecode:
+
+```bash
+alkanes alkanes getbytecode \
+  --alkane-id "<block>:<tx>" \
+  -p mainnet
+```
+
+## Resources
+
+- [frBTC Documentation](/tokens/frbtc-overview)
+- [Token Overview](/tokens/overview)

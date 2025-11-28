@@ -1,0 +1,623 @@
+# Fuel System
+
+The ALKANES fuel system provides DoS protection through metered WASM execution. This document explains fuel allocation, costs, limits, and optimization strategies.
+
+## Overview
+
+**Fuel** is the computational budget for ALKANES execution. Unlike gas fees (which cost money), fuel is a rate-limiting mechanism that:
+
+1. **Prevents DoS attacks** - Limits per-block computation
+2. **Ensures fair resource allocation** - Proportional to transaction size
+3. **Maintains indexing performance** - 12-second worst-case block processing
+
+**Cost:** Users only pay Bitcoin transaction fees. Fuel is not a separate currency.
+
+## Fuel Constants
+
+```rust
+pub const TOTAL_FUEL: u64 = 20_000_000;      // Per block
+pub const MINIMUM_FUEL: u64 = 10_000;         // Per transaction minimum
+
+pub const FUEL_STORE: u64 = 1000;             // Storage write
+pub const FUEL_LOAD: u64 = 500;               // Storage read
+pub const FUEL_FUEL: u64 = 5;                 // Fuel check itself
+pub const FUEL_EXTCALL: u64 = 500;            // Contract call
+pub const FUEL_HEIGHT: u64 = 10;              // Block height query
+pub const FUEL_BALANCE: u64 = 10;             // Balance query
+pub const FUEL_EXTCALL_DEPLOY: u64 = 10_000;  // Contract deployment
+```
+
+### Performance Targets
+
+With these values:
+- **Block indexing time:** 12 seconds (worst case)
+- **Max deployments per block:** ~2,100 (theoretical)
+- **Max storage growth:** 12 MB/block (worst case)
+- **Reasonable multiple** of Bitcoin's own growth rate
+
+## Fuel Allocation
+
+### vfsize-Based Allocation
+
+Fuel allocated proportionally to transaction's vfsize:
+
+```rust
+tx_fuel = (remaining_block_fuel * tx_vfsize) / remaining_block_vfsize
+```
+
+**Where:**
+- `remaining_block_fuel`: Fuel left in current block
+- `tx_vfsize`: Transaction's virtual fuel size
+- `remaining_block_vfsize`: Sum of vfsize for remaining transactions
+
+### vfsize Calculation
+
+#### Deploy Transactions
+
+Identified by cellpack `[1, 0]` or `[3, n]`:
+
+```rust
+// Witness stack EXCLUDED from vsize
+vfsize = base_tx_size_without_witness
+```
+
+**Rationale:** Prevents large WASM binaries from consuming disproportionate fuel.
+
+**Example:**
+```
+Transaction:
+  Base: 150 bytes
+  Witness: 50 KB (gzipped WASM)
+  Total: 50,150 bytes
+
+Standard vsize: 12,650
+ALKANES vfsize: 150 ✓
+```
+
+#### Execute Transactions
+
+All other valid cellpacks:
+
+```rust
+vfsize = standard_vsize
+```
+
+**Standard vsize calculation:**
+```rust
+weight = base_size * 3 + total_size
+vsize = (weight + 3) / 4
+```
+
+**Example:**
+```
+Transaction:
+  Base: 200 bytes
+  Witness: 200 bytes
+  Total: 400 bytes
+
+weight = 200 * 3 + 400 = 1000
+vsize = (1000 + 3) / 4 = 250
+vfsize = 250 ✓
+```
+
+#### No Protocol Message
+
+If no valid ALKANES protomessage:
+
+```rust
+vfsize = 0  // Not an ALKANES transaction
+```
+
+### Allocation Algorithm
+
+```rust
+fn allocate_fuel(block_txs: &[Transaction]) -> Vec<u64> {
+    let mut remaining_fuel = TOTAL_FUEL;
+    let mut allocations = vec![];
+    
+    for (i, tx) in block_txs.iter().enumerate() {
+        let vfsize = calculate_vfsize(tx);
+        
+        if vfsize == 0 {
+            allocations.push(0);
+            continue;
+        }
+        
+        // Calculate remaining vfsize
+        let remaining_vfsize: u64 = block_txs[i..]
+            .iter()
+            .map(|t| calculate_vfsize(t))
+            .sum();
+        
+        // Proportional allocation
+        let allocated = if remaining_vfsize > 0 {
+            (remaining_fuel * vfsize) / remaining_vfsize
+        } else {
+            remaining_fuel
+        };
+        
+        // Ensure minimum
+        let final_fuel = allocated.max(MINIMUM_FUEL);
+        
+        remaining_fuel = remaining_fuel.saturating_sub(allocated);
+        allocations.push(final_fuel);
+    }
+    
+    allocations
+}
+```
+
+### Minimum Fuel Guarantee
+
+Every valid ALKANES transaction gets at least `MINIMUM_FUEL` (10,000), regardless of vfsize.
+
+**Exception:** If protomessage reverts, remaining protomessages get exactly `MINIMUM_FUEL`.
+
+## Fuel Costs
+
+### Host Function Costs
+
+| Function | Fuel Cost |
+|----------|-----------|
+| `__store` | 1000 |
+| `__request_storage` | 500 |
+| `__load_storage` | 500 |
+| `__call` | 500 + subcall |
+| `__delegatecall` | 500 + subcall |
+| `__staticcall` | 500 + subcall |
+| `__balance` | 10 |
+| `__height` | 10 |
+| `__returndatacopy` | 5 |
+
+### WASM Instruction Costs
+
+wasmi automatically meters WASM instructions:
+
+| Instruction Type | Approximate Fuel |
+|-----------------|------------------|
+| Arithmetic | 1-2 |
+| Memory load | 2-3 |
+| Memory store | 3-5 |
+| Function call | 5-10 |
+| Branch | 1-2 |
+| Loop iteration | 5 |
+
+**Note:** Exact costs depend on instruction complexity.
+
+### Composite Operation Costs
+
+**Read-Modify-Write:**
+```rust
+// Total: 500 (request) + 500 (load) + 1000 (store) = 2000 fuel
+let size = __request_storage(key);
+let value = __load_storage(key, dest);
+let new_value = modify(value);
+__store(key, new_value);
+```
+
+**Contract Call with Processing:**
+```rust
+// Total: 500 (call) + 50000 (subcall) + 5 (returndatacopy) = 50505 fuel
+let result_size = __call(cellpack, value, checkpoint, 50000);
+let result = __returndatacopy(dest);
+process_result(result);  // + processing fuel
+```
+
+**Balance Check Loop:**
+```rust
+// Total: 100 * 10 = 1000 fuel
+for addr in addresses.iter().take(100) {
+    let balance = __balance(addr);
+}
+```
+
+## Fuel Consumption Examples
+
+### Simple Storage Contract
+
+```rust
+#[opcode(1)]
+fn set_value(&self, value: u128) -> Result<()> {
+    let ptr = self.value_pointer();
+    ptr.set_value(value);  // FUEL_STORE = 1000
+    Ok(())
+}
+
+#[opcode(2)]
+fn get_value(&self) -> Result<u128> {
+    let ptr = self.value_pointer();
+    let value = ptr.get_value();  // FUEL_LOAD + FUEL_REQUEST = 1000
+    Ok(value)
+}
+```
+
+**Fuel usage:**
+- Set: ~1,100 (store + overhead)
+- Get: ~1,100 (request + load + overhead)
+
+### Token Transfer
+
+```rust
+fn transfer(&self, to: Address, amount: u128) -> Result<()> {
+    let ctx = self.context()?;  // ~100 fuel
+    
+    // Load sender balance
+    let sender_ptr = self.balance_pointer(&ctx.caller);
+    let sender_balance = sender_ptr.get_value();  // ~1000 fuel
+    
+    // Check sufficient funds
+    if sender_balance < amount {  // ~10 fuel
+        return Err(anyhow!("Insufficient balance"));
+    }
+    
+    // Load recipient balance
+    let recipient_ptr = self.balance_pointer(&to);
+    let recipient_balance = recipient_ptr.get_value();  // ~1000 fuel
+    
+    // Update balances
+    sender_ptr.set_value(sender_balance - amount);  // ~1000 fuel
+    recipient_ptr.set_value(recipient_balance + amount);  // ~1000 fuel
+    
+    Ok(())
+}
+```
+
+**Total fuel:** ~5,110
+
+### AMM Swap
+
+```rust
+fn swap(&self, amount_in: u128, min_out: u128) -> Result<()> {
+    let ctx = self.context()?;  // ~100
+    
+    // Load reserves
+    let reserve0 = self.reserve0_pointer().get_value();  // ~1000
+    let reserve1 = self.reserve1_pointer().get_value();  // ~1000
+    
+    // Calculate output (complex math)
+    let amount_out = calculate_output(
+        amount_in, reserve0, reserve1
+    );  // ~500
+    
+    // Check slippage
+    if amount_out < min_out {  // ~10
+        return Err(anyhow!("Slippage exceeded"));
+    }
+    
+    // Update reserves
+    self.reserve0_pointer().set_value(reserve0 + amount_in);  // ~1000
+    self.reserve1_pointer().set_value(reserve1 - amount_out);  // ~1000
+    
+    // Update total supply (k = x * y)
+    let k = (reserve0 + amount_in) * (reserve1 - amount_out);
+    self.k_pointer().set_value(k);  // ~1000
+    
+    Ok(())
+}
+```
+
+**Total fuel:** ~6,610
+
+### Multi-Contract Call
+
+```rust
+fn compound_action(&self, amount: u128) -> Result<()> {
+    // Approve spender
+    let approve_msg = vec![10u128, 5, 3, amount];
+    let _ = __call(
+        to_ptr(&approve_msg),
+        empty_value(),
+        checkpoint(),
+        5000
+    )?;  // ~5500 fuel
+    
+    // Perform swap
+    let swap_msg = vec![5u128, 5, 3, amount, 0];
+    let result_size = __call(
+        to_ptr(&swap_msg),
+        to_ptr(&value),
+        checkpoint(),
+        10000
+    )?;  // ~10500 fuel
+    
+    // Deposit to vault
+    let deposit_msg = vec![7u128, 6, 2, result_size];
+    let _ = __call(
+        to_ptr(&deposit_msg),
+        empty_value(),
+        checkpoint(),
+        10000
+    )?;  // ~10500 fuel
+    
+    Ok(())
+}
+```
+
+**Total fuel:** ~26,500 + subcall execution
+
+## Fuel Refunds
+
+### Unused Fuel Refund
+
+At end of transaction:
+
+```rust
+let used_fuel = allocated_fuel - remaining_fuel;
+let unused_fuel = allocated_fuel - used_fuel;
+
+remaining_block_fuel += unused_fuel;  // Refund to block
+```
+
+**Benefit:** Later transactions in block get more fuel if earlier ones under-utilize.
+
+### No User Refund
+
+Users don't receive Bitcoin refund for unused fuel. They only pay transaction fee (same regardless of fuel used).
+
+## Fuel Exhaustion
+
+### Out of Fuel Handling
+
+```
+Contract execution:
+  1. wasmi checks fuel before each metered operation
+  2. If fuel < operation_cost:
+     ↓
+     Trap with OutOfFuel error
+     ↓
+  3. Roll back all state changes
+  4. Refund all input assets to refund_pointer
+  5. Mark transaction as reverted
+  6. No partial execution
+```
+
+### Protomessage Revert
+
+If protomessage exhausts fuel:
+
+```rust
+// Protomessage 1: Uses 100,000 fuel, exhausts
+// Protomessage 2: Gets MINIMUM_FUEL (10,000) only
+// Protomessage 3: Gets MINIMUM_FUEL (10,000) only
+```
+
+**Rationale:** First failure likely indicates problem; remaining messages get minimal fuel.
+
+## Optimization Strategies
+
+### 1. Batch Storage Operations
+
+**Bad:**
+```rust
+for i in 0..100 {
+    let key = format!("/item/{}", i);
+    __store(&key, &value);  // 100,000 fuel!
+}
+```
+
+**Good:**
+```rust
+let batch: Vec<(String, u128)> = items.collect();
+let serialized = serialize(&batch);
+__store("/items/batch", &serialized);  // 1,000 fuel!
+```
+
+### 2. Cache Expensive Queries
+
+**Bad:**
+```rust
+fn process_transfers(&self, transfers: &[Transfer]) -> Result<()> {
+    for transfer in transfers {
+        let balance = self.get_balance(&transfer.from)?;  // Repeated I/O
+        // ...
+    }
+}
+```
+
+**Good:**
+```rust
+fn process_transfers(&self, transfers: &[Transfer]) -> Result<()> {
+    // Load all balances once
+    let balances: HashMap<Address, u128> = self.load_all_balances()?;
+    
+    for transfer in transfers {
+        let balance = balances.get(&transfer.from).unwrap();
+        // ...
+    }
+}
+```
+
+### 3. Early Exit on Failure
+
+**Bad:**
+```rust
+fn validate_and_execute(&self) -> Result<()> {
+    let data1 = self.load_data1()?;  // 1000 fuel
+    let data2 = self.load_data2()?;  // 1000 fuel
+    let data3 = self.load_data3()?;  // 1000 fuel
+    
+    if !self.is_valid() {  // Check last!
+        return Err(anyhow!("Invalid"));
+    }
+    
+    self.execute(data1, data2, data3)?;
+    Ok(())
+}
+```
+
+**Good:**
+```rust
+fn validate_and_execute(&self) -> Result<()> {
+    // Check validity first (cheap)
+    if !self.is_valid() {  // 10 fuel
+        return Err(anyhow!("Invalid"));
+    }
+    
+    // Only load if valid
+    let data1 = self.load_data1()?;
+    let data2 = self.load_data2()?;
+    let data3 = self.load_data3()?;
+    
+    self.execute(data1, data2, data3)?;
+    Ok(())
+}
+```
+
+### 4. Use staticcall for Views
+
+**Bad:**
+```rust
+// Full call just to read value
+let cellpack = vec![99u128, 32, 0];  // Opcode 99 = view
+let result = __call(
+    to_ptr(&cellpack),
+    empty_value(),
+    checkpoint(),
+    10000
+)?;
+```
+
+**Good:**
+```rust
+// Static call (no state persistence overhead)
+let cellpack = vec![99u128, 32, 0];
+let result = __staticcall(
+    to_ptr(&cellpack),
+    empty_value(),
+    checkpoint(),
+    5000  // Less fuel needed
+)?;
+```
+
+### 5. Minimize Contract Calls
+
+**Bad:**
+```rust
+for item in items {
+    let result = __call(process_one_item)?;  // N calls
+}
+```
+
+**Good:**
+```rust
+// Batch process in single call
+let result = __call(process_all_items)?;  // 1 call
+```
+
+## Fuel Estimation
+
+### Estimating Required Fuel
+
+**Formula:**
+```
+estimated_fuel = 
+    (storage_reads * 1000) +
+    (storage_writes * 1500) +
+    (balance_queries * 10) +
+    (contract_calls * (500 + subcall_fuel)) +
+    (computation * 100)  // Rough estimate
+```
+
+**Example:**
+```rust
+// Transfer function
+// - 2 balance reads: 2 * 1000 = 2000
+// - 2 balance writes: 2 * 1000 = 2000
+// - 1 comparison: ~10
+// - Overhead: ~200
+// Total: ~4,210 fuel
+```
+
+### Testing Fuel Usage
+
+Use alkanes test suite:
+
+```rust
+#[test]
+fn test_fuel_usage() {
+    let mut runtime = create_test_runtime();
+    
+    let result = runtime.execute_with_fuel_tracking(
+        &contract,
+        &message,
+        100_000  // Max fuel
+    )?;
+    
+    println!("Fuel used: {}", result.fuel_consumed);
+    assert!(result.fuel_consumed < 10_000, "Too expensive!");
+}
+```
+
+## Limits and Constraints
+
+### Per-Block Limits
+
+- **Total fuel:** 20,000,000
+- **Max deployments:** ~2,000 (at 10k fuel each)
+- **Max simple transfers:** ~4,000 (at 5k fuel each)
+- **Max complex ops:** ~200 (at 100k fuel each)
+
+### Per-Transaction Limits
+
+- **Minimum fuel:** 10,000
+- **Maximum fuel:** Depends on vfsize and remaining block fuel
+- **Typical execute:** 50,000 - 200,000 fuel
+- **Complex multi-call:** 500,000 - 1,000,000 fuel
+
+### Storage Growth Limits
+
+Worst case: 12 MB/block
+
+**Calculation:**
+```
+If every byte costs 1 fuel to store:
+20M fuel / 1 fuel per byte = 20 MB theoretical max
+
+Actual: ~12 MB accounting for:
+- Store operation overhead (1000 fuel)
+- Other operations needed
+- Practical transaction limits
+```
+
+## Monitoring and Debugging
+
+### Fuel Tracking in Tests
+
+```rust
+use alkanes_runtime::fuel::FuelTracker;
+
+#[test]
+fn test_operation_fuel() {
+    let tracker = FuelTracker::new(100_000);
+    
+    tracker.consume(FUEL_LOAD, "load balance")?;
+    tracker.consume(FUEL_STORE, "store balance")?;
+    
+    println!("Remaining: {}", tracker.remaining());
+    assert!(tracker.remaining() > 50_000);
+}
+```
+
+### Profiling Contracts
+
+```bash
+# Run with fuel profiling
+ALKANES_PROFILE_FUEL=1 cargo test test_my_contract
+
+# Output shows fuel breakdown:
+# - Storage ops: 45,000 (45%)
+# - Computation: 30,000 (30%)
+# - Contract calls: 25,000 (25%)
+```
+
+## Next Steps
+
+- [Build Optimized Contracts →](/developer-guide/alkanes-quickstart)
+- [Profile Your Contract →](/developer-guide/profiling)
+- [Contract Examples →](https://github.com/kungfuflex/alkanes-rs/tree/main/alkanes)
+
+## Resources
+
+- **Fuel Implementation**: [alkanes-rs/src/vm/fuel.rs](https://github.com/kungfuflex/alkanes-rs/tree/main/src/vm/fuel.rs)
+- **wasmi Fuel Metering**: [wasmi docs](https://docs.rs/wasmi)
+- **Performance Testing**: [alkanes-rs tests](https://github.com/kungfuflex/alkanes-rs/tree/main/crates/alkanes/src/tests)

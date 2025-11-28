@@ -1,0 +1,69 @@
+# dxBTC - Yield-Bearing Bitcoin Vaults
+
+dxBTC represents yield-bearing Bitcoin positions in various vault strategies. Users deposit frBTC to receive dxBTC vault shares that accrue yield.
+
+## Overview
+
+**Type**: Yield vault shares  
+**Base Asset**: frBTC  
+**Yield Strategy**: Configurable per vault
+
+## Vault Types
+
+### dxnormBTC - Normal Pool
+
+**Strategy**: Conservative yield farming
+- Deposits to stable pools
+- Lower risk profile
+- Steady returns
+
+**Contract**: Use `scripts/deploy-regtest.sh` for addresses
+
+## How It Works
+
+```
+1. User deposits frBTC
+   ↓
+2. Vault deploys to yield strategies
+   ↓
+3. Harvest claims yields periodically
+   ↓
+4. Yields auto-compound
+   ↓
+5. dxBTC share value increases
+```
+
+## Operations
+
+### Deposit
+
+```bash
+alkanes alkanes execute \
+  --protostones "[<vault_block>,<vault_tx>,1,<amount>]" \
+  --inputs "frBTC:<amount>" \
+  --to "bc1p..." \
+  -y
+```
+
+### Withdraw
+
+```bash
+alkanes alkanes execute \
+  --protostones "[<vault_block>,<vault_tx>,2,<shares>]" \
+  --inputs "dxBTC:<shares>" \
+  --to "bc1p..." \
+  -y
+```
+
+### Check Value
+
+```bash
+alkanes alkanes execute \
+  --protostones "[<vault_block>,<vault_tx>,3]" \
+  --to "bc1p..."
+```
+
+## Resources
+
+- **Source**: [dx-btc contracts](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/dx-btc)
+- **Related**: [ftrBTC Options →](/tokens/ftrbtc-overview)

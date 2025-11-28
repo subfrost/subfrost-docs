@@ -1,0 +1,63 @@
+# SUBFROST Consensus Overview
+
+SUBFROST uses signal-based reactive consensus for distributed coordination across blockchains.
+
+## Architecture
+
+```
+L0 Program (WASI-P2) ← Pure functional WASM
+    ↓ (virtual filesystem I/O)
+Signal Filesystem ← /signals/input, /signals/state, /signals/output
+    ↓ (read/write operations)
+Host Runtime ← Handles all cryptography
+    ↓
+FROST/CGGMP24 → Multi-Chain Signing
+```
+
+## Signal System
+
+### Input Signals
+- `/signals/input/` - External blockchain events
+- Example: `/signals/input/frbtc_burn_event`
+
+### State Signals
+- `/signals/state/` - Program state (persistent)
+- Example: `/signals/state/last_processed_height`
+
+### Output Signals
+- `/signals/output/` - Proposed actions (signing requests)
+- Example: `/signals/output/psbt`
+
+### Logs
+- `/logs/` - Debug and monitoring
+
+## Execution Model
+
+1. **Deterministic**: Pure functional WASM
+2. **Reactive**: Triggered by signal changes
+3. **Parallel**: Multiple signals evaluated concurrently
+4. **Cryptography-Free**: Host handles all signing
+
+## Example Flow
+
+```wasm
+// Detect blockchain event
+read("/signals/input/burn_event") 
+    ↓
+// Process and prepare transaction
+compute_transaction()
+    ↓
+// Request signing
+write("/signals/output/psbt", psbt_bytes)
+    ↓
+// Host coordinates FROST signing
+host_frost_sign()
+    ↓
+// Broadcast transaction
+read("/signals/output/broadcast_tx")
+```
+
+## Resources
+
+- [Example: RNG Program](/subfrost-runtime/example-programs)
+- [WASI-P2 Programs](/subfrost-runtime/wasip2-programs)

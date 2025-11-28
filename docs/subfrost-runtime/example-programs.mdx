@@ -1,0 +1,130 @@
+# Example L0 Programs
+
+SUBFROST includes example consensus programs demonstrating different L0 patterns.
+
+## RNG - Random Number Generator
+
+**Location**: `./reference/subfrost/consensus/rng`
+
+Demonstrates parallel signal execution and FROST signing.
+
+### What It Does
+
+1. Generates cryptographically secure random numbers
+2. Uses multiple independent RNG signals (parallel)
+3. Aggregates into 32-byte vector
+4. Publishes to alkane 88888 via FROST threshold signature
+
+### Architecture
+
+```
+N Independent RNG Signals (rng_0..rng_N-1)
+    ↓ (parallel execution)
+aggregate_random_bytes
+    ↓
+build_alkane_tx
+    ↓
+FROST Threshold Signing
+    ↓
+Broadcast to Bitcoin L1
+```
+
+### Running
+
+```bash
+subfrost-cli rail \
+    --consensus ./rng_consensus.wasm \
+    --topic rng-signing-group
+```
+
+### Code Structure
+
+```rust
+#[signal]
+fn rng_0() -> u32 {
+    // Independent RNG call
+    random_get()
+}
+
+#[signal(depends_on = "rng_0,rng_1,...")]
+fn aggregate_random_bytes() -> (u128, u128) {
+    // Collect all RNG values
+    // Pack into 32 bytes
+    // Split into two u128
+}
+
+#[signal(depends_on = "aggregate_random_bytes")]
+fn build_alkane_tx(high: u128, low: u128) -> Psbt {
+    // Construct Protostone
+    // Create PSBT
+    // Propose for signing
+}
+```
+
+## unwrap-frbtc
+
+**Location**: Referenced in subfrost README
+
+Cross-chain bridge between Bitcoin L1 and Alkanes metaprotocol.
+
+### Flow
+
+```
+1. User burns frBTC on Alkanes
+2. L0 program detects burn
+3. Constructs Bitcoin release TX
+4. FROST threshold signing
+5. Broadcast to Bitcoin L1
+6. User receives native BTC
+```
+
+### Key Features
+
+- Direct L1 settlement
+- No wrapped tokens
+- Trust-minimized (m-of-n)
+- Real-time reactive
+
+## Building Your Own
+
+### Template Structure
+
+```rust
+use subfrost_runtime::prelude::*;
+
+// Input signal: Read blockchain state
+#[signal]
+fn monitor_blockchain() -> Result<Event> {
+    let state = read_signal("/signals/input/chain")?;
+    detect_event(&state)
+}
+
+// State signal: Process event
+#[signal(depends_on = "monitor_blockchain")]
+fn process_event(event: Event) -> Result<Action> {
+    compute_action(&event)
+}
+
+// Output signal: Propose signing
+#[signal(depends_on = "process_event")]
+fn propose_signing(action: Action) -> Result<()> {
+    let psbt = build_psbt(&action)?;
+    write_signal("/signals/output/psbt", &psbt)?;
+    Ok(())
+}
+```
+
+### Best Practices
+
+✅ Keep signals pure and deterministic  
+✅ Use parallel signals for independent operations  
+✅ Handle errors gracefully (refund on failure)  
+✅ Test thoroughly on regtest  
+✅ Log debugging info to `/logs/`
+
+## Resources
+
+- [RNG README](https://github.com/subfrost/subfrost/tree/main/consensus/rng)
+- [WASI-P2 Programs](/subfrost-runtime/wasip2-programs)
+- [Consensus Overview](/subfrost-runtime/consensus-overview)
+

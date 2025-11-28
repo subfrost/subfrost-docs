@@ -1,0 +1,133 @@
+# SubProxy - SOCKS5/HTTP Gateway
+
+SubProxy is a bidirectional proxy that bridges traditional TCP applications with SubP2P networking.
+
+## Overview
+
+**Purpose**: Enable standard applications to use P2P networking  
+**Protocols**: SOCKS5, HTTP proxy, DNS resolution  
+**Use Cases**: curl, wget, browsers, any TCP application
+
+## Features
+
+- SOCKS5 proxy server
+- HTTP CONNECT proxy support
+- DNS resolution for `.relay` and `.peer` domains
+- Transparent P2P connection bridging
+
+## Usage
+
+### Start Proxy
+
+```bash
+cargo run -p subproxy -- \
+  --listen 127.0.0.1:1080 \
+  --relay /dns4/p2p.subfrost.io/tcp/443/wss
+```
+
+### Use with Applications
+
+#### curl
+
+```bash
+# Via environment variable
+export ALL_PROXY=socks5://127.0.0.1:1080
+curl http://my-node.relay/api
+
+# Or directly
+curl --socks5 127.0.0.1:1080 http://peer-id.peer/endpoint
+```
+
+#### wget
+
+```bash
+export http_proxy=socks5://127.0.0.1:1080
+wget http://my-service.relay/file.dat
+```
+
+#### Browser
+
+Configure SOCKS5 proxy:
+- Host: 127.0.0.1
+- Port: 1080
+- Type: SOCKS v5
+
+#### SSH
+
+```bash
+ssh -o ProxyCommand="nc -X 5 -x 127.0.0.1:1080 %h %p" user@my-server.relay
+```
+
+## DNS Resolution
+
+### Special Domains
+
+**`.relay` - Named peers:**
+```
+http://my-node.relay → Resolves via relay name service
+```
+
+**`.peer` - Direct PeerID:**
+```
+http://12D3KooWABC....peer → Direct P2P connection
+```
+
+### How It Works
+
+```
+Application requests: http://my-node.relay
+    ↓
+SubProxy intercepts DNS query
+    ↓
+Looks up "my-node" in relay
+    ↓
+Gets PeerID and multiaddrs
+    ↓
+Establishes P2P connection
+    ↓
+Bridges TCP ↔ P2P stream
+    ↓
+Application receives response
+```
+
+## Configuration
+
+```toml
+[proxy]
+listen_addr = "127.0.0.1:1080"
+protocol = "socks5"  # or "http"
+
+[relay]
+address = "/dns4/p2p.subfrost.io/tcp/443/wss"
+
+[dns]
+listen_addr = "127.0.0.1:5353"
+upstream = "8.8.8.8:53"  # For non-P2P domains
+
+[p2p]
+identity_path = "./identity.key"
+```
+
+## Examples
+
+### Accessing P2P HTTP Server
+
+```bash
+# Server publishes as "api-server"
+server: cargo run -p subp2p -- serve --name api-server --port 8000
+
+# Client accesses via proxy
+client: curl --socks5 127.0.0.1:1080 http://api-server.relay/
+```
+
+### Proxying to Traditional Internet
+
+```bash
+# SubProxy can also proxy regular HTTP
+curl --socks5 127.0.0.1:1080 http://google.com
+```
+
+## Resources
+
+- **Source**: [subproxy crate](https://github.com/subfrost/subfrost/tree/main/crates/subproxy)
+- **SOCKS5**: [RFC 1928](https://tools.ietf.org/html/rfc1928)

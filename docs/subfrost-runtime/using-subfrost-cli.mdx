@@ -1,0 +1,137 @@
+# Using subfrost-cli
+
+subfrost-cli is the command-line interface for FROST/CGGMP threshold operations, Alkanes interactions, and L0 consensus programs.
+
+## Installation
+
+```bash
+# From source
+git clone https://github.com/subfrost/subfrost
+cd subfrost
+cargo build --release -p subfrost-cli
+
+# Binary at: target/release/subfrost-cli
+```
+
+## Wallet Operations
+
+### Generate Mnemonic
+
+```bash
+subfrost-cli wallet generate
+```
+
+### FROST Operations
+
+```bash
+# DKG (2-of-3)
+subfrost-cli frost dkg \
+    --threshold 2 \
+    --max-signers 3 \
+    --topic my-group
+
+# Get address
+subfrost-cli frost address --topic my-group
+
+# Sign PSBT
+subfrost-cli frost sign-psbt \
+    --psbt <base64> \
+    --topic signing-session
+```
+
+### CGGMP Operations
+
+```bash
+# DKG for ECDSA
+subfrost-cli cggmp dkg \
+    --threshold 2 \
+    --max-signers 3 \
+    --topic eth-group
+
+# Sign Ethereum transaction
+subfrost-cli cggmp sign-eth \
+    --tx <tx-data> \
+    --topic eth-signing
+```
+
+## Alkanes Operations
+
+### Wrap BTC
+
+```bash
+subfrost-cli alkanes wrap-btc 100000 \
+    --from "p2tr:0" \
+    --mine -y
+```
+
+### Execute Contract
+
+```bash
+subfrost-cli alkanes execute \
+    --inputs "B:10000" \
+    --protostones "[32,0,77]" \
+    --to "bc1p..." -y
+```
+
+### Deploy Contract
+
+```bash
+subfrost-cli alkanes deploy contract.wasm \
+    --from "p2tr:0" -y
+```
+
+### Check Balance
+
+```bash
+subfrost-cli alkanes getbalance \
+    --address "bc1p..." \
+    --alkane-id "32:0"
+```
+
+## L0 Consensus
+
+### Run Consensus Program
+
+```bash
+subfrost-cli rail \
+    --consensus ./program.wasm \
+    --topic my-session
+```
+
+### Options
+
+```bash
+--once              # Run once (testing)
+--circuit <relay>   # Relay address
+--frost-files <dir> # Key directory
+--passphrase <pass> # Decrypt keys
+-p <network>        # mainnet/signet/regtest
+```
+
+## Configuration
+
+### Config File
+
+`~/.subfrost/config.toml`:
+
+```toml
+[network]
+default = "mainnet"
+
+[relay]
+mainnet = "https://p2p.subfrost.io"
+signet = "https://relay-signet.subfrost.io"
+
+[frost]
+keys_dir = "~/.subfrost/keys"
+
+[alkanes]
+rpc_url = "https://mainnet.subfrost.io/v4/jsonrpc"
+```
+
+## Resources
+
+- [Getting Started](/developer-guide/getting-started)
+- [FROST Signatures](/subfrost-runtime/frost-signatures)
+- [Alkanes Quickstart](/developer-guide/alkanes-quickstart)
+

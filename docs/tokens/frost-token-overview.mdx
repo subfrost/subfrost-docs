@@ -1,0 +1,69 @@
+# FROST - Protocol Governance Token
+
+FROST is the governance and utility token for the SUBFROST protocol.
+
+## Overview
+
+**Contract**: Check deployment addresses  
+**Type**: Governance token  
+**Supply**: Fixed or managed by protocol
+
+## Use Cases
+
+### 1. Governance
+
+```
+- Vote on protocol upgrades
+- Adjust parameters (premiums, fees)
+- Treasury management
+```
+
+### 2. Staking
+
+```
+- Stake FROST for rewards
+- Validator node requirements
+- Security deposits
+```
+
+### 3. Utility
+
+```
+- Fee discounts
+- Priority access
+- Exclusive features
+```
+
+## Token Economics
+
+**Distribution:**
+- Community rewards
+- Team/advisors (vested)
+- Ecosystem fund
+- Public sale
+
+**Emissions:**
+- Liquidity mining rewards
+- Validator rewards
+- Governance participation
+
+## Integration
+
+```bash
+# Check FROST balance
+alkanes alkanes getbalance \
+  --address "bc1p..." \
+  --alkane-id "<block>:<tx>"
+
+# Transfer FROST
+alkanes alkanes execute \
+  --protostones "[<block>,<tx>,1,<recipient>,<amount>]" \
+  --inputs "FROST:<amount>" \
+  --to "bc1p..." \
+  -y
+```
+
+## Resources
+
+- **Source**: [frost-token contract](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/frost-token)
+- **Governance**: [Coming soon]

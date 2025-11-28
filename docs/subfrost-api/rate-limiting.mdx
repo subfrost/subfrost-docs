@@ -1,0 +1,67 @@
+# Rate Limiting
+
+SUBFROST API uses tiered rate limiting to ensure fair access and service quality.
+
+## Free Tier (IP-based)
+
+No API key required:
+- **Rate Limit**: 100 requests/minute
+- **Daily Limit**: 10,000 requests/day
+- **Burst Capacity**: 20 requests
+- **Authentication**: IP address
+
+## Paid Tiers
+
+### Standard ($49/month)
+- **Rate Limit**: 500 requests/minute
+- **Daily Limit**: 100,000 requests/day
+- **Burst**: 50 requests
+- **Support**: Email
+
+### Professional ($199/month)
+- **Rate Limit**: 2,000 requests/minute
+- **Daily Limit**: 500,000 requests/day
+- **Burst**: 100 requests
+- **Support**: Priority email + Discord
+
+### Enterprise (Custom)
+- **Rate Limit**: Custom
+- **Daily Limit**: Unlimited
+- **Burst**: Custom
+- **Support**: Dedicated Slack channel
+- **SLA**: 99.9% uptime guarantee
+
+## Rate Limit Headers
+
+Responses include rate limit headers:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1609459200
+```
+
+## Handling Rate Limits
+
+### 429 Response
+
+```json
+{
+  "error": {
+    "code": 429,
+    "message": "Rate limit exceeded",
+    "retry_after": 60
+  }
+}
+```
+
+### Best Practices
+
+✅ **Implement exponential backoff**
+✅ **Cache responses when possible**
+✅ **Use batch methods**
+✅ **Monitor rate limit headers**
+
+## Upgrade
+
+Contact sales@subfrost.io for paid tiers.

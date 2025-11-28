@@ -1,0 +1,363 @@
+# frBTC - Synthetic Bitcoin for DeFi
+
+frBTC (Frost Bitcoin) is a synthetic representation of Bitcoin built on the Alkanes metaprotocol. It enables Bitcoin to be used in DeFi applications while maintaining direct settlement to Bitcoin L1 through the SUBFROST Layer-0 consensus framework.
+
+## Overview
+
+**Contract Address**: `[32, 0]` (AlkaneId)
+
+frBTC allows users to wrap their BTC into a programmable asset that can be used across the Alkanes DeFi ecosystem, then unwrap it back to native BTC through a trustless threshold signature process.
+
+## Key Features
+
+### 🔄 Bidirectional Wrapping
+
+- **Wrap**: Convert BTC → frBTC on Alkanes
+- **Unwrap**: Convert frBTC → BTC via FROST threshold signatures
+- **Direct Settlement**: Unwrapped funds are native BTC (not wrapped tokens)
+
+### 🔐 Threshold Security
+
+frBTC unwrapping is secured by SUBFROST's FROST (Flexible Round-Optimized Schnorr Threshold) signature scheme:
+
+- **M-of-N Multisig**: Requires threshold of validators to sign
+- **No Single Point of Failure**: Distributed key shares
+- **Transparent**: All operations visible on Bitcoin L1
+- **Trust-Minimized**: Cryptographic guarantees
+
+### 💱 DeFi Composability
+
+frBTC is the base currency for Alkanes DeFi:
+
+- **AMM Pools**: Trade frBTC/DIESEL and other pairs
+- **Yield Vaults**: Earn yield on frBTC holdings
+- **Liquidity Mining**: Provide frBTC liquidity for rewards
+- **Cross-Protocol**: Compatible with all Alkanes contracts
+
+### 💰 Premium System
+
+The contract includes a configurable premium for wrapping operations:
+
+- **Default**: 0.1% (100,000 basis points = 0.1%)
+- **Range**: 0% to 100% (0 to 100,000,000 basis points)
+- **Purpose**: Protocol sustainability and security incentives
+- **Adjustable**: Owner can update (for network parameters)
+
+## How It Works
+
+### Wrapping BTC to frBTC
+
+1. **Send BTC Transaction**: User sends BTC to the frBTC contract address
+2. **Indexer Processes**: Alkanes indexer detects incoming BTC
+3. **Mint frBTC**: Contract mints equivalent frBTC (minus premium)
+4. **Credit UTXO**: frBTC credited to user's UTXO
+
+**Example**:
+```bash
+# Using alkanes-cli
+alkanes alkanes wrap-btc 100000 --from "p2tr:0" --mine -y
+
+# 100,000 sats sent
+# 99,900 frBTC received (100 sat premium at 0.1%)
+```
+
+### Unwrapping frBTC to BTC
+
+1. **Call Unwrap**: User calls frBTC contract with unwrap opcode
+2. **Burn frBTC**: Contract burns user's frBTC
+3. **Create Request**: Unwrap request stored in contract state
+4. **L0 Detection**: SUBFROST consensus program detects unwrap
+5. **Build Transaction**: L0 program constructs Bitcoin release TX
+6. **FROST Signing**: Threshold validators coordinate signature
+7. **Broadcast**: Signed transaction broadcast to Bitcoin network
+8. **Receive BTC**: User receives native BTC
+
+**Flow Diagram**:
+```
+User → frBTC.unwrap(amount, btc_addr)
+         ↓
+    Burn frBTC
+         ↓
+    Store request in state
+         ↓
+    L0 consensus program (unwrap-frbtc.wasm)
+         ↓
+    Detect burn via /signals/input/frbtc_state
+         ↓
+    Construct Bitcoin TX
+         ↓
+    Propose PSBT via /signals/output/psbt
+         ↓
+    FROST threshold signing
+         ↓
+    Broadcast to Bitcoin L1
+         ↓
+    User receives native BTC
+```
+
+## Contract Operations
+
+### Initialize (Opcode 0)
+
+Initialize the contract with auth tokens. Called once during deployment.
+
+```rust
+#[opcode(0)]
+Initialize
+```
+
+### Set Signer (Opcode 1)
+
+Set the threshold signer script pubkey for unwrap operations.
+
+```rust
+#[opcode(1)]
+SetSigner {
+    vout: u128,  // Output index containing signer key
+}
+```
+
+### Set Premium (Opcode 4)
+
+Update the wrap premium value (owner only).
+
+```rust
+#[opcode(4)]
+SetPremium {
+    premium: u128,  // Premium in basis points (0-100,000,000)
+}
+```
+
+**Example**: Set 0.5% premium
+```
+premium = 500_000  // 0.5%
+```
+
+### Wrap (Opcode 77)
+
+Wrap BTC into frBTC. Automatically called when BTC is sent to contract.
+
+```rust
+#[opcode(77)]
+Wrap
+```
+
+**Processing**:
+1. Detect incoming BTC in transaction inputs
+2. Calculate premium: `premium_amount = btc_amount * premium / 100_000_000`
+3. Mint frBTC: `frbtc_minted = btc_amount - premium_amount`
+4. Credit to pointer output
+
+### Unwrap (Opcode 78)
+
+Burn frBTC and request BTC unwrap.
+
+```rust
+#[opcode(78)]
+Unwrap {
+    vout: u128,           // Output index for unwrap request
+    amount_requested: u128,  // Amount of frBTC to burn
+}
+```
+
+**Requirements**:
+- User must have sufficient frBTC balance
+- Amount must be > 0
+- Valid Bitcoin address in unwrap request
+
+**Processing**:
+1. Burn user's frBTC tokens
+2. Store unwrap request with target address and amount
+3. L0 program picks up request and initiates FROST signing
+
+## Query Operations
+
+### Get Name (Opcode 99)
+
+Returns: `"Synthetic Bitcoin"`
+
+### Get Symbol (Opcode 100)
+
+Returns: `"frBTC"`
+
+### Get Decimals (Opcode 102)
+
+Returns: `8` (same as Bitcoin)
+
+### Get Signer (Opcode 103)
+
+Returns the current threshold signer address (pubkey script).
+
+### Get Premium (Opcode 104)
+
+Returns the current premium value in basis points.
+
+### Get Total Supply (Opcode 105)
+
+Returns the total circulating supply of frBTC.
+
+### Get Pending Payments (Opcode 101)
+
+Returns list of pending unwrap requests.
+
+## Integration Examples
+
+### Wrap BTC Using alkanes-cli
+
+```bash
+# Wrap 0.001 BTC (100,000 sats)
+alkanes alkanes wrap-btc 100000 \
+  --from "p2tr:0" \
+  --mine \
+  -y
+
+# Check balance
+alkanes alkanes getbalance --address "bc1p..."
+```
+
+### Unwrap frBTC Using alkanes-cli
+
+```bash
+# Unwrap 50,000 frBTC to BTC address
+alkanes alkanes execute \
+  --inputs "B:50000" \
+  --to "bc1q..." \
+  --protostones "[32,0,78,0,50000]" \
+  -y
+
+# Opcode 78 = Unwrap
+# vout 0 = first output
+# amount 50000 = 50,000 frBTC
+```
+
+### Query Contract State
+
+```bash
+# Get premium
+alkanes alkanes execute \
+  --protostones "[32,0,104]" \
+  --to "bc1p..."
+
+# Get total supply
+alkanes alkanes execute \
+  --protostones "[32,0,105]" \
+  --to "bc1p..."
+```
+
+## Use Cases
+
+### 1. DeFi Trading
+
+Use frBTC in Alkanes DEX:
+```
+User swaps frBTC ↔ DIESEL in AMM pool
+No need to unwrap/wrap for trading
+All trades settle on Bitcoin L1
+```
+
+### 2. Yield Farming
+
+Provide frBTC liquidity:
+```
+User deposits frBTC to yvfrBTC vault
+Vault auto-compounds LP fees
+User earns yield on Bitcoin holdings
+```
+
+### 3. Cross-Chain Bridges
+
+Bridge Bitcoin to other chains:
+```
+User wraps BTC → frBTC
+frBTC interacts with Alkanes contracts
+Contracts can trigger cross-chain actions
+frBTC unwraps back to native BTC
+```
+
+### 4. Bitcoin DeFi
+
+Complex financial primitives:
+```
+frBTC as collateral for loans
+frBTC in synthetic asset creation
+frBTC in options contracts (ftrBTC)
+frBTC in algorithmic stablecoins
+```
+
+## Security Considerations
+
+### Wrapping Security
+
+✅ **Deterministic Minting**: frBTC minted exactly matches BTC sent (minus premium)  
+✅ **No Intermediaries**: Direct contract interaction  
+✅ **Verifiable State**: All minting on-chain and reproducible  
+
+### Unwrapping Security
+
+✅ **Threshold Signatures**: M-of-N validators required  
+✅ **No Single Point of Failure**: Distributed key shares  
+✅ **Bitcoin L1 Settlement**: Direct to native BTC  
+✅ **Transparent Process**: All transactions visible on-chain  
+
+⚠️ **Trust Assumptions**:
+- Requires honest majority of threshold validators
+- L0 consensus program must be correctly implemented
+- Signer key security critical
+
+### Premium Security
+
+✅ **Bounded Range**: Premium limited to 0-100%  
+✅ **Transparent**: Premium rate queryable on-chain  
+⚠️ **Centralization**: Owner can adjust premium (mitigated by transparency)
+
+## Contract Addresses
+
+| Network | AlkaneId | Deployment |
+|---------|----------|------------|
+| Mainnet | [32, 0] | Block 880000+ |
+| Signet | [32, 0] | Available |
+| Regtest | [32, 0] | Use deploy script |
+
+## Technical Details
+
+### Token Standard
+
+frBTC implements the Alkanes `MintableToken` trait:
+
+```rust
+impl Token for SyntheticBitcoin {
+    fn name(&self) -> String { "Synthetic Bitcoin" }
+    fn symbol(&self) -> String { "frBTC" }
+    fn decimals(&self) -> u8 { 8 }
+}
+
+impl MintableToken for SyntheticBitcoin {}
+```
+
+### Storage Layout
+
+- **Premium**: `/premium` - Current premium value
+- **Signer**: `/signer` - Threshold signer pubkey
+- **Supply**: Tracked via token standard
+- **Pending Unwraps**: Stored per-request
+
+### Related Contracts
+
+- **ftrBTC** [31, 0]: Future Bitcoin options
+- **dxBTC**: Yield-bearing BTC vaults
+- **AMM Pools**: DIESEL/frBTC trading pairs
+- **Yield Vaults**: yvfrBTC, yv-fr-btc-vault
+
+## Resources
+
+- **Source Code**: [fr-btc in subfrost-alkanes](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/fr-btc)
+- **Unwrap L0 Program**: [unwrap-frbtc](https://github.com/subfrost/subfrost/tree/main/consensus/unwrap-frbtc)
+- **FROST Signatures**: [Learn more](/subfrost-runtime/frost-signatures)
+- **Alkanes Protocol**: [Learn more](/native-assets/alkanes-overview)
+
+## Next Steps
+
+- [Wrap Your First BTC →](/tokens/wrapping-frbtc)
+- [Understand ftrBTC Options →](/tokens/ftrbtc-overview)
+- [Explore DeFi Vaults →](/tokens/yield-vaults)
+- [Use the API →](/subfrost-api/alkanes-methods)

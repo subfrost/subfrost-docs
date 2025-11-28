@@ -1,0 +1,777 @@
+# Protocol Messages
+
+This document details the structure and encoding of protocol messages in the ALKANES metaprotocol, including transaction formats, message packing, and execution semantics.
+
+## Transaction Anatomy
+
+An ALKANES transaction consists of standard Bitcoin transaction components plus metaprotocol data.
+
+### Deploy Transaction Structure
+
+```
+Transaction {
+    version: 2,
+    inputs: [
+        Input {
+            previous_output: <funding_utxo>,
+            script_sig: <signature>,
+            witness: [
+                <signature>,
+                <pubkey>,
+                <gzipped_wasm_binary>  // Contract code in witness
+            ],
+            sequence: 0xFFFFFFFF,
+        }
+    ],
+    outputs: [
+        Output {
+            value: 0,
+            script_pubkey: OP_RETURN <runestone_with_deploy_message>
+        },
+        Output {
+            value: 546,  // Dust limit
+            script_pubkey: <pointer_address>  // Receives contract ID
+        },
+        Output {
+            value: 546,
+            script_pubkey: <refund_address>  // Refund on failure
+        },
+        Output {
+            value: <change>,
+            script_pubkey: <change_address>
+        }
+    ],
+    locktime: 0,
+}
+```
+
+### Execute Transaction Structure
+
+```
+Transaction {
+    version: 2,
+    inputs: [
+        Input {
+            previous_output: <utxo_with_protorunes>,
+            script_sig: <signature>,
+            witness: [<signature>, <pubkey>],
+            sequence: 0xFFFFFFFF,
+        }
+    ],
+    outputs: [
+        Output {
+            value: 0,
+            script_pubkey: OP_RETURN <runestone_with_execute_message>
+        },
+        Output {
+            value: 546,
+            script_pubkey: <pointer_address>  // Results on success
+        },
+        Output {
+            value: 546,
+            script_pubkey: <refund_address>  // Refund on failure
+        },
+    ],
+    locktime: 0,
+}
+```
+
+## Runestone Encoding
+
+### Basic Runestone Structure
+
+```rust
+pub struct Runestone {
+    pub edicts: Vec<Edict>,
+    pub etching: Option<Etching>,
+    pub mint: Option<RuneId>,
+    pub pointer: Option<u32>,
+    
+    // Protorunes extension
+    pub protocol: Option<Vec<u128>>,
+}
+```
+
+### OP_RETURN Script Format
+
+```
+OP_RETURN
+OP_PUSHNUM_13    // Magic number for Runestone
+<varint_data>    // LEB128-encoded message
+```
+
+### Varint Encoding
+
+All Runestone data encoded as LEB128 varints:
+
+```rust
+// Encoding example
+fn encode_varint(value: u128) -> Vec<u8> {
+    let mut encoded = Vec::new();
+    let mut n = value;
+    loop {
+        let mut byte = (n & 0x7F) as u8;
+        n >>= 7;
+        if n != 0 {
+            byte |= 0x80;  // Continue bit
+        }
+        encoded.push(byte);
+        if n == 0 {
+            break;
+        }
+    }
+    encoded
+}
+```
+
+**Examples:**
+```
+Value: 0     → Encoded: [0x00]
+Value: 127   → Encoded: [0x7F]
+Value: 128   → Encoded: [0x80, 0x01]
+Value: 16383 → Encoded: [0xFF, 0x7F]
+Value: 32    → Encoded: [0x20]
+```
+
+### Tag-Value Encoding
+
+Runestone uses tag-value pairs:
+
+```
+[tag1, value1, tag2, value2, tag3, value3, ...]
+```
+
+**Tag enumeration:**
+```rust
+enum Tag {
+    Body = 0,        // Edicts start
+    Flags = 2,       // Etching flags
+    Rune = 4,        // Rune name
+    Premine = 6,     // Premine amount
+    Cap = 8,         // Mint cap
+    Amount = 10,     // Mint amount
+    HeightStart = 12,
+    HeightEnd = 14,
+    OffsetStart = 16,
+    OffsetEnd = 18,
+    Mint = 20,       // RuneId to mint
+    Pointer = 22,    // Output pointer
+    Protocol = 16383, // Protorunes extension
+}
+```
+
+### Example Encoded Runestone
+
+```rust
+// Runestone
+Runestone {
+    pointer: Some(1),
+    protocol: Some(vec![
+        1,      // protocol_tag (alkanes)
+        77,     // opcode
+        32,     // alkane block
+        0,      // alkane tx
+    ]),
+}
+
+// Encoded
+[
+    22, 1,                      // Tag::Pointer, value: 1
+    16383, 4,                   // Tag::Protocol, length: 4
+    1, 77, 32, 0,              // Protocol message
+]
+
+// As bytes
+[
+    0x16, 0x01,                 // Pointer
+    0xFF, 0x7F, 0x04,          // Protocol tag + length
+    0x01, 0x4D, 0x20, 0x00     // Message
+]
+```
+
+## Protocol Message Format
+
+### Alkanes Message Structure
+
+```
+Protocol: [protocol_tag, opcode, alkane_block, alkane_tx, ...args]
+```
+
+**Components:**
+
+1. **protocol_tag** (u128): Always `1` for alkanes
+2. **opcode** (u128): Function to call
+3. **alkane_block** (u128): Contract block number
+4. **alkane_tx** (u128): Contract tx index
+5. **args** (Vec<u128>): Function arguments
+
+### Common Opcodes
+
+| Opcode | Function | Args |
+|--------|----------|------|
+| 0 | Deploy | None (WASM in witness) |
+| 1 | Initialize | Contract-specific |
+| 77 | Wrap (frBTC) | None (auto-detect) |
+| 78 | Unwrap (frBTC) | vout, amount |
+| 99+ | View functions | Contract-specific |
+
+### Deploy Message
+
+```rust
+Protocol: [1, 0, 0, 0]
+```
+
+**Special values:**
+- `alkane_block: 0` - New deployment
+- `alkane_tx: 0` - New deployment
+- Actual ID assigned by indexer: `[current_block, tx_index]`
+
+**Witness requirement:**
+- Must contain gzipped WASM in final witness item
+- WASM validated before deployment
+- Fuel cost: 10,000 for deployment
+
+### Execute Message Examples
+
+**Call frBTC wrap:**
+```rust
+Protocol: [1, 77, 32, 0]
+```
+
+**Call frBTC unwrap:**
+```rust
+Protocol: [1, 78, 32, 0, vout, amount]
+
+// Example: Unwrap 50000 to output 0
+Protocol: [1, 78, 32, 0, 0, 50000]
+```
+
+**Call AMM swap:**
+```rust
+Protocol: [1, opcode, amm_block, amm_tx, amount_in, min_amount_out]
+
+// Example: Swap on AMM [5, 3]
+Protocol: [1, 5, 5, 3, 10000, 9500]
+```
+
+## Protostone Packing
+
+### Full Protostone Encoding
+
+```rust
+pub struct Protostone {
+    pub protocol_tag: u128,
+    pub message: Vec<u128>,
+    pub edicts: Vec<ProtoruneRuneId>,
+    pub burn: Option<ProtoruneRuneId>,
+    pub refund: Option<u32>,
+    pub pointer: Option<u32>,
+    pub from: Option<Vec<u32>>,
+}
+```
+
+### Encoding in Protocol Field
+
+The Protocol field is a flat varint array:
+
+```
+Protocol: [
+    protocol_tag,
+    message_length,
+    ...message_values,
+    edicts_length,
+    ...edict_values,
+    has_burn,
+    ...burn_values (if has_burn),
+    has_refund,
+    refund_value (if has_refund),
+    has_pointer,
+    pointer_value (if has_pointer),
+    has_from,
+    from_length (if has_from),
+    ...from_values (if has_from),
+]
+```
+
+**Complexity note:** Full Protostone encoding is complex. Most users use helper libraries.
+
+### Simplified Cellpack Format
+
+ALKANES uses a simpler "cellpack" format for common cases:
+
+```rust
+// Cellpack: [opcode, alkane_block, alkane_tx, ...args]
+type Cellpack = Vec<u128>;
+
+// Converted internally to full Protostone
+```
+
+**Example using alkanes-cli:**
+```bash
+# CLI takes cellpack format
+alkanes alkanes execute \
+  --protostones "[77,32,0]"  # Simple cellpack
+
+# Converted to full Protostone internally
+```
+
+## Edict Encoding
+
+### Standard Runestone Edicts
+
+```rust
+pub struct Edict {
+    pub id: RuneId,      // Which rune
+    pub amount: u128,    // How much
+    pub output: u32,     // Which output
+}
+```
+
+**Encoding in Body:**
+```
+Body: [
+    block_delta, tx_delta, amount, output,  // First edict
+    block_delta, tx_delta, amount, output,  // Second edict
+    ...
+]
+```
+
+**Delta encoding:**
+- First edict: Absolute RuneId
+- Subsequent edicts: Delta from previous
+
+**Example:**
+```rust
+// Edicts
+[
+    Edict { id: (840000, 5), amount: 1000, output: 1 },
+    Edict { id: (840000, 10), amount: 500, output: 1 },
+]
+
+// Encoded Body
+[
+    840000, 5, 1000, 1,    // First edict (absolute)
+    0, 5, 500, 1,          // Second edict (delta: +5 tx)
+]
+```
+
+### Protorune Edicts
+
+Protorune edicts encoded in Protocol field:
+
+```rust
+pub struct ProtoruneRuneId {
+    pub block: u128,
+    pub tx: u128,
+    pub amount: u128,
+}
+
+// Encoding
+edicts: [
+    block1, tx1, amount1,
+    block2, tx2, amount2,
+    ...
+]
+```
+
+**No delta encoding** for protorune edicts (simpler parsing).
+
+## Message Chaining
+
+### Multiple Protostones
+
+Single transaction can have multiple Protostones:
+
+```rust
+Runestone {
+    edicts: [...],  // Standard runes edicts
+    protocol: Some(vec![
+        // First Protostone
+        1, 77, 32, 0,  // Wrap to frBTC
+        
+        // Second Protostone
+        1, 5, 5, 3, 10000, 9500,  // Swap on AMM
+        
+        // Third Protostone  
+        1, 10, 6, 2, 5000,  // Deposit to vault
+    ]),
+}
+```
+
+**Execution:**
+1. Parse all Protostones
+2. Execute in order
+3. If any fails, entire transaction fails
+4. All assets refunded to refund_pointer
+
+### Inter-Contract Calls
+
+Contracts can call other contracts via `__call`:
+
+```rust
+// Contract A calls Contract B
+let response = __call(
+    cellpack,     // [opcode, block, tx, ...args]
+    value,        // Asset transfers
+    checkpoint,   // State snapshot
+    fuel,         // Max fuel for call
+)?;
+```
+
+**Call chain:**
+```
+User → Contract A
+       ↓ __call
+       Contract A → Contract B
+                    ↓ __call
+                    Contract B → Contract C
+```
+
+**Fuel distribution:**
+```
+Total fuel: 100,000
+  User → A: Uses 10,000
+  A → B: Allocated 50,000
+    B → C: Allocated 30,000
+    B execution: Uses 15,000
+  A continues: Uses remaining
+```
+
+## Output Handling
+
+### Pointer Output
+
+Receives assets on successful execution:
+
+```
+Output[pointer] receives:
+  - Contract return value assets
+  - Unused input assets (if not consumed)
+  - New minted assets (if any)
+```
+
+**Example:**
+```rust
+// User sends 10000 frBTC to contract
+// Contract uses 8000, returns 2000
+
+// Output[pointer] receives:
+// - 2000 frBTC (returned)
+// - Any other assets from contract
+```
+
+### Refund Output
+
+Receives assets on failed execution:
+
+```
+Output[refund] receives:
+  - All input assets (unchanged)
+  - No execution occurred
+  - Gas fees still paid
+```
+
+**Example:**
+```rust
+// User sends 10000 frBTC to contract
+// Execution fails (insufficient balance, etc.)
+
+// Output[refund] receives:
+// - 10000 frBTC (full refund)
+```
+
+### Default Pointer/Refund
+
+If not specified:
+- **pointer**: defaults to output 1
+- **refund**: defaults to output 2
+
+**Best practice:** Always specify explicitly:
+```rust
+Runestone {
+    pointer: Some(1),
+    protocol: Some(vec![
+        1, 77, 32, 0,
+        // refund handled in Protostone
+    ]),
+}
+```
+
+## vfsize Calculation
+
+### Purpose
+
+vfsize (virtual fuel size) determines fuel allocation:
+
+```
+fuel = (remaining_block_fuel * tx_vfsize) / remaining_block_vfsize
+```
+
+### Calculation Rules
+
+**Standard vsize:** `vsize = (weight + 3) / 4`
+
+Where: `weight = base_size * 3 + total_size`
+
+**ALKANES vfsize:**
+
+1. **Deploy transactions** ([1,0] or [3,n] cellpack):
+   - Exclude witness stack from vsize calculation
+   - Prevents large WASM blobs from consuming disproportionate fuel
+   - `vfsize = base_tx_size (no witness)`
+
+2. **Execute transactions** (other cellpacks):
+   - Use standard vsize calculation
+   - `vfsize = normal vsize`
+
+3. **No protocol messages:**
+   - `vfsize = 0` (not an ALKANES transaction)
+
+### Example Calculations
+
+**Deploy transaction:**
+```
+Base tx size: 150 bytes
+Witness: 50 KB (gzipped WASM)
+Total size: 50,150 bytes
+
+Standard vsize: (150*3 + 50150) / 4 = 12,650
+ALKANES vfsize: 150 (witness excluded!)
+```
+
+**Execute transaction:**
+```
+Base tx size: 200 bytes
+Witness: 200 bytes (signatures)
+Total size: 400 bytes
+
+vsize: (200*3 + 400) / 4 = 250
+vfsize: 250 (same as vsize)
+```
+
+## Parsing Pipeline
+
+### Indexer Processing Steps
+
+```
+1. Read Bitcoin block
+   ↓
+2. For each transaction:
+   ↓
+3. Find OP_RETURN outputs
+   ↓
+4. Parse as Runestone
+   ↓
+5. Check for Protocol field (tag 16383)
+   ↓
+6. If present, extract Protostones
+   ↓
+7. For each Protostone:
+   - Check protocol_tag (must be 1 for alkanes)
+   - Parse message (opcode, alkane_id, args)
+   - Parse edicts (asset transfers)
+   - Identify pointer/refund outputs
+   ↓
+8. Calculate vfsize
+   ↓
+9. Allocate fuel
+   ↓
+10. Execute contract
+   ↓
+11. Update state
+   ↓
+12. Emit events
+```
+
+### Error Handling
+
+**Parse errors:**
+- Invalid varint encoding → Skip transaction
+- Malformed Runestone → Cenotaph (runes burned)
+- Invalid Protocol field → Ignore Protocol field
+- Unknown protocol_tag → Skip Protostone
+
+**Execution errors:**
+- Out of fuel → Revert, refund
+- Invalid opcode → Revert, refund
+- Assertion failure → Revert, refund
+- Balance insufficient → Revert, refund
+
+## Message Examples
+
+### Example 1: Simple Wrap
+
+**Transaction:**
+```
+Input: 0.001 BTC
+
+Output 0: OP_RETURN
+  Runestone {
+    pointer: 1,
+    protocol: [1, 77, 32, 0]  // Wrap
+  }
+
+Output 1: bc1p... (user address)
+Output 2: bc1p... (refund address)
+```
+
+**Processing:**
+```
+1. Detect incoming 0.001 BTC
+2. Protocol message: Wrap (opcode 77)
+3. Contract [32,0]: frBTC
+4. Mint 99,900 frBTC (0.1% premium)
+5. Credit to Output 1
+```
+
+### Example 2: Unwrap
+
+**Transaction:**
+```
+Input: UTXO with 50,000 frBTC
+
+Output 0: OP_RETURN
+  Runestone {
+    pointer: 1,
+    protocol: [1, 78, 32, 0, 0, 50000]  // Unwrap
+  }
+
+Output 1: bc1p... (user address)
+Output 2: bc1p... (refund address)
+```
+
+**Processing:**
+```
+1. User has 50,000 frBTC input
+2. Protocol message: Unwrap (opcode 78), amount 50,000
+3. Burn 50,000 frBTC
+4. Store unwrap request in contract state
+5. L0 consensus program picks up request
+6. FROST signing for 50,000 sats BTC release
+7. User receives native BTC on Bitcoin L1
+```
+
+### Example 3: AMM Swap
+
+**Transaction:**
+```
+Input: UTXO with 10,000 frBTC
+
+Output 0: OP_RETURN
+  Runestone {
+    edicts: [
+      Edict { id: (32,0), amount: 10000, output: 0 }  // Protoburn frBTC
+    ],
+    pointer: 1,
+    protocol: [1, 5, 5, 3, 10000, 9500]  // Swap
+  }
+
+Output 1: bc1p... (user address)
+Output 2: bc1p... (refund address)
+```
+
+**Processing:**
+```
+1. Protoburn 10,000 frBTC
+2. Call AMM contract [5,3] opcode 5 (swap)
+3. Input: 10,000 frBTC
+4. Output: 245 DIESEL (example)
+5. Check min_amount_out: 245 ≥ 9500? NO
+6. Revert, refund 10,000 frBTC to Output 2
+```
+
+### Example 4: Multi-Contract Call
+
+**Transaction:**
+```
+Input: UTXO with 100,000 frBTC
+
+Output 0: OP_RETURN
+  Runestone {
+    edicts: [
+      Edict { id: (32,0), amount: 100000, output: 0 }
+    ],
+    pointer: 1,
+    protocol: [
+      1, 5, 5, 3, 50000, 12000,      // Swap 50k frBTC → DIESEL
+      1, 10, 6, 2, 50000,             // Deposit 50k frBTC to vault
+    ]
+  }
+
+Output 1: bc1p...
+Output 2: bc1p...
+```
+
+**Processing:**
+```
+1. Protoburn 100,000 frBTC
+2. First Protostone: Swap 50,000 frBTC → ~12,500 DIESEL
+3. Second Protostone: Deposit 50,000 frBTC to vault → vault shares
+4. Output 1 receives:
+   - ~12,500 DIESEL
+   - Vault shares
+```
+
+## Best Practices
+
+### Message Construction
+
+✅ **Do:**
+- Always specify pointer and refund explicitly
+- Use cellpack format for simplicity
+- Include minimum output checks
+- Test on regtest first
+
+✗ **Don't:**
+- Pack multiple unrelated operations
+- Assume default pointer/refund
+- Omit error handling
+- Deploy untested contracts to mainnet
+
+### Fuel Estimation
+
+Estimate fuel needs:
+```rust
+// Simple read: ~1,000 fuel
+// Storage write: ~1,500 fuel
+// Contract call: ~2,000 fuel + subcall
+// Complex logic: 5,000-10,000 fuel
+```
+
+**Provide adequate vfsize:**
+- Deploy: Base tx only (witness excluded)
+- Execute: Match expected fuel needs
+
+### Error Handling
+
+Always handle potential failures:
+```rust
+// Check balance before execution
+if balance < required {
+    return refund_all();
+}
+
+// Check slippage
+if output_amount < min_amount {
+    return refund_all();
+}
+
+// Check contract exists
+if !contract_exists(alkane_id) {
+    return refund_all();
+}
+```
+
+## Next Steps
+
+- [Execution Environment →](/native-assets/execution-environment)
+- [Fuel System →](/native-assets/fuel-system)
+- [Build Your First Transaction →](/developer-guide/alkanes-quickstart)
+- [API Reference →](/subfrost-api/alkanes-methods)
+
+## Resources
+
+- **alkanes-cli**: [GitHub](https://github.com/kungfuflex/alkanes-rs)
+- **Transaction Builder**: See `alkanes-cli` source
+- **Protorune Spec**: [protorune wiki](https://github.com/kungfuflex/protorune/wiki)
+- **Test Transactions**: `alkanes-rs/crates/alkanes/src/tests/`

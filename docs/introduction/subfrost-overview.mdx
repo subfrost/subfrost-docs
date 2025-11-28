@@ -1,23 +1,247 @@
----
-slug: /
----
-import useBaseUrl from '@docusaurus/useBaseUrl';
-
-
-
 # SUBFROST Overview
-Bitcoin DeFi represents one of the most promising frontiers in finance. Yet, native BTC is not directly compatible with advanced applications on Bitcoin L1 ecosystems, such as AMMs, lending protocols, or privacy solutions like zk mixers.
 
-SUBFROST unlocks this potential by enabling native BTC to seamlessly power the next generation of DeFi.
-
-This is done through the issuance of two DeFi-compatible BTC synthetics, crucial to a competitive ecosystem on Bitcoin:
-1. **frBTC**: the synthetic asset pegged 1:1 to BTC on Bitcoin L1, enabling users to leverage their BTC across any application without ever leaving the Bitcoin blockchain. Learn more [**here.**](../tokens/frBTC-overview)
-2. **dxBTC**: the yield-bearing variant of BTC, enabling users to maintain full exposure to BTC while earning a yield in the simplest and most secure way possible. Learn more [**here.**](../tokens/dxBTC-overview)
-
+Welcome to SUBFROST, a comprehensive Layer-0 (L0) consensus framework and Bitcoin-native DeFi ecosystem that operates above all blockchains, providing real-time signal-based reactive consensus for cross-chain coordination, threshold cryptography, and trustless settlement.
 
 ## What is SUBFROST?
-SUBFROST is a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1. 
 
-It operates as a [**Layer-0**](/introduction/technical-overview), designed to issue BTC synthetic assets directly onto Bitcoin via execution layers like **Alkanes, Arch, BRC 2.0**, etc. Without it, there will be a continued reliance on trust-dependent, cross-chain options like wrapped BTC on Ethereum.
+SUBFROST is a multi-layered protocol stack that combines:
 
-The future is bright for Bitcoin DeFi, and SUBFROST will be a fundamental component of this bright future.
+1. **Layer-0 Consensus Framework** - Blockchain-agnostic coordination layer
+2. **Alkanes Metaprotocol** - Programmable smart contracts on Bitcoin L1
+3. **Threshold Cryptography** - FROST (Schnorr) and CGGMP24 (ECDSA) signatures
+4. **P2P Infrastructure** - WebTransport-based networking with libp2p
+5. **Cross-Chain Bridges** - Direct settlement to any L1 without wrapped assets
+
+## Core Innovations
+
+### Bitcoin-Native Programmability
+
+SUBFROST introduces the **Alkanes metaprotocol**, a WASM-based smart contract environment that runs entirely on Bitcoin Layer 1. Unlike other solutions that require L2 chains or wrapped tokens, Alkanes contracts:
+
+- Execute directly on Bitcoin's blockchain
+- Use Bitcoin's native security model
+- Require only Bitcoin transaction fees
+- Support complex DeFi primitives (AMMs, vaults, gauges)
+
+### Layer-0 Consensus
+
+The SUBFROST consensus framework enables **arbitrary L0 programs** to coordinate cross-chain operations through signal-based reactive consensus. Key features:
+
+- **WASI-P2 Programs**: Write consensus logic in safe, deterministic WASM
+- **Cryptography-Free Consensus**: Host runtime handles all signing operations
+- **Chain-Agnostic**: Same L0 program coordinates multiple blockchains
+- **Real-Time Reactive**: Instant updates via signal filesystem
+
+### Universal Blockchain Support
+
+SUBFROST natively supports threshold signatures for all mainstream blockchains:
+
+- **Schnorr (FROST)**: Bitcoin, Cardano, Polkadot, and more
+- **ECDSA (CGGMP24)**: Ethereum, Cosmos, Solana, Zcash, and more
+- **Direct Settlement**: Transactions settle directly to L1s
+- **No Wrapped Assets**: Users receive native tokens, not synthetic representations
+
+## Key Components
+
+### 🔗 Alkanes Metaprotocol
+
+A protorunes-compatible subprotocol that extends Bitcoin with smart contract capabilities:
+
+- **WASM Runtime**: Execute contracts in WebAssembly
+- **Fuel Metering**: DoS protection through execution limits
+- **Protorunes Compatible**: Interoperable with runes ecosystem
+- **Composable DeFi**: Build complex financial primitives
+
+[Learn more about Alkanes →](/native-assets/alkanes-overview)
+
+### 🌐 SubP2P Networking
+
+WebTransport-based P2P infrastructure with browser and native support:
+
+- **Multi-Transport**: QUIC, WebTransport, TCP, WebSocket
+- **NAT Traversal**: Circuit relay v2 with hole punching
+- **Encrypted**: Noise protocol for all communications
+- **Cross-Platform**: Works in browsers and native environments
+
+[Learn more about SubP2P →](/subfrost-p2p/introduction-to-subp2p)
+
+### 🔐 Threshold Cryptography
+
+State-of-the-art threshold signature schemes:
+
+- **FROST**: Flexible Round-Optimized Schnorr Threshold signatures
+- **CGGMP24**: Canetti-Gennaro-Goldfeder-Makriyannis-Peled ECDSA protocol
+- **M-of-N Security**: Distributed key generation and signing
+- **No Single Point of Failure**: Trust-minimized custody
+
+[Learn more about FROST →](/subfrost-runtime/frost-signatures)
+
+### 💰 Native Assets
+
+Production-ready synthetic and derivative Bitcoin assets:
+
+- **frBTC** [32:0]: Synthetic Bitcoin for DeFi
+- **ftrBTC** [31:0]: Future Bitcoin options
+- **dxBTC**: Yield-bearing Bitcoin vaults
+- **FROST**: Protocol governance token
+
+[Explore all tokens →](/tokens/overview)
+
+## Use Cases
+
+### Cross-Chain Bridges
+
+Build trustless bridges between any blockchain pair:
+
+```
+User burns frBTC on Alkanes (Bitcoin L1)
+    ↓
+SUBFROST L0 consensus detects burn
+    ↓
+Validators coordinate FROST threshold signature
+    ↓
+Transaction settles directly to Bitcoin L1
+    ↓
+User receives native BTC (no wrapped tokens)
+```
+
+[See unwrap-frbtc example →](/subfrost-runtime/example-programs)
+
+### Bitcoin DeFi
+
+Deploy complex financial primitives on Bitcoin L1:
+
+- **Automated Market Makers (AMMs)**: Constant product pools
+- **Yield Vaults**: Auto-compounding strategies
+- **Liquidity Gauges**: Boosted reward mechanisms
+- **Options**: Future Bitcoin derivatives
+
+[Explore DeFi contracts →](/tokens/overview)
+
+### Multi-Chain Wallets
+
+Create universal threshold wallets supporting all chains:
+
+- Single key ceremony works for all signature schemes
+- Sign transactions for Bitcoin, Ethereum, Cosmos, Solana
+- Distribute trust across multiple parties
+- Mobile-ready through UniFFI bindings
+
+[Learn about subfrost-cli →](/subfrost-runtime/using-subfrost-cli)
+
+## Architecture Overview
+
+```
+┌──────────────────────────────────────────────────────────┐
+│         Cross-Platform Bindings (Layer 5)               │
+│  subfrost-ffi (UniFFI) | subfrost-jni (Android)         │
+│  Kotlin, Swift, Python bindings                         │
+└─────────────────────────┬────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────┐
+│         Application Layer (Layer 4)                      │
+│  subfrost-cli: Wallet, FROST coordination, Alkanes       │
+│  subfrost-common: Bitcoin primitives, keystore           │
+└─────────────────────────┬────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────┐
+│      Consensus & Runtime (Layer 3)                       │
+│  subfrost-consensus: WASI-P2 signal filesystem          │
+│  subfrost-runtime: WASM helpers for consensus programs   │
+└─────────────────────────┬────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────┐
+│      P2P Infrastructure (Layer 2)                        │
+│  subrelay: Circuit relay v2 server                       │
+│  subproxy: SOCKS5/HTTP/DNS proxy                         │
+│  subtun: VPN tunnel (L3 routing)                         │
+└─────────────────────────┬────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────┐
+│      Network Foundation (Layer 1)                        │
+│  subp2p: libp2p with QUIC, WebTransport, relay v2        │
+│  Kademlia DHT, GossipSub, DCUtR, Autonat                 │
+└──────────────────────────────────────────────────────────┘
+```
+
+## Why SUBFROST?
+
+### For Bitcoin Developers
+
+- **True Bitcoin-Native**: Contracts run on Bitcoin L1, not a sidechain
+- **Rust Ecosystem**: Build with familiar tools and libraries
+- **Low Fees**: Only pay Bitcoin transaction fees (no gas tokens)
+- **Proven Security**: Bitcoin's PoW secures your smart contracts
+
+### For DeFi Protocols
+
+- **Composability**: All contracts share a single execution environment
+- **Permissionless**: Anyone can deploy contracts
+- **Interoperability**: Compatible with runes ecosystem
+- **Scalability**: Horizontal sharding across protocol IDs
+
+### For Cross-Chain Projects
+
+- **Universal Support**: One framework for all blockchains
+- **Direct Settlement**: No intermediary chains or wrapped assets
+- **Trust-Minimized**: M-of-N threshold security
+- **Real-Time**: Signal-based reactive consensus
+
+## Getting Started
+
+### Developers
+
+1. [Install alkanes-cli](/developer-guide/getting-started)
+2. [Deploy your first contract](/developer-guide/alkanes-quickstart)
+3. [Explore the API](/subfrost-api/overview)
+
+### Node Operators
+
+1. [Run a relay node](/subfrost-p2p/subrelay)
+2. [Join FROST signing group](/subfrost-runtime/frost-dkg)
+3. [Index the Alkanes protocol](/developer-guide/running-indexer)
+
+### Users
+
+1. [Create a wallet](/tokens/frbtc-overview)
+2. [Wrap BTC to frBTC](/tokens/wrapping-frbtc)
+3. [Trade on Alkanes DEX](/tokens/trading)
+
+## Network Information
+
+### Mainnet
+
+- **Network**: Bitcoin Mainnet
+- **Genesis Block**: 880000
+- **API**: https://mainnet.subfrost.io/v4
+- **Relay**: https://p2p.subfrost.io
+
+### Testnet
+
+- **Network**: Bitcoin Signet
+- **API**: https://signet.subfrost.io/v4
+- **Relay**: https://relay-signet.subfrost.io
+
+### Development
+
+- **Network**: Bitcoin Regtest
+- **Docker**: Available in alkanes-rs repository
+- **Local Testing**: Full stack simulation
+
+## Community & Support
+
+- **Discord**: [Join the SANDSHREW サンド Discord](#)
+- **GitHub**: [subfrost](https://github.com/kungfuflex/subfrost) | [alkanes-rs](https://github.com/kungfuflex/alkanes-rs)
+- **Documentation**: [https://docs.subfrost.io](https://docs.subfrost.io)
+- **Wiki**: [Alkanes Wiki](https://github.com/kungfuflex/alkanes-rs/wiki) | [Protorune Spec](https://github.com/kungfuflex/protorune/wiki)
+
+## What's Next?
+
+- [Technical Overview →](/introduction/technical-overview) - Deep dive into architecture
+- [Alkanes Metaprotocol →](/native-assets/alkanes-overview) - Learn about Bitcoin smart contracts
+- [SubP2P Networking →](/subfrost-p2p/introduction-to-subp2p) - Understand the P2P layer
+- [API Reference →](/subfrost-api/overview) - Start building with the API
+
+---
+
+**Note**: ALKANES does not have a network token. Protocol fees are accepted in Bitcoin only, and compute is metered with WASM fuel for DoS protection.

@@ -1,0 +1,93 @@
+# FROST Signatures
+
+FROST (Flexible Round-Optimized Schnorr Threshold) signatures enable threshold Schnorr signatures for Bitcoin and other chains.
+
+## Overview
+
+**Use Cases**: Bitcoin (Taproot), Cardano, Polkadot, any Schnorr chain  
+**Rounds**: 2 (preprocessed) or 3 (on-demand)  
+**Security**: t-of-n threshold, unforgeable
+
+## Operations
+
+### Distributed Key Generation
+
+```bash
+# Run DKG (2-of-3 threshold)
+subfrost-cli frost dkg \
+    --threshold 2 \
+    --max-signers 3 \
+    --topic my-frost-group
+```
+
+**Output**: Threshold public key + secret shares
+
+### Signing
+
+```bash
+# Sign Bitcoin PSBT
+subfrost-cli frost sign-psbt \
+    --psbt <base64> \
+    --topic signing-session
+```
+
+**Flow**:
+1. Coordinator requests signature
+2. Parties share nonces
+3. Parties compute partial signatures
+4. Coordinator aggregates into final signature
+
+### Address Generation
+
+```bash
+# Get threshold address
+subfrost-cli frost address \
+    --topic my-frost-group
+```
+
+## Protocol Flow
+
+```
+Round 1: Commitment
+  - Each party: secret + commitment
+  - Broadcast commitments
+  
+Round 2: Shares
+  - Each party: compute shares
+  - Verify commitments
+  - Store secret share
+  
+Result: Threshold public key
+```
+
+## Signing Flow
+
+```
+Preprocessing (optional):
+  - Generate nonce commitments
+  - Can be batched
+  
+Round 1: Nonces
+  - Coordinator requests signature
+  - Parties share nonces
+  
+Round 2: Partial Signatures
+  - Parties compute signature shares
+  - Send to coordinator
+  
+Aggregation:
+  - Coordinator combines shares
+  - Result: Valid Schnorr signature
+```
+
+## Security
+
+✅ **Unforgeable**: <t parties cannot forge  
+✅ **Robust**: Continue despite non-responsive parties (ROAST)  
+✅ **Standard**: Output is normal Schnorr signature
+
+## Resources
+
+- [Technical Overview](/introduction/technical-overview)
+- [frost-secp256k1 crate](https://docs.rs/frost-secp256k1)
+

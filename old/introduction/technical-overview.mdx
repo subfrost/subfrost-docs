@@ -1,0 +1,15 @@
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
+# Technical Overview
+
+SUBFROST operates as a Layer-0, building fraud proofs as ZK circuits to ensure the integrity of its operations. 
+At its core, SUBFROST uses the FROST (Flexible Round-Optimized Schnorr Threshold) and ROAST (Robust Asynchronous Schnorr Threshold) signature schemes, allowing signing groups of up to 255 participants to collectively sign transactions.
+
+This decentralized approach to custody is managed by a peer-to-peer network built on QUIC and libp2p, ensuring robust and secure communication.
+
+In the following pages, we will cover the core components of SUBFROST, including but not limited to:
+
+- [**FROST & ROAST Cryptography**](/key-components/frost-and-roast): The threshold signature schemes that power decentralized custody.
+- [**Alkanes Metaprotocol**](/key-components/alkanes): The metaprotocol that pegs SUBFROST to the Bitcoin blockchain.
+- [**Subrail**](/developer-guide/subrail): The WASM runtime for executing consensus-critical logic.
+- [**Peer-to-Peer Networking**](/subfrost-networking/introduction-to-subp2p): The communication layer built on QUIC and libp2p.

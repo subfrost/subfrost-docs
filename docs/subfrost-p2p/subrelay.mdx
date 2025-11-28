@@ -1,0 +1,222 @@
+# SubRelay - Circuit Relay v2 Server
+
+SubRelay is SUBFROST's production-ready circuit relay v2 implementation with WebTransport support, name registration, and HTTP API.
+
+## Overview
+
+**Purpose**: Enable NAT traversal and peer discovery  
+**Protocol**: libp2p circuit relay v2  
+**Public Relay**: https://p2p.subfrost.io
+
+## Features
+
+- Circuit relay v2 protocol server
+- Name registration and resolution (RocksDB persistence)
+- HTTP API for multiaddr resolution
+- Prometheus metrics
+- TLS certificate management
+- Nginx integration for reverse proxy
+
+## Setup
+
+### 1. Generate Configuration
+
+```bash
+cargo run -p subrelay -- generate --domain relay.example.com
+```
+
+**Generates:**
+- `config.toml`: Main configuration
+- `cert.pem`: Self-signed TLS certificate
+- `key.pem`: TLS private key
+- `identity.key`: libp2p identity
+
+### 2. Generate Nginx Configuration
+
+```bash
+cargo run -p subrelay -- generate-nginx-config \
+  --domain relay.example.com \
+  --cert-path /path/to/fullchain.pem \
+  --key-path /path/to/privkey.pem
+```
+
+Creates `nginx.conf` with:
+- QUIC relay reverse proxy
+- `/multiaddr` HTTP endpoint
+- TLS configuration
+- WebTransport support
+
+### 3. Setup Nginx
+
+```bash
+# Install mainline nginx (Ubuntu)
+cargo run -p subrelay -- setup-nginx
+```
+
+Installs nginx with QUIC/HTTP3 support.
+
+### 4. Run as systemd Service
+
+```bash
+# Generate service file
+cargo run -p subrelay -- startup
+
+# Install and start
+sudo systemctl enable subfrost-relay
+sudo systemctl start subfrost-relay
+```
+
+### 5. Run Manually
+
+```bash
+cargo run -p subrelay -- run
+```
+
+Serves HTML frontend on port 8080.
+
+## Configuration
+
+### config.toml
+
+```toml
+[relay]
+domain = "relay.example.com"
+port = 4001
+external_address = "/dns4/relay.example.com/udp/4001/quic-v1"
+
+[tls]
+cert_path = "cert.pem"
+key_path = "key.pem"
+
+[identity]
+key_path = "identity.key"
+
+[database]
+path = "./relay-db"
+type = "rocksdb"
+
+[http]
+port = 8080
+enabled = true
+
+[metrics]
+enabled = true
+port = 9090
+```
+
+## API
+
+### Name Registration
+
+Register a name for your PeerID:
+
+```bash
+# Register name
+curl -X POST https://relay.example.com/register \
+  -d '{"name": "my-node", "peer_id": "12D3K..."}'
+```
+
+### Name Resolution
+
+Resolve name to multiaddrs:
+
+```bash
+# Resolve name
+curl https://relay.example.com/multiaddr/my-node
+
+# Response:
+{
+  "name": "my-node",
+  "peer_id": "12D3K...",
+  "multiaddrs": [
+    "/ip4/1.2.3.4/tcp/4001/p2p/12D3K...",
+    "/dns4/relay.example.com/tcp/443/wss/p2p/12D3K..."
+  ]
+}
+```
+
+## Client Usage
+
+### Connect via Relay
+
+```rust
+use subp2p::Subp2p;
+
+let mut subp2p = Subp2p::new(Config::default())?;
+
+// Add relay
+subp2p.add_relay("/dns4/p2p.subfrost.io/tcp/443/wss")?;
+
+// Dial peer via relay
+subp2p.dial("/p2p/12D3K...via/p2p/QmRelay...")?;
+```
+
+### Reserve Name
+
+```rust
+// Register your node name
+subp2p.reserve_name("my-node")?;
+
+// Others can now find you
+subp2p.dial("/dns4/p2p.subfrost.io/p2p-circuit/p2p/my-node")?;
+```
+
+## Monitoring
+
+### Metrics
+
+Prometheus metrics available at `:9090/metrics`:
+
+```
+# Active relayed connections
+libp2p_relay_active_connections 5
+
+# Total bytes relayed
+libp2p_relay_bytes_total{direction="inbound"} 1048576
+libp2p_relay_bytes_total{direction="outbound"} 2097152
+
+# Name registrations
+subrelay_name_registrations_total 42
+```
+
+### Logs
+
+```bash
+# View logs
+journalctl -u subfrost-relay -f
+
+# Example output:
+[INFO] Relay started on /ip4/0.0.0.0/udp/4001/quic-v1
+[INFO] Name registered: my-node → 12D3K...
+[INFO] New circuit: 12D3KA... → 12D3KB...
+[INFO] Circuit closed after 45s
+```
+
+## Security
+
+### Rate Limiting
+
+Built-in protections:
+- Max 2 minutes per circuit
+- Max 128KB data transfer
+- Max 10 simultaneous circuits per peer
+
+### Access Control
+
+```toml
+[relay.acl]
+# Whitelist specific peers
+allowed_peers = ["12D3K...", "Qm..."]
+
+# Or blacklist
+denied_peers = ["12D3K...", "Qm..."]
+
+# Require authentication
+require_auth = true
+```
+
+## Resources
+
+- **Source**: [subrelay crate](https://github.com/subfrost/subfrost/tree/main/crates/subrelay)
+- **libp2p relay**: [Specification](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)
+- **Public Relay**: [p2p.subfrost.io](https://p2p.subfrost.io)

@@ -1,0 +1,71 @@
+# SubP2P Integration
+
+Integrate SubP2P networking into your application.
+
+## Installation
+
+```toml
+[dependencies]
+subp2p = "0.1"
+tokio = "1.0"
+```
+
+## Basic Usage
+
+```rust
+use subp2p::{Subp2p, Config};
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Create config
+    let config = Config::default()
+        .listen_on("/ip4/0.0.0.0/tcp/0")
+        .add_relay("/dns4/p2p.subfrost.io/tcp/443/wss")
+        .enable_dht(true);
+    
+    // Initialize
+    let mut subp2p = Subp2p::new(config)?;
+    
+    // Start
+    subp2p.start().await?;
+    
+    // Subscribe to topic
+    subp2p.subscribe("my-topic")?;
+    
+    // Publish message
+    subp2p.publish("my-topic", b"Hello, P2P!")?;
+    
+    // Handle events
+    loop {
+        match subp2p.next_event().await? {
+            Event::Message { topic, data } => {
+                println!("Got message: {:?}", data);
+            }
+            _ => {}
+        }
+    }
+}
+```
+
+## Advanced Features
+
+### Name Registration
+
+```rust
+// Register name
+subp2p.reserve_name("my-node")?;
+
+// Others can dial: my-node.relay
+```
+
+### Circuit Relay
+
+```rust
+// Dial via relay
+subp2p.dial("/dns4/p2p.subfrost.io/p2p-circuit/p2p/QmTarget...")?;
+```
+
+## Resources
+
+- [SubP2P Documentation](/subfrost-p2p/introduction-to-subp2p)
+- [libp2p Docs](https://docs.libp2p.io)

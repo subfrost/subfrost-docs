@@ -1,0 +1,159 @@
+# Introducing ALKANES
+
+The ALKANES metaprotocol is a finely tuned WASM runtime and Rust SDK for a programmable asset class, which inherits structures and many other primitives from the runes protocol, introducing additional layers to meet the requirements of a modernized DeFi landscape. We present a design for a smart contract environment which is functional within space constraints of Bitcoin transaction structures, and the foundation for a re-imagined DeFi, purely on Bitcoin L1.
+
+## What is ALKANES?
+
+ALKANES are deployed with witness reveal payloads similar to the inscription envelope which the ordinals metaprotocol uses, as well as an OP_RETURN segment in the transaction payload, encoding one of many protocol messages which can be chained together. UTXOs are signed and created with the transaction which are referenced by the OP_RETURN segment to declare a destination for output assets on success, and then another representing failure, allowing us to gracefully handle a concept of a revert, as we are familiar with, tolerant of potential reorgs.
+
+Unlike other emerging programmable asset metaprotocols, actions can be executed against an ALKANE with **a single transaction** and OP_RETURN payload, without the user needing to inscribe to trigger the indexer to execute an intent.
+
+ALKANES are instantiated with a gzipped WASM file, which can be built in any language. The canonical repository for ALKANES contains everything needed to both run and index the ALKANES metaprotocol, a framework to build/deploy ALKANES smart contracts in Rust, and also a suite of standard ALKANES smart contracts and helper libraries, for developers to visit examples or quickly author applications from working templates.
+
+## Key Features
+
+### Bitcoin-Only Fees
+
+ALKANES can execute up to a FUEL limit, but the costs associated with an ALKANES transaction are **simply in terms of Bitcoin**, on the order of transaction size, as is the case with any other Bitcoin transaction. This property of the metaprotocol we believe is paramount for a sustainable ecosystem of Bitcoin applications with greatest potential.
+
+:::info No Network Token
+ALKANES does not have a network token. Protocol fees are accepted in terms of Bitcoin and compute is metered with the wasmi fuel implementation, for protection against DoS.
+:::
+
+### Single Transaction Execution
+
+Execute complex smart contract operations in a single Bitcoin transaction without requiring multi-step inscription reveals.
+
+### Verifiable State
+
+The indexer that evaluates ALKANES contracts is built to WASM as well, and thus its state is verifiably reproducible. Anyone can rebuild the entire state from genesis by replaying Bitcoin blocks.
+
+### Protorunes Compatible
+
+ALKANES is designed as a protorunes-compatible subprotocol, enabling interoperability with the runes ecosystem and atomic cross-protocol swaps.
+
+## What is a Metaprotocol?
+
+A metaprotocol is a set of rules and conditions for a state machine whose inputs are the complete and raw data of a block in a blockchain system, which are processed sequentially to evaluate the next confirmed state of the system. The state of a metaprotocol is derived entirely from the base consensus model of the underlying blockchain system, but may make use of the raw data in a way that the consensus engine does not, to define arbitrary objects and concepts which can only be viewed if you are parsing and evaluating chaindata in realtime from the host blockchain, to apply state changes and arrive at the latest state of the metaprotocol.
+
+### Examples of Bitcoin Metaprotocols
+
+#### Ordinals (NFTs)
+
+The best example of this, which brought great attention to the metaprotocol space on Bitcoin, is the ordinals metaprotocol, which defines a structure called an **inscription**. An inscription functions similarly to an NFT as we have seen them on smart contract platforms like Ethereum. The data that an inscription represents can be packed into Bitcoin transactions and interpreted by an ordinals metaprotocol indexer, then rendered in a browser or application.
+
+#### Runes
+
+Metaprotocols also emerged on Bitcoin expressing standards for fungible tokens, which possess some limited functionality similar to ERC20 on Ethereum mainnet, primarily with functionality to possess and transfer units of user-defined tokens. A notorious implementation of this is the BRC20 token standard, which is built on the ordinals metaprotocol. More recently, the **runes metaprotocol** was designed and gained some adoption, with comparable features but designed using different mechanisms for the encoding and packing of protocol messages with transactions that interact with tokens.
+
+### Building on Bitcoin Data
+
+In general, a metaprotocol relies on the ability for a user to pack arbitrary data into a transaction to deploy to the host blockchain, so that protocol messages for the metaprotocol can be sent to the underlying blockchain. An indexer for the metaprotocol can then read these protocol messages as it processes chaindata, to evaluate intents and state changes and update its database (index). An indexer should provide an API or interface where the user of the metaprotocol can view its state, whether it be his balances, others balances, or other arbitrary data the metaprotocol may define.
+
+#### The Witness Stack
+
+There are few options available to metaprotocol architects as a means to append arbitrary data to a Bitcoin block. One way to do this is to make use of the technique used in the ordinals metaprotocol, where you concatenate a series of Bitcoin script PUSHDATA opcodes to the witness stack of a transaction input, where byte segments are surrounded by opcodes that make the executable code unreachable and effectively ignored by the Bitcoin VM.
+
+Using this technique, depending on the amount of Bitcoin the user is willing to spend to create a transaction, a Bitcoin block could theoretically be filled by this one transaction, and the entire 4MB of size available to a Bitcoin block (at the time of writing) can be occupied with arbitrary data. The caveat is that this type of technique requires **two transactions** to be accepted by the Bitcoin consensus model, but the benefit is that there is a large space available for possible protocol messages, and the cost per byte is the lowest possible cost across methods to supply data with a transaction.
+
+#### OP_RETURN
+
+The other method to append data to a transaction only requires **one transaction**, but you are limited to 80 bytes of space. An output can be created with the Bitcoin transaction whose Bitcoin script segment begins with an OP_RETURN opcode, and the amount of value associated with this transaction can simply be 0. The output is considered unspendable by the Bitcoin consensus model, but PUSHDATA instructions that follow the OP_RETURN opcode are included in the blockchain, and the byte segment can be interpreted in any manner that a metaprotocol architect prefers.
+
+### Programmability
+
+The metaprotocol we present with this project makes use of a combination of these methods of data storage on Bitcoin, and it achieves what we believe to be the holy grail of a purely Bitcoin-native metaprotocol: **a smart contract system on Bitcoin**, where not only smart contracts are built as WASM binaries, but the indexer that evaluates them is built to WASM as well, and thus its state is verifiably reproducible.
+
+## ALKANES as a Protorunes-Compatible Subprotocol
+
+In this section we describe a specification for a family of metaprotocols derived from the runes metaprotocol, to enable different classes of token standards with limited compatibility for trade, but within their own metaprotocol rules can be customized in arbitrary ways within the constraints of the overarching scheme.
+
+### Understanding Protorunes
+
+If we accept the term "subprotocol" to refer to a metaprotocol that is derived from some parent metaprotocol, we can then construct an understanding of protorunes as an asset class and metaprotocol architecture.
+
+**Protorunes** are protocol assets that are indexed within a subprotocol of runes, which meet certain requirements. Protorunes by themselves inherit properties of runes, but exist via some interesting ways to process a Runestone message without breaking the runes metaprotocol.
+
+Protorunes were originally introduced on social media and gained some notoriety as programmable runes. However, protorunes themselves are not smart contract assets. It is more accurate to say that the design of protorunes **enables smart contract protocols to be built**. ALKANES is exactly this: a subprotocol designed as protorunes-compatible, which extends protorunes assets into a smart contract asset class with a shared environment and therefore composable, as we are used to on DeFi.
+
+### Why Protorunes Compatibility Matters
+
+It becomes more interesting if different variants of ALKANES may be launched with different protocol IDs, with unique properties. The reason it is interesting is because the scope of assets we define all live on Bitcoin L1, and since we can signal an intent to two subprotocols in one transaction using the Runestone structure, we can **swap value stored on UTXOs across different subprotocols**.
+
+The reason this is powerful is because as users of a subprotocol, we only have to run the compute for one indexer to interact with its ecosystem in a decentralized manner. This enables a world where we can choose to create DeFi as a **horizontally sharded landscape** and fixes a critical scaling problem in smart contract systems that we are used to. With such a mechanism, we can create a scalable world for DeFi and open finance, and we can do it on Bitcoin.
+
+### Key Definitions
+
+#### Protoburn
+
+A **protoburn** is a mechanism by which runes are burned and a subprotocol-only representation is transferred onto a UTXO, to be indexed accordingly by the subprotocol indexer. The RuneId identifier for the asset is the same as it occurs on the runes metaprotocol, as it relates to transferring the assets with Edict structures packed into the Protocol messages for our extended Runestone.
+
+A protoburn is targeted by a Runestone pointer or edict on the runes protocol in a way that renders those runes provably unspendable, but does not result in a cenotaph. To target a protoburn, an Edict pointer targets the OP_RETURN output that the Runestone itself lives on.
+
+**Important**: Edicts that target the OP_RETURN output are handled once per rune. i.e. for two edicts for the same RuneId that declare a transfer to the OP_RETURN, the first edict targets the first protoburn in the set of Protostones, the second edict targets the second protoburn, etc. It is by this mechanism we can provide a way to order a set of operations packed into a protocol message succinctly, since Edict structures in a Runestone must appear in a sorted order.
+
+**From Tag Processing**: When evaluating protoburns, a protoburn may specify the `From` tag, where each value in this list is interpreted as a u32 representing the index of the edict which should be taken to be the source of value transferred into the protoburn. Protoburns which specify the From tag are evaluated first, and edicts defined in this field are skipped as protoburns which do not specify a From are evaluated. In processing the set of protoburns which specify a From tag, a repeated appearance of an edict already specified in an earlier protoburn is safely ignored.
+
+#### Protorunes
+
+**Protorunes** are runes that have been protoburned and no longer are recognized as spendable by the usual Runestone edicts. To transfer protorunes, it is required to use Protostone objects packed into the Protocol field of a Runestone.
+
+#### Subprotocol
+
+A **subprotocol** is a metaprotocol that runs the indexer program of its parent protocol as a dependency.
+
+#### Protorunes-Compatible
+
+A **protorunes-compatible** subprotocol is a subprotocol of runes, which therefore must as a dependency run the runes indexing logic. Additionally, if a subprotocol is protorunes-compatible then it MUST correctly interpret and process the data structures described in the protorunes specification, which includes the processing of Runestone and any edicts it contains, as well as the parsing of the Protocol field, which will never clash with the set of fields we will see in this version of runes or any protocol upgrades.
+
+#### Protomessage
+
+A **protomessage** is an OP_RETURN output which can be the target of one or more edicts, the target of a protoburn, or the target of another protomessage. A protomessage output must delegate the sum of value that targets it to the pointer and refund_pointer, crediting any assets not forwarded to either pointer to the runtime itself.
+
+**Important Constraint**: The sum of runes which exist on a subprotocol MUST NOT exceed the sum of runes bridged into a subprotocol. Subprotocols may define protorune assets, which exist exclusively on the subprotocol, but can be transferred/minted/burned or otherwise transacted against by the protocol runtime, provided the encoding of their RuneId can still be parsed as two u128 values.
+
+**Subprotocol-Exclusive Assets**: For a RuneId of a subprotocol asset, at least one bit must be set in the high 64 bits of the u128 encoding of what is traditionally the height of the block for a given etching, OR one bit is set in the high 96 bits of what is traditionally the txindex of the transaction for a given etching. This permits us to define a space of custom assets exclusive to the subprotocol which are still compatible and can be transacted with using the Runestone structure, while at the same time ensuring that we cannot clash with the space of RuneIds on the runes protocol.
+
+#### Predicate
+
+A **predicate** is a set of clauses that define the minimum balance sheet of protorunes which MUST exist on the output a protomessage points to. If the predicate is not satisfied, a protomessage must have no side effect. The balance sheet of protorunes MUST, in this case, be transferred to the output defined by the refund_pointer.
+
+A standard predicate structure does not occur in the data structures used in protorunes, since it is not needed in every subprotocol and may need to be modeled in different ways in different contexts, but this vocabulary is provided to model a concept which should be a feature of protorune runtime messages for which there is settlement risk.
+
+A predicate mechanism should be available to the user in any instance where a reorg of the Bitcoin blockchain could change the balance sheet held by an input being used in a way that is significant to transactions which follow it. In cases where this occurs, we ensure that all value being used as inputs to a protomessage are safely returned to the refund_pointer.
+
+## Network Information
+
+### Mainnet
+
+- **Genesis Block**: 880000
+- **Protocol ID**: 1 (alkanes)
+- **Network**: Bitcoin Mainnet
+- **API**: https://mainnet.subfrost.io/v4
+
+### Testnet
+
+- **Network**: Bitcoin Signet
+- **API**: https://signet.subfrost.io/v4
+- **Testing**: Recommended for development
+
+### Development
+
+- **Network**: Bitcoin Regtest
+- **Docker Compose**: Available in alkanes-rs repository
+- **Local Indexer**: Full stack simulation
+
+## Next Steps
+
+- [Protocol Messages & Protostone Structure →](/native-assets/protocol-messages)
+- [ALKANES Execution Environment →](/native-assets/execution-environment)
+- [Fuel System & Limits →](/native-assets/fuel-system)
+- [Building Your First Contract →](/developer-guide/alkanes-quickstart)
+
+## Resources
+
+- **Specification**: [Alkanes Wiki](https://github.com/kungfuflex/alkanes-rs/wiki)
+- **Protorunes Spec**: [Protorune Wiki](https://github.com/kungfuflex/protorune/wiki)
+- **Repository**: [alkanes-rs on GitHub](https://github.com/kungfuflex/alkanes-rs)
+- **Indexer**: [METASHREW](https://github.com/sandshrewmetaprotocols/metashrew)
+- **Discord**: Join the SANDSHREW サンド Discord

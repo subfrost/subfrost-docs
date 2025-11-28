@@ -1,0 +1,83 @@
+# yvfrBTC - Yield Vault for frBTC
+
+yvfrBTC (Yearn v2-style frBTC vault) is a yield-optimizing vault that auto-compounds frBTC earnings from LP trading fees and external subsidies.
+
+## Overview
+
+**Type**: Unit Vault (non-transferable shares)  
+**Base Asset**: frBTC  
+**Yield Sources**: LP fees + external subsidies
+
+## How It Works
+
+### Deposit
+
+```
+User deposits frBTC → Receive yvfrBTC units
+Units represent proportional claim on vault assets
+```
+
+### Yield Generation
+
+**LP Trading Fees (60%):**
+```
+1. Vault holds LP tokens in DIESEL/frBTC pool
+2. Trading fees accumulate in pool
+3. Harvest extracts fees via k-value growth
+4. Fees auto-compound into vault
+```
+
+**External Subsidies:**
+```
+- Protorune rewards
+- Bitcoin wrapper fees
+- Strategist deposits
+```
+
+### Harvest Mechanism
+
+```
+1. Monitor k = reserve_diesel * reserve_frbtc
+2. When Δk > threshold (e.g., 1%):
+3. Extract LP: (vault_lp * Δ√k * 0.6) / √k_new
+4. Burn LP → receive DIESEL + frBTC
+5. Swap frBTC → DIESEL
+6. Distribute: 10% auto-compound, 90% to reward pool
+```
+
+### Withdraw
+
+```
+User burns yvfrBTC units → Receive proportional frBTC
+No lockup period, withdraw anytime
+```
+
+## Key Features
+
+✅ **No Timelock**: Withdraw anytime  
+✅ **Auto-Compound**: 10% of harvest reinvested  
+✅ **Boosted Rewards**: Hold veDIESEL for up to 2.5x  
+✅ **Multi-Source Yield**: LP fees + subsidies  
+
+## Boost Mechanics
+
+Boost multiplier based on veDIESEL holdings:
+
+```
+boost = min(1 + (ve_diesel * total_stake) / (stake * total_ve_diesel), 2.5)
+```
+
+**Example:**
+```
+User: 100 LP staked, 50 veDIESEL
+Pool: 1000 LP total, 200 veDIESEL total
+
+boost = min(1 + (50 * 1000) / (100 * 200), 2.5)
+      = min(1 + 2.5, 2.5)
+      = 2.5x maximum boost
+```
+
+## Resources
+
+- **Architecture**: [Vault Overview](/subfrost-templates/ve-token-vault-template)
+- **Source**: [yv-fr-btc-vault](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/yv-fr-btc-vault)

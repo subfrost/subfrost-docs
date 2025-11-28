@@ -1,0 +1,352 @@
+# vx-token-gauge-template
+
+The vx-token-gauge-template provides a gauge (liquidity mining) contract pattern for distributing rewards to stakers with optional boost mechanics.
+
+## Overview
+
+**Pattern**: Boosted Liquidity Gauge  
+**Inspired by**: Curve Finance gauges  
+**Use Case**: Incentivized liquidity provision with governance boosts
+
+## Architecture
+
+```
+User stakes LP tokens
+    ↓
+Receives gauge receipt tokens
+    ↓
+Earns rewards over time:
+  - Base rewards (everyone)
+  - Boosted rewards (ve-token holders)
+    ↓
+Claim rewards anytime
+Unstake anytime (no lockup)
+```
+
+## Key Features
+
+### 1. Staking with Receipt Tokens
+
+```rust
+pub struct GaugePosition {
+    pub staked_amount: u128,
+    pub boost_multiplier: u128,  // 1x to 2.5x
+    pub rewards_debt: u128,
+    pub last_claim_height: u128,
+}
+```
+
+### 2. Boost Mechanics
+
+```
+base_stake = user_stake
+boosted_stake = min(
+    base_stake * 2.5,
+    base_stake + (total_stake * ve_balance) / total_ve
+)
+
+boost = boosted_stake / base_stake
+```
+
+### 3. Reward Distribution
+
+```
+rewards_per_block = total_rewards_rate / total_boosted_stake
+user_rewards = user_boosted_stake * rewards_per_block * blocks_elapsed
+```
+
+## Implementation
+
+### Core Operations
+
+#### Deposit (Stake)
+
+```rust
+#[opcode(1)]
+fn deposit(&self, amount: u128) -> Result<()> {
+    let ctx = self.context()?;
+    
+    // Calculate current boost
+    let boost = self.calculate_boost(&ctx.caller)?;
+    
+    // Update position
+    let mut position = self.get_or_create_position(&ctx.caller)?;
+    position.staked_amount += amount;
+    position.boost_multiplier = boost;
+    
+    // Mint gauge receipt tokens (1:1)
+    self.mint_gauge_tokens(&ctx.caller, amount)?;
+    
+    // Update global state
+    self.update_total_stake(amount, boost)?;
+    
+    self.positions().set(&ctx.caller, position)?;
+    
+    Ok(())
+}
+```
+
+#### Withdraw (Unstake)
+
+```rust
+#[opcode(2)]
+fn withdraw(&self, amount: u128) -> Result<()> {
+    let ctx = self.context()?;
+    let mut position = self.positions().get(&ctx.caller)?;
+    
+    require!(position.staked_amount >= amount);
+    
+    // Claim rewards first
+    self.claim_internal(&ctx.caller)?;
+    
+    // Update position
+    position.staked_amount -= amount;
+    
+    // Burn gauge receipt tokens
+    self.burn_gauge_tokens(&ctx.caller, amount)?;
+    
+    // Return staked LP tokens
+    self.transfer_lp_tokens(&ctx.caller, amount)?;
+    
+    // Update global state
+    self.update_total_stake_decrease(amount, position.boost_multiplier)?;
+    
+    if position.staked_amount == 0 {
+        self.positions().remove(&ctx.caller)?;
+    } else {
+        self.positions().set(&ctx.caller, position)?;
+    }
+    
+    Ok(())
+}
+```
+
+#### Claim Rewards
+
+```rust
+#[opcode(3)]
+fn claim(&self) -> Result<u128> {
+    let ctx = self.context()?;
+    self.claim_internal(&ctx.caller)
+}
+
+fn claim_internal(&self, user: &Address) -> Result<u128> {
+    let position = self.positions().get(user)?;
+    let current_height = self.context()?.height;
+    
+    // Calculate rewards
+    let blocks_elapsed = current_height - position.last_claim_height;
+    let boosted_stake = position.staked_amount * position.boost_multiplier / 100;
+    let total_boosted = self.total_boosted_stake().get()?;
+    let rewards_rate = self.rewards_per_block().get()?;
+    
+    let rewards = if total_boosted > 0 {
+        (boosted_stake * rewards_rate * blocks_elapsed) / total_boosted
+    } else {
+        0
+    };
+    
+    if rewards > 0 {
+        // Transfer rewards
+        self.transfer_reward_tokens(user, rewards)?;
+        
+        // Update claim height
+        let mut updated = position;
+        updated.last_claim_height = current_height;
+        self.positions().set(user, updated)?;
+    }
+    
+    Ok(rewards)
+}
+```
+
+#### Update Boost
+
+```rust
+#[opcode(4)]
+fn update_boost(&self) -> Result<()> {
+    let ctx = self.context()?;
+    let mut position = self.positions().get(&ctx.caller)?;
+    
+    // Recalculate boost
+    let new_boost = self.calculate_boost(&ctx.caller)?;
+    
+    if new_boost != position.boost_multiplier {
+        // Update global boosted stake
+        self.update_boost_global(
+            &ctx.caller,
+            position.staked_amount,
+            position.boost_multiplier,
+            new_boost
+        )?;
+        
+        position.boost_multiplier = new_boost;
+        self.positions().set(&ctx.caller, position)?;
+    }
+    
+    Ok(())
+}
+```
+
+#### Calculate Boost
+
+```rust
+fn calculate_boost(&self, user: &Address) -> Result<u128> {
+    let ve_balance = self.get_ve_token_balance(user)?;
+    let user_stake = self.get_user_stake(user)?;
+    let total_stake = self.total_staked().get()?;
+    let total_ve = self.total_ve_supply().get()?;
+    
+    if total_ve == 0 || user_stake == 0 {
+        return Ok(100);  // 1x boost (100%)
+    }
+    
+    // Formula: min(2.5, 1 + (ve_balance * total_stake) / (user_stake * total_ve))
+    let numerator = ve_balance * total_stake;
+    let denominator = user_stake * total_ve;
+    let boost_factor = 100 + (numerator * 100) / denominator;
+    
+    let max_boost = 250;  // 2.5x
+    Ok(boost_factor.min(max_boost))
+}
+```
+
+## Configuration
+
+### Gauge Parameters
+
+```rust
+pub struct GaugeConfig {
+    pub lp_token: AlkaneId,        // Token to stake
+    pub reward_token: AlkaneId,     // Reward token
+    pub ve_token: AlkaneId,         // Boost token
+    pub rewards_per_block: u128,    // Emission rate
+    pub max_boost: u128,            // 250 = 2.5x
+    pub min_boost: u128,            // 100 = 1x
+}
+```
+
+### Reward Schedule
+
+```rust
+// Linear emission
+rewards_per_block = constant
+
+// Declining emission
+rewards_per_block = initial_rate * decay_factor^blocks
+
+// Stepped emission
+rewards_per_block = match phase {
+    0 => high_rate,
+    1 => medium_rate,
+    2 => low_rate,
+}
+```
+
+## Use Cases
+
+### 1. LP Incentivization
+
+```
+Scenario: Bootstrap liquidity for new pool
+Action: Deploy gauge with high rewards_per_block
+Result: Attract liquidity providers, grow TVL
+```
+
+### 2. Governance-Weighted Rewards
+
+```
+Scenario: Reward long-term participants
+Action: Use ve-token boost (up to 2.5x)
+Result: Incentivize ve-token holding, reduce selling pressure
+```
+
+### 3. Multi-Token Rewards
+
+```
+Scenario: Distribute multiple reward tokens
+Action: Deploy multiple gauges per LP token
+Result: Diverse reward opportunities
+```
+
+## Integration Example
+
+```bash
+# Stake LP tokens
+alkanes alkanes execute \
+  --protostones "[<gauge_block>,<gauge_tx>,1,100000]" \
+  --inputs "LP:100000" \
+  --to "bc1p..." \
+  -y
+
+# Check rewards
+alkanes alkanes execute \
+  --protostones "[<gauge_block>,<gauge_tx>,99]" \
+  --to "bc1p..."
+
+# Claim rewards
+alkanes alkanes execute \
+  --protostones "[<gauge_block>,<gauge_tx>,3]" \
+  --to "bc1p..." \
+  -y
+
+# Update boost (after acquiring more ve-token)
+alkanes alkanes execute \
+  --protostones "[<gauge_block>,<gauge_tx>,4]" \
+  --to "bc1p..." \
+  -y
+
+# Unstake
+alkanes alkanes execute \
+  --protostones "[<gauge_block>,<gauge_tx>,2,50000]" \
+  --to "bc1p..." \
+  -y
+```
+
+## Testing
+
+```bash
+# Run tests
+cd alkanes/vx-token-gauge-template
+cargo test --target wasm32-unknown-unknown
+
+# Test scenarios:
+# - Stake and earn rewards
+# - Boost calculation
+# - Multiple users
+# - Reward distribution
+# - Unstake with rewards
+```
+
+## Advanced Features
+
+### Working Boost
+
+Some gauges implement "working boost" (Curve model):
+
+```rust
+working_balance = min(
+    0.4 * stake + 0.6 * stake * ve_balance / ve_total,
+    stake
+)
+```
+
+This limits boost to 2.5x maximum.
+
+### Reward Multipliers
+
+```rust
+// Time-based multiplier
+multiplier = match blocks_staked {
+    0..=144 => 100,      // 1x
+    145..=1440 => 110,   // 1.1x
+    1441..=14400 => 125, // 1.25x
+    _ => 150,            // 1.5x
+}
+```
+
+## Resources
+
+- **Template Source**: [vx-token-gauge-template](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/vx-token-gauge-template)
+- **Example**: [vx-frost-gauge](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/vx-frost-gauge)
+- **Curve Gauges**: [Curve Finance Docs](https://curve.readthedocs.io/dao-gauges.html)

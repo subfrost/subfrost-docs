@@ -1,0 +1,62 @@
+# GossipSub and Encrypted Communication
+
+SubP2P uses GossipSub for pub/sub messaging and Noise protocol for encrypted communications.
+
+## GossipSub
+
+### Overview
+
+GossipSub is a pubsub protocol for efficient message propagation:
+
+- **Mesh-based overlay**: Maintains connected graph of peers
+- **Flood publishing**: Ensures message delivery
+- **Peer scoring**: Prevents spam and eclipse attacks
+
+### Usage
+
+```rust
+// Subscribe to topic
+swarm.behaviour_mut().gossipsub.subscribe(&topic)?;
+
+// Publish message
+swarm.behaviour_mut().gossipsub.publish(topic, message)?;
+
+// Handle incoming
+match event {
+    GossipsubEvent::Message { message, .. } => {
+        process_message(message);
+    }
+}
+```
+
+### Topics
+
+SUBFROST uses topics for coordination:
+- `/frost/dkg/{session_id}` - FROST key generation
+- `/frost/sign/{session_id}` - FROST signing
+- `/signals/{program_id}` - L0 consensus signals
+
+## Noise Protocol
+
+### Encryption
+
+All SubP2P connections encrypted with Noise:
+
+```
+1. Noise handshake (XX pattern)
+2. Authenticate via PeerID
+3. Establish encrypted channel (ChaCha20-Poly1305)
+4. All data encrypted
+```
+
+### Security Properties
+
+✅ **Forward secrecy**: Old messages safe if keys compromised  
+✅ **Identity hiding**: PeerID not revealed to eavesdroppers  
+✅ **Replay protection**: Nonce-based  
+✅ **Integrity**: Authenticated encryption
+
+## Resources
+
+- **GossipSub**: [Specification](https://github.com/libp2p/specs/blob/master/pubsub/gossipsub/README.md)
+- **Noise**: [Protocol Framework](https://noiseprotocol.org/)

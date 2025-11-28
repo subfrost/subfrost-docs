@@ -1,0 +1,104 @@
+# Alkanes Quickstart
+
+Build and deploy your first Alkanes smart contract.
+
+## Create Contract
+
+```bash
+mkdir my-contract
+cd my-contract
+cargo init --lib
+```
+
+### Cargo.toml
+
+```toml
+[dependencies]
+alkanes-runtime = "0.1"
+alkanes-support = "0.1"
+anyhow = "1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[[bin]]
+name = "build"
+path = "src/build.rs"
+```
+
+### src/lib.rs
+
+```rust
+use alkanes_runtime::{
+    declare_alkane,
+    message::MessageDispatch,
+    runtime::AlkaneResponder,
+    token::Token,
+};
+
+#[derive(Default)]
+pub struct MyToken(());
+
+impl Token for MyToken {
+    fn name(&self) -> String {
+        "My Token".to_string()
+    }
+    
+    fn symbol(&self) -> String {
+        "MTK".to_string()
+    }
+}
+
+#[derive(MessageDispatch)]
+enum MyTokenMessage {
+    #[opcode(99)]
+    #[returns(String)]
+    GetName,
+    
+    #[opcode(100)]
+    #[returns(String)]
+    GetSymbol,
+}
+
+impl AlkaneResponder for MyToken {}
+
+declare_alkane! {
+    impl AlkaneResponder for MyToken {
+        type Message = MyTokenMessage;
+    }
+}
+```
+
+## Build
+
+```bash
+cargo build --target wasm32-unknown-unknown --release
+```
+
+Output: `target/wasm32-unknown-unknown/release/my_contract.wasm`
+
+## Deploy
+
+```bash
+alkanes alkanes deploy \
+  target/wasm32-unknown-unknown/release/my_contract.wasm \
+  --from "p2tr:0" \
+  -p regtest \
+  --mine \
+  -y
+```
+
+## Test
+
+```bash
+# Query contract
+alkanes alkanes execute \
+  --protostones "[<block>,<tx>,99]" \
+  --to "bc1p..." \
+  -p regtest
+```
+
+## Resources
+
+- [Contract Examples](https://github.com/kungfuflex/alkanes-rs/tree/main/alkanes)
+- [alkanes-runtime Docs](https://docs.rs/alkanes-runtime)

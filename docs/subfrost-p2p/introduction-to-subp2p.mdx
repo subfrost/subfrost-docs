@@ -1,0 +1,473 @@
+# Introduction to SubP2P
+
+SubP2P is SUBFROST's foundational P2P networking layer, built on libp2p with WebTransport support for universal blockchain coordination. It provides cross-platform networking that works seamlessly in browsers, native applications, and mobile devices.
+
+## What is SubP2P?
+
+SubP2P is a comprehensive P2P networking stack that enables:
+
+- **WebTransport-Based Networking**: Modern web-compatible transport built on QUIC/HTTP3
+- **Cross-Platform Compatibility**: Native (Linux, macOS, Windows) and browser (WASM) support
+- **NAT Traversal**: Circuit relay v2 with hole punching (DCUtR)
+- **Encrypted Communications**: Noise protocol for all connections
+- **Decentralized Discovery**: Kademlia DHT for peer finding
+- **Publish-Subscribe**: GossipSub for consensus coordination
+
+## Why WebTransport?
+
+WebTransport is a modern web API that provides low-latency, bidirectional communication over QUIC. Unlike traditional WebSocket connections, WebTransport offers:
+
+### Performance Benefits
+
+- **QUIC Protocol**: Built on UDP with 0-RTT handshakes
+- **Multiplexing**: Multiple streams without head-of-line blocking
+- **Low Latency**: ~50-100ms typical connection times
+- **Efficient**: Better bandwidth utilization than WebSockets
+
+### Security
+
+- **TLS 1.3**: Modern encryption by default
+- **Certificate Pinning**: Verify server identity
+- **No Mixed Content**: HTTPS-only security model
+
+### Browser Support
+
+- **Native API**: No plugins or special setup required
+- **Standard Web**: Works in Chrome, Edge, Opera (Firefox coming)
+- **Progressive Enhancement**: Fallback to WebSocket for older browsers
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              Application Layer                          │
+│  (subfrost-cli, subfrost-consensus, contracts)          │
+└────────────────────┬────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────┐
+│              SubP2P Core                                │
+│  Connection Management, Peer Discovery, Routing         │
+└───┬──────────┬──────────┬──────────┬────────────┬───────┘
+    │          │          │          │            │
+┌───▼───┐  ┌──▼──┐   ┌───▼───┐  ┌──▼────┐   ┌───▼─────┐
+│ QUIC  │  │WebTr│   │WebSock│  │  TCP  │   │ Relay   │
+│(Native│  │(Web)│   │(Fallbk│  │(Fallbk│   │(v2+DCUtR│
+└───────┘  └─────┘   └───────┘  └───────┘   └─────────┘
+    │          │          │          │            │
+    └──────────┴──────────┴──────────┴────────────┘
+                          │
+                   ┌──────▼───────┐
+                   │   Internet   │
+                   └──────────────┘
+```
+
+## Key Components
+
+### 1. Transport Layer
+
+SubP2P supports multiple transports with automatic fallback:
+
+#### QUIC (Native)
+- **Best Performance**: Direct UDP with 0-RTT
+- **Use Case**: Native applications, servers
+- **Latency**: 20-50ms typical
+
+#### WebTransport (Browser)
+- **Web-Native**: Standard browser API
+- **Use Case**: Web applications, browser-based wallets
+- **Latency**: 50-100ms typical
+
+#### WebSocket (Fallback)
+- **Universal**: Works everywhere
+- **Use Case**: Restrictive networks, old browsers
+- **Latency**: 100-200ms typical
+
+#### TCP (Fallback)
+- **Basic**: Traditional TCP connections
+- **Use Case**: Legacy systems
+- **Latency**: 150-300ms typical
+
+#### Circuit Relay v2
+- **NAT Traversal**: For peers behind NATs
+- **Use Case**: Residential networks, mobile
+- **Latency**: 200-400ms typical (relay overhead)
+
+### 2. Discovery Layer
+
+#### Kademlia DHT
+
+Distributed hash table for peer discovery:
+
+```
+Peer A wants to find Peer B
+    ↓
+Query DHT for B's PeerID
+    ↓
+DHT returns closest known peers
+    ↓
+Iterative refinement
+    ↓
+Find B's multiaddrs
+    ↓
+Connect directly
+```
+
+**Features**:
+- **Decentralized**: No central directory
+- **Scalable**: O(log n) lookup time
+- **Resilient**: Tolerates peer churn
+
+#### mDNS (Local Discovery)
+
+Multicast DNS for local network peers:
+
+```
+Peer broadcasts presence on LAN
+    ↓
+Other peers on same network respond
+    ↓
+Direct local connections (no relay needed)
+    ↓
+Low latency (<10ms) local P2P
+```
+
+**Use Cases**:
+- Development environments
+- Local testing
+- LAN parties
+- Offline deployments
+
+### 3. NAT Traversal
+
+#### Circuit Relay v2
+
+Public relay servers enable NAT-blocked peers to connect:
+
+```
+Peer A (behind NAT) → Relay Server ← Peer B (behind NAT)
+```
+
+**Features**:
+- **Limited Relay**: Only for initial connection
+- **Time Limits**: 2 minute max relay duration
+- **Data Limits**: 128KB max transferred
+- **DoS Protection**: Rate limiting built-in
+
+#### DCUtR (Direct Connection Upgrade through Relay)
+
+Automatic hole punching to upgrade relayed connections:
+
+```
+Peer A ←→ Relay ←→ Peer B  (initial relayed connection)
+    ↓
+Coordinate hole punching via relay
+    ↓
+Peer A ←──────────→ Peer B  (direct connection!)
+```
+
+**Success Rate**: ~80% in typical networks
+
+### 4. Messaging Layer
+
+#### GossipSub
+
+Pub/sub protocol for broadcasting messages:
+
+```
+Publishers → Topics → Subscribers
+```
+
+**Features**:
+- **Efficient Routing**: Mesh-based overlay
+- **Message Propagation**: ~1-2 seconds typical
+- **Flood Publishing**: Ensures delivery
+- **Peer Scoring**: Prevents spam
+
+**Use Cases**:
+- FROST/CGGMP signing coordination
+- Consensus signal propagation
+- Network-wide announcements
+
+#### Request-Response
+
+Direct peer-to-peer request/response:
+
+```
+Peer A → Request → Peer B
+Peer A ← Response ← Peer B
+```
+
+**Use Cases**:
+- Contract state queries
+- Block data sync
+- Direct messages
+
+### 5. Security Layer
+
+#### Noise Protocol
+
+All connections encrypted with Noise protocol:
+
+```
+Connection Setup:
+1. Noise handshake (XX pattern)
+2. Authenticate via PeerID
+3. Establish encrypted channel
+4. All data encrypted with ChaCha20-Poly1305
+```
+
+**Security Properties**:
+- **Forward Secrecy**: Old messages safe even if keys compromised
+- **Identity Hiding**: PeerID not revealed to eavesdroppers
+- **Replay Protection**: Nonce-based anti-replay
+
+#### PeerID Authentication
+
+Each peer identified by cryptographic PeerID:
+
+```rust
+PeerID = hash(public_key)
+```
+
+**Features**:
+- **Self-Certifying**: No CA required
+- **Persistent**: Same PeerID across sessions
+- **Verifiable**: Prove identity cryptographically
+
+## libp2p-webtransport-sys
+
+SubP2P uses a custom integration of WebTransport with libp2p through the `libp2p-webtransport-sys` crate. This provides:
+
+### Native Support
+
+For native applications (Linux, macOS, Windows):
+
+```rust
+// Uses wtransport crate (pure Rust QUIC+WebTransport)
+let transport = libp2p_webtransport::Transport::new(...);
+```
+
+**Benefits**:
+- No external dependencies
+- High performance
+- Full QUIC features
+
+### Browser Support
+
+For web applications (compiled to WASM):
+
+```rust
+// Uses browser's native WebTransport API
+let transport = libp2p_webtransport_websys::Transport::new(...);
+```
+
+**Benefits**:
+- No plugins required
+- Standard web API
+- Browser-optimized
+
+### Unified API
+
+Same code works in both environments:
+
+```rust
+// Works on native AND web!
+swarm.dial(multiaddr)?;
+```
+
+## Connection Flow
+
+### Typical Connection Sequence
+
+```
+1. Application calls dial(multiaddr)
+    ↓
+2. SubP2P selects best transport
+   - QUIC if native, peer supports it
+   - WebTransport if browser
+   - WebSocket if old browser
+   - Relay if peer behind NAT
+    ↓
+3. Establish connection
+   - TCP/QUIC handshake
+   - TLS negotiation
+   - Noise protocol handshake
+   - PeerID authentication
+    ↓
+4. Connection established
+   - Encrypted channel ready
+   - Can open multiple streams
+   - Auto-keepalive enabled
+    ↓
+5. (If relayed) Attempt DCUtR
+   - Coordinate hole punching
+   - Try direct connection
+   - Upgrade if successful
+```
+
+### Multiaddr Format
+
+SubP2P uses multiaddr for addressing:
+
+```
+/ip4/1.2.3.4/udp/4001/quic-v1
+/dns4/p2p.subfrost.io/tcp/443/wss/p2p/12D3K...
+/ip4/127.0.0.1/tcp/9000/ws/p2p/QmAbC...
+```
+
+**Components**:
+- Protocol stack: `/ip4/`, `/tcp/`, `/quic-v1/`
+- Address: `1.2.3.4`, `p2p.subfrost.io`
+- Port: `4001`, `443`
+- PeerID: `/p2p/12D3K...`
+
+## Configuration
+
+### Basic Setup
+
+```rust
+use subp2p::{Subp2p, Config};
+
+// Create config
+let config = Config::default()
+    .listen_on("/ip4/0.0.0.0/udp/0/quic-v1")
+    .add_relay("/dns4/p2p.subfrost.io/tcp/443/wss")
+    .enable_mdns(true)
+    .enable_dht(true);
+
+// Initialize SubP2P
+let mut subp2p = Subp2p::new(config)?;
+
+// Start networking
+subp2p.start().await?;
+```
+
+### Advanced Options
+
+```rust
+let config = Config::default()
+    // Transports
+    .enable_quic(true)
+    .enable_webtransport(true)
+    .enable_websocket(true)
+    .enable_tcp(true)
+    
+    // Discovery
+    .enable_mdns(true)
+    .enable_dht(true)
+    .bootstrap_peers(bootstrap_list)
+    
+    // Relay
+    .enable_relay_client(true)
+    .enable_dcutr(true)
+    .relay_servers(relay_list)
+    
+    // Security
+    .identity_from_file("identity.key")
+    
+    // Performance
+    .connection_idle_timeout(Duration::from_secs(60))
+    .max_connections(100);
+```
+
+## Use Cases
+
+### 1. FROST Coordination
+
+Coordinate threshold signatures over SubP2P:
+
+```
+Coordinator → GossipSub → All Signers
+    ↓
+Signers compute partial signatures
+    ↓
+Signers → GossipSub → Coordinator
+    ↓
+Coordinator aggregates signature
+```
+
+### 2. Consensus Programs
+
+L0 programs coordinate via P2P signals:
+
+```
+Peer A detects blockchain event
+    ↓
+Peer A → GossipSub("/signals/burn_event")
+    ↓
+All peers update local signal state
+    ↓
+Consensus triggered on all nodes
+```
+
+### 3. Browser Wallets
+
+Web-based wallets connect directly to network:
+
+```
+Browser Wallet (WebTransport)
+    ↓
+p2p.subfrost.io (Relay)
+    ↓
+Validator Nodes (QUIC)
+    ↓
+Sign transactions via FROST
+```
+
+### 4. Mobile Applications
+
+Mobile apps via JNI/Swift bindings:
+
+```
+Android/iOS App
+    ↓
+subfrost-ffi/subfrost-jni
+    ↓
+SubP2P (native QUIC)
+    ↓
+Full validator node capabilities
+```
+
+## Performance Characteristics
+
+### Latency
+
+| Connection Type | Typical Latency | Use Case |
+|----------------|-----------------|----------|
+| Direct QUIC | 20-50ms | Native apps |
+| WebTransport | 50-100ms | Web apps |
+| WebSocket | 100-200ms | Fallback |
+| Circuit Relay | 200-400ms | NAT traversal |
+| DCUtR Success | 50-150ms | After upgrade |
+
+### Throughput
+
+| Transport | Typical Throughput |
+|-----------|-------------------|
+| QUIC | 50-100 MB/s |
+| WebTransport | 20-50 MB/s |
+| WebSocket | 10-30 MB/s |
+| Circuit Relay | 1-5 MB/s |
+
+### Connection Success
+
+| Scenario | Success Rate |
+|----------|--------------|
+| Direct (no NAT) | ~100% |
+| Behind NAT + Relay | ~100% |
+| DCUtR Hole Punch | ~80% |
+| Symmetric NAT | ~60% (relay fallback) |
+
+## Next Steps
+
+- [Configure a Relay Node →](/subfrost-p2p/subrelay)
+- [Use SubTun VPN →](/subfrost-p2p/subtun)
+- [Build with SubP2P →](/developer-guide/subp2p-integration)
+- [Understand Consensus →](/subfrost-runtime/consensus-overview)
+
+## Resources
+
+- **Source Code**: [subfrost/crates/subp2p](https://github.com/subfrost/subfrost/tree/main/crates/subp2p)
+- **libp2p Documentation**: [https://docs.libp2p.io](https://docs.libp2p.io)
+- **WebTransport Spec**: [W3C WebTransport](https://w3c.github.io/webtransport/)
+- **Public Relay**: [https://p2p.subfrost.io](https://p2p.subfrost.io)

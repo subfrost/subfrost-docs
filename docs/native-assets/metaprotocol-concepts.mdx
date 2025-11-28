@@ -1,0 +1,552 @@
+# Metaprotocol Concepts
+
+This document explains the fundamental concepts of Bitcoin metaprotocols and how ALKANES builds upon the runes and protorunes architectures.
+
+## Protocol Messages
+
+### Design Goals
+
+To preserve the feature where we can execute atomic swaps and allow for the use of PSBTs to construct expressive market mechanics that transact between sibling subprotocols (not exclusively the canonical alkanes subprotocol of protocol ID 1), we extend the Runestone structure in a way that embeds protocol messages for protorunes without causing a cenotaph.
+
+We do this by adding a new ODD field of the Runestone structure and claim one protocol field which does not conflict with future versions of the runes metaprotocol.
+
+### The Protocol Field
+
+The runes specification indicates that a tag within the range of protocol field values will never exceed 1 byte in its leb128 encoding, thus why the author of the runes specification terminates the range of Tag values at 127. We have the remaining space of a u128 to claim territory safely.
+
+We choose **2^14 - 1 (16383)** which is the largest possible value in the u128 byte space which occupies only 2 bytes in leb128 encoding. This, we are confident, will never disturb the evolution of the runes metaprotocol.
+
+### Runestone Tag Structure
+
+```rust
+enum Tag {
+    Body = 0,
+    Flags = 2,
+    Rune = 4,
+    Premine = 6,
+    Cap = 8,
+    Amount = 10,
+    HeightStart = 12,
+    HeightEnd = 14,
+    OffsetStart = 16,
+    OffsetEnd = 18,
+    Mint = 20,
+    Pointer = 22,
+    Cenotaph = 126,
+    Divisibility = 1,
+    Spacers = 3,
+    Symbol = 5,
+    Nop = 127,
+    
+    // Protorunes extension
+    Protocol = 16383,  // 2^14 - 1
+}
+```
+
+### Protocol Field Structure
+
+The Protocol field contains a varint list encoding the following structure:
+
+```rust
+struct ProtocolMessage {
+    protocol_tag: u128,      // Identifies the subprotocol
+    protocol_message: Vec<u128>,  // Subprotocol-specific message
+}
+```
+
+**Example Encoding:**
+```
+Protocol: [
+    1,              // protocol_tag = 1 (alkanes)
+    77,             // opcode 77 (wrap)
+    32,             // alkane block
+    0,              // alkane tx
+    arg1,           // additional arguments
+    arg2,
+    ...
+]
+```
+
+## Protostone Structure
+
+A **Protostone** is the complete message structure for protorunes operations.
+
+### Full Structure
+
+```rust
+pub struct Protostone {
+    /// Subprotocol identifier (1 = alkanes)
+    pub protocol_tag: u128,
+    
+    /// Variable-length message (opcode + args)
+    pub message: Vec<u128>,
+    
+    /// Asset transfers (protorune RuneIds + amounts)
+    pub edicts: Vec<ProtoruneRuneId>,
+    
+    /// Assets to burn
+    pub burn: Option<ProtoruneRuneId>,
+    
+    /// Output index for refunds on failure
+    pub refund: Option<u32>,
+    
+    /// Output index for results on success
+    pub pointer: Option<u32>,
+    
+    /// Source edict indices
+    pub from: Option<Vec<u32>>,
+}
+```
+
+### Field Descriptions
+
+#### protocol_tag
+
+Identifies which subprotocol should process this message:
+- `1` = alkanes (canonical smart contracts)
+- `2+` = future subprotocols (custom protocol IDs)
+
+#### message
+
+Variable-length array containing the protocol message. For alkanes:
+```
+[opcode, alkane_block, alkane_tx, ...args]
+```
+
+**Examples:**
+```rust
+// Call contract [32,0] opcode 77 (wrap)
+message: [77, 32, 0]
+
+// Call contract [32,0] opcode 78 (unwrap) with args
+message: [78, 32, 0, output_index, amount]
+
+// Deploy new contract
+message: [0, 0, 0]  // opcode 0 = deploy
+```
+
+#### edicts
+
+List of protorune asset transfers:
+```rust
+pub struct ProtoruneRuneId {
+    pub block: u128,
+    pub tx: u128,
+    pub amount: u128,
+}
+```
+
+**Example:**
+```rust
+edicts: [
+    ProtoruneRuneId { block: 32, tx: 0, amount: 10000 },  // Transfer 10000 frBTC
+    ProtoruneRuneId { block: 31, tx: 0, amount: 500 },    // Transfer 500 ftrBTC
+]
+```
+
+#### burn
+
+Specify assets to burn as part of this operation:
+```rust
+burn: Some(ProtoruneRuneId { 
+    block: 32, 
+    tx: 0, 
+    amount: 5000 
+})  // Burn 5000 frBTC
+```
+
+#### refund and pointer
+
+- **pointer**: Output index that receives assets on successful execution
+- **refund**: Output index that receives assets on failed execution
+
+**Example:**
+```
+Output 0: OP_RETURN (Runestone with Protostone)
+Output 1: User address (pointer)
+Output 2: Refund address (refund)
+```
+
+If execution succeeds → assets go to Output 1  
+If execution fails → assets go to Output 2
+
+#### from
+
+Specifies which Runestone edicts provide input assets:
+```rust
+from: Some(vec![0, 1])  // Use edicts at index 0 and 1
+```
+
+This enables ordering when multiple protoburns target the same OP_RETURN.
+
+## Protoburn Mechanism
+
+A **protoburn** is how runes are converted into protorunes (subprotocol-only assets).
+
+### How Protoburns Work
+
+1. **Create Runestone with Edict**: Standard runes transaction
+2. **Target OP_RETURN**: Edict points to the OP_RETURN output itself
+3. **Provably Unspendable**: Runes are burned from runes protocol perspective
+4. **Subprotocol Credits**: Subprotocol indexer credits protorunes to contract
+
+### Example Transaction
+
+```
+Input 0: 
+  UTXO with 10000 RUNE·X
+
+Output 0: OP_RETURN
+  Runestone {
+    edicts: [
+      Edict { id: RUNE·X, amount: 10000, output: 0 }  // Target OP_RETURN!
+    ],
+    protocol: [
+      1,           // alkanes protocol
+      77, 32, 0    // wrap message
+    ]
+  }
+
+Output 1: User address (pointer)
+Output 2: Refund address
+```
+
+**Processing:**
+1. Runes indexer: "Edict targets OP_RETURN, runes burned"
+2. Alkanes indexer: "Protoburn detected, credit 10000 protorune RUNE·X to contract"
+3. Contract executes with 10000 RUNE·X as input
+4. Success → outputs to pointer (Output 1)
+
+### Protoburn Ordering
+
+When multiple edicts target OP_RETURN:
+```
+edicts: [
+  Edict { id: RUNE·A, amount: 100, output: 0 },  // First protoburn
+  Edict { id: RUNE·A, amount: 200, output: 0 },  // Second protoburn
+  Edict { id: RUNE·B, amount: 50, output: 0 },   // Third protoburn
+]
+```
+
+Each edict is matched to protostones in order:
+- Edict 0 → Protostone 0
+- Edict 1 → Protostone 1
+- Edict 2 → Protostone 2
+
+### From Tag Processing
+
+The `from` field allows precise control:
+
+```rust
+// Protostone 1
+Protostone {
+    from: Some(vec![0]),  // Use first edict
+    ...
+}
+
+// Protostone 2
+Protostone {
+    from: Some(vec![1, 2]),  // Use second and third edicts
+    ...
+}
+```
+
+**Processing order:**
+1. Process all protostones with `from` specified (in order)
+2. Mark used edicts as consumed
+3. Process remaining protostones with remaining edicts
+
+## Predicates
+
+A **predicate** is a set of clauses defining minimum balance requirements.
+
+### Purpose
+
+Predicates handle settlement risk from blockchain reorgs:
+
+```
+Transaction A: Deposit 1000 tokens to contract
+    ↓
+Transaction B: Use 500 tokens from contract
+    ↓
+Reorg: Transaction A disappears
+    ↓
+Transaction B now invalid (insufficient balance)
+    ↓
+Predicate triggers: Refund to refund_pointer
+```
+
+### Implementation
+
+While not a standard field in Protostone, predicates are implemented in contract logic:
+
+```rust
+fn execute(&self, context: Context) -> Result<()> {
+    // Check predicate
+    let required_balance = self.get_required_balance(&context)?;
+    let actual_balance = self.get_balance(&context.inputs)?;
+    
+    if actual_balance < required_balance {
+        // Predicate failed - refund
+        return self.refund_all(context.refund_pointer);
+    }
+    
+    // Predicate satisfied - continue execution
+    self.process_transaction(context)
+}
+```
+
+### Use Cases
+
+1. **Cross-Protocol Swaps**: Ensure both sides have sufficient assets
+2. **Atomic Operations**: Multiple contracts must all succeed or all refund
+3. **Conditional Execution**: Only execute if certain balances exist
+
+## RuneId Encoding
+
+### Standard RuneIds (Runes Protocol)
+
+```rust
+struct RuneId {
+    block: u128,  // Block height of etching
+    tx: u128,     // Transaction index in block
+}
+```
+
+**Constraints:**
+- `block` ≤ current Bitcoin height
+- `tx` < transactions in block
+- Both values fit in 64 bits for mainnet
+
+### Subprotocol-Exclusive RuneIds
+
+To avoid clashing with runes protocol, subprotocol assets use high bits:
+
+**Rule:** At least one of:
+- High 64 bits of `block` ≠ 0, OR
+- High 96 bits of `tx` ≠ 0
+
+**Examples:**
+```rust
+// Standard rune (exists on runes protocol)
+RuneId { block: 840000, tx: 5 }  // ✓ Valid rune
+
+// Subprotocol-exclusive asset
+RuneId { block: 1 << 64, tx: 0 }  // ✓ Alkanes-only
+RuneId { block: 0, tx: 1 << 96 }  // ✓ Alkanes-only
+
+// Invalid (would clash with runes)
+RuneId { block: 840000, tx: 0 }  // ✗ Could be real rune
+```
+
+### AlkaneId Convention
+
+Alkanes uses a simpler convention:
+
+```rust
+struct AlkaneId {
+    block: u128,  // Block where contract deployed
+    tx: u128,     // Tx index in block
+}
+```
+
+Alkanes are deployed, not etched, so their IDs are naturally subprotocol-exclusive.
+
+## Cross-Protocol Atomicity
+
+### Atomic Swaps Across Subprotocols
+
+Because Runestone can contain multiple Protocol fields:
+
+```
+Runestone {
+    edicts: [
+        // Burn RUNE·A on runes protocol
+        Edict { id: RUNE·A, amount: 1000, output: 0 }
+    ],
+    protocol: [
+        // First Protostone (protocol ID 1 - alkanes)
+        1, 77, 32, 0,  // Wrap to frBTC
+        
+        // Second Protostone (protocol ID 2 - hypothetical DEX)
+        2, 99, 10, 5,  // Trade on protocol 2
+    ]
+}
+```
+
+**Properties:**
+- Single Bitcoin transaction
+- All protostones execute atomically
+- If any fails, entire transaction reverts
+- Assets safely returned to refund outputs
+
+### Horizontal Sharding
+
+Different protocol IDs enable scaling:
+
+```
+Protocol ID 1: DeFi contracts (AMMs, lending)
+Protocol ID 2: NFT marketplace
+Protocol ID 3: Stablecoin system
+Protocol ID 4: Derivatives exchange
+```
+
+**Benefits:**
+- Each protocol has independent state
+- Users only index protocols they use
+- Reduced computational requirements
+- Atomic cross-protocol operations still possible
+
+## Message Encoding
+
+### Varint Encoding
+
+All Protostone fields use varint encoding (LEB128):
+
+**Small numbers (0-127):** 1 byte
+```
+Value: 77
+Encoded: 0x4D
+```
+
+**Larger numbers:** 2+ bytes
+```
+Value: 16383
+Encoded: 0xFF7F  (2 bytes)
+
+Value: 880000
+Encoded: 0x808D35  (3 bytes)
+```
+
+### Efficiency Considerations
+
+**Opcode Selection:**
+- Use opcodes < 128 for common operations (1 byte)
+- Reserve higher opcodes for rare operations
+
+**AlkaneId Encoding:**
+- Lower block numbers = fewer bytes
+- Genesis contracts [32,0], [31,0] encode efficiently
+
+**Message Optimization:**
+```rust
+// Efficient: 1 + 1 + 1 + 1 = 4 bytes
+message: [77, 32, 0, 5]
+
+// Less efficient: 1 + 3 + 3 + 2 = 9 bytes  
+message: [77, 880000, 128, 500]
+```
+
+## State Machine Model
+
+### Metaprotocol State Transitions
+
+```
+Block N State
+    ↓
+Process Block N+1 Transactions
+    ↓ (for each transaction)
+Parse OP_RETURN → Extract Protostone(s)
+    ↓
+Validate inputs/balances
+    ↓
+Execute contract(s)
+    ↓
+Update state (storage, balances)
+    ↓
+Block N+1 State
+```
+
+### Deterministic Execution
+
+**Critical property:** Given same blockchain input, all indexers reach same state.
+
+**Requirements:**
+1. **No randomness**: All operations deterministic
+2. **No timestamps**: Use block height instead
+3. **No external data**: Only blockchain data
+4. **Fixed fuel limits**: Prevent infinite loops
+5. **Sorted processing**: Transactions processed in order
+
+### State Reproducibility
+
+Anyone can verify state by replaying:
+```bash
+# Start from genesis
+alkanes index --start-block 880000
+
+# Process all blocks in order
+for block in 880000..current_height {
+    process_block(block);
+}
+
+# Reach identical state
+assert_eq!(state_hash, canonical_state_hash);
+```
+
+## Compatibility Matrix
+
+### Runes Protocol Compatibility
+
+| Feature | Runes | Protorunes | Alkanes |
+|---------|-------|------------|---------|
+| Fungible tokens | ✓ | ✓ | ✓ |
+| Etching | ✓ | Via runes | Via deploy |
+| Minting | ✓ | Via runes | Via contract |
+| Transferring | ✓ | Via Protostone | Via contract |
+| Burning | ✓ | ✓ (protoburn) | ✓ |
+| Smart contracts | ✗ | ✗ | ✓ |
+| WASM execution | ✗ | ✗ | ✓ |
+| Composability | ✗ | Limited | Full |
+
+### Cross-Protocol Operations
+
+| Operation | Runes ↔ Protorunes | Protorunes ↔ Alkanes | Alkanes ↔ Alkanes |
+|-----------|-------------------|---------------------|-------------------|
+| Atomic swap | ✓ (via protoburn) | ✓ | ✓ |
+| Direct transfer | ✗ (one-way only) | ✓ | ✓ |
+| Shared state | ✗ | ✗ | ✓ (same protocol) |
+
+## Security Considerations
+
+### Cenotaph Prevention
+
+Invalid Runestone → Cenotaph (all runes burned):
+- Malformed varint encoding
+- Unknown odd fields (except Protocol)
+- Invalid edict ordering
+
+**Protocol field is safe:** Being odd field ≥ 127, it's ignored by runes indexer.
+
+### Double-Spend Protection
+
+Protorunes can't be double-spent:
+1. Protoburn permanently removes from runes protocol
+2. Protorunes only exist in subprotocol state
+3. Subprotocol state derived from Bitcoin blockchain
+4. Bitcoin's PoW prevents double-spends
+
+### Reorg Handling
+
+**Short reorgs (1-2 blocks):**
+- Indexer rolls back state
+- Re-processes new canonical chain
+- Predicates ensure safe asset handling
+
+**Long reorgs (> 6 blocks):**
+- Rare but possible
+- Users should wait for confirmations
+- Exchanges typically require 6+ confirmations
+
+## Next Steps
+
+- [Protocol Messages Deep Dive →](/native-assets/protocol-messages)
+- [Execution Environment →](/native-assets/execution-environment)
+- [Fuel System →](/native-assets/fuel-system)
+- [Build a Contract →](/developer-guide/alkanes-quickstart)
+
+## Resources
+
+- **Protorunes Specification**: [protorune wiki](https://github.com/kungfuflex/protorune/wiki)
+- **Runes Specification**: [ordinals.com/docs/runes](https://docs.ordinals.com/runes.html)
+- **Runestone Source**: [ord GitHub](https://github.com/ordinals/ord)

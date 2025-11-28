@@ -1,0 +1,446 @@
+# Wrapping BTC to frBTC
+
+This guide explains how to wrap Bitcoin into frBTC (Frost Bitcoin) for use in the Alkanes DeFi ecosystem.
+
+## Overview
+
+Wrapping BTC to frBTC allows you to:
+- Participate in Alkanes DeFi (AMMs, vaults, lending)
+- Earn yield on your Bitcoin holdings
+- Trade programmatically on-chain
+- Maintain exposure to BTC price
+
+**Contract:** [32, 0]  
+**Premium:** 0.1% (default, configurable)
+
+## Prerequisites
+
+- Bitcoin wallet with BTC
+- `alkanes-cli` installed ([installation guide](/developer-guide/getting-started))
+- Basic understanding of Bitcoin transactions
+
+## Method 1: Using alkanes-cli
+
+### Step 1: Check Balance
+
+```bash
+# Check your Bitcoin balance
+alkanes wallet balance
+```
+
+**Output:**
+```
+Address: bc1p...
+Balance: 0.01 BTC (1,000,000 sats)
+```
+
+### Step 2: Wrap BTC
+
+```bash
+# Wrap 0.001 BTC (100,000 sats)
+alkanes alkanes wrap-btc 100000 \
+  --from "p2tr:0" \
+  --mine \
+  -y
+```
+
+**Parameters:**
+- `100000`: Amount in satoshis
+- `--from "p2tr:0"`: Use first P2TR address
+- `--mine`: Mine transaction (regtest/signet)
+- `-y`: Auto-confirm
+
+### Step 3: Verify frBTC Balance
+
+```bash
+# Query frBTC balance
+alkanes alkanes getbalance \
+  --address "bc1p..." \
+  --alkane-id "32:0"
+```
+
+**Output:**
+```
+AlkaneId [32, 0]: 99,900 frBTC
+```
+
+**Note:** 99,900 received (100 sat premium at 0.1%)
+
+## Method 2: Manual Transaction
+
+### Step 1: Create Wrap Transaction
+
+```javascript
+import { Transaction, script, payments } from 'bitcoinjs-lib';
+
+// 1. Create Runestone with wrap message
+const runestone = {
+  pointer: 1,  // Results to output 1
+  protocol: [
+    1,    // protocol_tag (alkanes)
+    77,   // opcode (wrap)
+    32,   // alkane block
+    0     // alkane tx
+  ]
+};
+
+// 2. Encode Runestone
+const encoded = encodeRunestone(runestone);
+
+// 3. Create transaction
+const tx = new Transaction();
+
+// Input: Your BTC UTXO
+tx.addInput(utxo.txid, utxo.vout);
+
+// Output 0: OP_RETURN with Runestone
+tx.addOutput(
+  script.compile([
+    script.OP_RETURN,
+    script.OP_PUSHNUM_13,  // Runestone magic
+    encoded
+  ]),
+  0  // No value
+);
+
+// Output 1: Receive frBTC (pointer)
+tx.addOutput(
+  yourAddress,
+  546  // Dust limit
+);
+
+// Output 2: Refund address
+tx.addOutput(
+  refundAddress,
+  546
+);
+
+// Output 3: Change
+tx.addOutput(
+  changeAddress,
+  changeAmount
+);
+
+// 4. Sign and broadcast
+const signed = signTransaction(tx);
+await broadcast(signed);
+```
+
+### Step 2: Monitor Confirmation
+
+```bash
+# Check transaction status
+bitcoin-cli getrawtransaction <txid> true
+```
+
+### Step 3: Wait for Indexing
+
+```bash
+# Query alkanes indexer
+curl https://mainnet.subfrost.io/v4/api/alkanes/getbalance \
+  -d '{"address": "bc1p...", "alkane_id": {"block": 32, "tx": 0}}'
+```
+
+## Method 3: Web Interface
+
+### Using SUBFROST Web Wallet
+
+1. **Connect Wallet**
+   - Visit [https://app.subfrost.io](https://app.subfrost.io)
+   - Connect your Bitcoin wallet (Unisat, Xverse, etc.)
+
+2. **Navigate to Wrap**
+   - Click "Wrap BTC"
+   - Enter amount to wrap
+
+3. **Review Transaction**
+   - Amount: 0.001 BTC
+   - Premium: 0.0001 BTC (0.1%)
+   - Receive: 0.000999 frBTC
+
+4. **Confirm and Sign**
+   - Click "Wrap"
+   - Sign transaction in wallet
+   - Wait for confirmation
+
+5. **View frBTC Balance**
+   - Balance updates automatically
+   - View in "Assets" tab
+
+## Understanding the Wrap Process
+
+### Transaction Flow
+
+```
+1. User creates Bitcoin transaction
+   - Sends BTC to frBTC contract
+   - Includes wrap Protostone message
+   ↓
+2. Bitcoin network confirms transaction
+   ↓
+3. Alkanes indexer detects transaction
+   - Reads incoming BTC amount
+   - Parses wrap message (opcode 77)
+   ↓
+4. frBTC contract executes
+   - Calculates premium (0.1%)
+   - Mints frBTC: amount - premium
+   ↓
+5. frBTC credited to pointer output
+   - User receives frBTC on UTXO
+   - Available for DeFi operations
+```
+
+### Premium Calculation
+
+```
+Input: 100,000 sats
+Premium rate: 0.1% (100,000 basis points)
+Premium amount: 100,000 * 100,000 / 100,000,000 = 100 sats
+frBTC minted: 100,000 - 100 = 99,900
+```
+
+**Premium purpose:**
+- Protocol sustainability
+- Security incentives
+- Validator rewards
+
+## Wrap Amounts
+
+### Minimum
+
+```
+Minimum: 546 sats (Bitcoin dust limit)
+After premium: ~540 frBTC received
+```
+
+### Maximum
+
+```
+No maximum limit
+Limited only by:
+- Your BTC balance
+- Bitcoin transaction size limits
+```
+
+### Recommended
+
+```
+Small test: 10,000 sats (0.0001 BTC)
+Typical: 100,000 - 1,000,000 sats (0.001 - 0.01 BTC)
+Large: 10,000,000+ sats (0.1+ BTC)
+```
+
+## Transaction Fees
+
+### Bitcoin Network Fees
+
+```
+Typical wrap transaction:
+- Size: ~250 vbytes
+- Fee rate: 10 sat/vb (varies by network)
+- Total fee: ~2,500 sats
+
+High priority (1 sat/vb):
+- Fee: ~250 sats
+
+Low priority (1 sat/vb):
+- Fee: ~250 sats
+- Confirmation: 1-6 blocks
+```
+
+### No Additional Fees
+
+✅ **No gas tokens required**  
+✅ **No separate protocol fees**  
+✅ **Only premium deducted from amount**
+
+## Confirmation Times
+
+### Mainnet
+
+```
+1 confirmation: ~10 minutes (recommended minimum)
+3 confirmations: ~30 minutes (safe for most uses)
+6 confirmations: ~60 minutes (exchange standard)
+```
+
+### Signet/Testnet
+
+```
+1 confirmation: ~10 minutes
+Faster: Use --mine flag with alkanes-cli
+```
+
+### Regtest (Development)
+
+```
+Instant: Use --mine flag
+No waiting: Blocks mined on command
+```
+
+## Common Issues
+
+### Issue 1: Transaction Not Confirmed
+
+**Symptoms:**
+- Transaction in mempool for hours
+- Low fee rate used
+
+**Solution:**
+```bash
+# Check mempool
+bitcoin-cli getmempoolentry <txid>
+
+# If fee too low, use RBF (Replace-By-Fee)
+alkanes wallet rbf <txid> --fee-rate 50
+```
+
+### Issue 2: frBTC Not Received
+
+**Symptoms:**
+- Transaction confirmed
+- frBTC balance still zero
+
+**Solution:**
+```bash
+# Check indexer height
+curl https://mainnet.subfrost.io/v4/api/metashrew/height
+
+# If behind, wait for indexing
+# Typical lag: 1-2 blocks
+
+# Check transaction was valid
+curl https://mainnet.subfrost.io/v4/api/alkanes/transaction/<txid>
+```
+
+### Issue 3: Wrong Amount Received
+
+**Symptoms:**
+- Received less than expected
+
+**Solution:**
+```bash
+# Check premium rate
+alkanes alkanes execute \
+  --protostones "[32,0,104]" \  # Get premium opcode
+  --to "bc1p..."
+
+# Verify calculation:
+# sent: 100,000 sats
+# premium: 100,000 * <rate> / 100,000,000
+# received: sent - premium
+```
+
+### Issue 4: Transaction Reverted
+
+**Symptoms:**
+- BTC returned to refund address
+- No frBTC received
+
+**Possible causes:**
+```
+1. Invalid Protostone format
+   - Check message encoding
+   
+2. Insufficient BTC (below dust)
+   - Send at least 546 sats
+   
+3. Indexer error
+   - Check indexer logs
+   - Report to team
+```
+
+**Solution:**
+```bash
+# Verify refund received
+alkanes wallet balance
+
+# Retry with correct format
+alkanes alkanes wrap-btc 100000 --from "p2tr:0" -y
+```
+
+## Advanced Usage
+
+### Wrap to Specific Address
+
+```bash
+# Wrap BTC, send frBTC to different address
+alkanes alkanes wrap-btc 100000 \
+  --from "p2tr:0" \
+  --to "bc1q...different_address" \
+  -y
+```
+
+### Wrap with Custom Fee Rate
+
+```bash
+# Use specific fee rate (sat/vb)
+alkanes alkanes wrap-btc 100000 \
+  --from "p2tr:0" \
+  --fee-rate 50 \
+  -y
+```
+
+### Batch Wrap (Multiple Outputs)
+
+```bash
+# Wrap to multiple addresses in one tx
+alkanes alkanes wrap-btc-batch \
+  --amounts "100000,200000,300000" \
+  --addresses "bc1p...,bc1q...,bc1p..." \
+  --from "p2tr:0" \
+  -y
+```
+
+### Wrap with External Signing
+
+```bash
+# Generate unsigned PSBT
+alkanes alkanes wrap-btc 100000 \
+  --from "p2tr:0" \
+  --psbt-only > unsigned.psbt
+
+# Sign externally (hardware wallet, etc.)
+bitcoin-cli signrawtransactionwithwallet $(cat unsigned.psbt)
+
+# Broadcast signed transaction
+alkanes wallet broadcast <signed_hex>
+```
+
+## Security Considerations
+
+### Best Practices
+
+✅ **Test first:** Use small amounts initially  
+✅ **Verify addresses:** Double-check pointer/refund addresses  
+✅ **Wait for confirmations:** At least 1 confirmation  
+✅ **Check premium rate:** Ensure expected rate before wrapping  
+✅ **Use refund address:** Always specify refund output  
+
+### Risks
+
+⚠️ **Blockchain reorgs:** Wait for 6+ confirmations for large amounts  
+⚠️ **Premium changes:** Owner can adjust premium (check before wrap)  
+⚠️ **Indexer lag:** frBTC may not appear immediately  
+⚠️ **Bitcoin fees:** Can be high during network congestion  
+
+### Not Risks
+
+✅ **Funds are safe:** BTC secured by Bitcoin's PoW  
+✅ **Transparent:** All operations on-chain  
+✅ **Refundable:** Failures automatically refund  
+
+## Next Steps
+
+- [Unwrap frBTC back to BTC →](/tokens/unwrapping-frbtc)
+- [Trade frBTC on DEX →](/tokens/trading-frbtc)
+- [Provide Liquidity →](/tokens/liquidity-provision)
+- [Earn Yield with frBTC →](/tokens/yvfrbtc-overview)
+
+## Resources
+
+- **frBTC Contract**: [Source code](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/fr-btc)
+- **alkanes-cli**: [Documentation](/developer-guide/getting-started)
+- **Web Interface**: [app.subfrost.io](https://app.subfrost.io)
+- **API**: [API Reference](/subfrost-api/alkanes-methods)

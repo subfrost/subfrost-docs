@@ -1,0 +1,656 @@
+# Execution Environment
+
+The ALKANES execution environment is a WASM-based runtime that provides a complete smart contract platform on Bitcoin L1. This document details the host functions, ABI, memory model, and execution semantics.
+
+## WASM Runtime
+
+### wasmi Engine
+
+ALKANES uses the `wasmi` WASM interpreter:
+
+- **Deterministic**: Consistent execution across all nodes
+- **Fuel-Metered**: Built-in DoS protection
+- **Lightweight**: Efficient for blockchain indexing
+- **Secure**: Sandboxed execution environment
+
+### Contract Structure
+
+Every alkane contract must export the `__execute` function:
+
+```rust
+#[no_mangle]
+pub extern "C" fn __execute() -> i32 {
+    // Contract logic here
+    0  // Return 0 on success, non-zero on failure
+}
+```
+
+**Return values:**
+- `0`: Success - transfer assets to pointer output
+- Non-zero: Failure - refund assets to refund output
+
+## Host Functions
+
+The runtime provides 14 host functions accessible from WASM contracts.
+
+### Storage Operations
+
+#### `__request_storage`
+
+Request the byte size of a value at a given key.
+
+```rust
+fn __request_storage(key_ptr: i32) -> i32
+```
+
+**Parameters:**
+- `key_ptr`: Pointer to key (first 4 bytes = length)
+
+**Returns:**
+- Byte size of stored value (0 if not found)
+
+**Memory layout:**
+```
+key_ptr → [length: u32][key_bytes: ...]
+```
+
+**Example:**
+```rust
+let key = b"/balance/alice";
+let key_ptr = allocate_with_length(key);
+let value_size = __request_storage(key_ptr);
+```
+
+#### `__load_storage`
+
+Load a value from storage.
+
+```rust
+fn __load_storage(key_ptr: i32, result_ptr: i32)
+```
+
+**Parameters:**
+- `key_ptr`: Pointer to key (length-prefixed)
+- `result_ptr`: Pointer to write result
+
+**Side effects:**
+- Writes value bytes to `result_ptr`
+
+**Example:**
+```rust
+let key_ptr = allocate_with_length(b"/balance/alice");
+let size = __request_storage(key_ptr);
+let result_ptr = allocate(size);
+__load_storage(key_ptr, result_ptr);
+let value = read_bytes(result_ptr, size);
+```
+
+#### `__store`
+
+Store a key-value pair.
+
+```rust
+fn __store(kv_ptr: i32)
+```
+
+**Parameters:**
+- `kv_ptr`: Pointer to key-value pair
+
+**Memory layout:**
+```
+kv_ptr → [key_length: u32][key_bytes][value_length: u32][value_bytes]
+```
+
+**Example:**
+```rust
+let key = b"/balance/alice";
+let value = 10000u128.to_le_bytes();
+let kv_ptr = pack_key_value(key, &value);
+__store(kv_ptr);
+```
+
+**Fuel cost:** 1000 per call
+
+### Contract Calls
+
+#### `__call`
+
+Execute an internal call to another alkane.
+
+```rust
+fn __call(
+    cellpack_ptr: i32,
+    value_ptr: i32,
+    checkpoint_ptr: i32,
+    fuel: u64
+) -> i32
+```
+
+**Parameters:**
+- `cellpack_ptr`: Message [opcode, block, tx, ...args]
+- `value_ptr`: Asset transfers (triples of AlkaneId + amount)
+- `checkpoint_ptr`: State snapshot for rollback
+- `fuel`: Maximum fuel for the call
+
+**Returns:**
+- Byte size of return data (0 on failure)
+
+**Value format:**
+```
+value_ptr → [
+    count: u128,
+    block1: u128, tx1: u128, amount1: u128,
+    block2: u128, tx2: u128, amount2: u128,
+    ...
+]
+```
+
+**Example:**
+```rust
+// Call contract [5,3] opcode 5 with 10000 frBTC
+let cellpack = vec![5u128, 5, 3, 10000, 9500];
+let value = vec![
+    1u128,        // Transfer 1 asset
+    32, 0, 10000  // 10000 units of [32,0]
+];
+
+let cellpack_ptr = to_ptr(&cellpack);
+let value_ptr = to_ptr(&value);
+let checkpoint_ptr = create_checkpoint();
+
+let result_size = __call(cellpack_ptr, value_ptr, checkpoint_ptr, 50000);
+if result_size > 0 {
+    let response = __returndatacopy(allocate(result_size));
+}
+```
+
+**Fuel cost:** 500 + subcall fuel
+
+#### `__delegatecall`
+
+Call with same context (like EVM delegatecall).
+
+```rust
+fn __delegatecall(
+    cellpack_ptr: i32,
+    value_ptr: i32,
+    checkpoint_ptr: i32,
+    fuel: u64
+) -> i32
+```
+
+**Semantics:**
+- Executes target code in caller's context
+- `context.myself` remains unchanged
+- Storage modifications affect caller's storage
+- Balance modifications affect caller's balance
+
+**Use cases:**
+- Library contracts
+- Upgradeable logic
+- Shared functionality
+
+#### `__staticcall`
+
+Read-only call (no state changes persist).
+
+```rust
+fn __staticcall(
+    cellpack_ptr: i32,
+    value_ptr: i32,
+    checkpoint_ptr: i32,
+    fuel: u64
+) -> i32
+```
+
+**Semantics:**
+- Execute contract logic
+- Return value computed
+- **No state changes persist** after return
+- Safe for view functions
+
+**Use cases:**
+- Query contract state
+- Compute values without side effects
+- Preview transaction results
+
+#### `__returndatacopy`
+
+Copy return data from last call.
+
+```rust
+fn __returndatacopy(dest_ptr: i32)
+```
+
+**Parameters:**
+- `dest_ptr`: Destination pointer
+
+**Side effects:**
+- Copies return data to `dest_ptr`
+- Must call after `__call`/`__delegatecall`/`__staticcall`
+
+**Example:**
+```rust
+let result_size = __call(...);
+if result_size > 0 {
+    let dest = allocate(result_size);
+    __returndatacopy(dest);
+    let response: Vec<u128> = deserialize(dest, result_size);
+}
+```
+
+### Balance Queries
+
+#### `__balance`
+
+Query balance of an AlkaneId.
+
+```rust
+fn __balance(alkane_id_ptr: i32) -> u128
+```
+
+**Parameters:**
+- `alkane_id_ptr`: Pointer to AlkaneId [block: u128, tx: u128]
+
+**Returns:**
+- Balance in u128
+
+**Example:**
+```rust
+// Query frBTC balance [32, 0]
+let alkane_id = vec![32u128, 0u128];
+let id_ptr = to_ptr(&alkane_id);
+let balance = __balance(id_ptr);
+```
+
+**Fuel cost:** 10 per call
+
+### Block Information
+
+#### `__height`
+
+Get current block height.
+
+```rust
+fn __height() -> u128
+```
+
+**Returns:**
+- Current Bitcoin block height
+
+**Example:**
+```rust
+let current_height = __height();
+if current_height < 900000 {
+    // Time-locked logic
+}
+```
+
+**Fuel cost:** 10 per call
+
+## Memory Model
+
+### AssemblyScript Layout
+
+ALKANES uses AssemblyScript-compatible memory layout:
+
+```
+Pointer-4 → [length: u32 (little-endian)]
+Pointer → [data bytes...]
+```
+
+**Example:**
+```
+Address 96:  [0x08, 0x00, 0x00, 0x00]  // length = 8
+Address 100: [0x01, 0x02, 0x03, 0x04,  // data
+              0x05, 0x06, 0x07, 0x08]
+```
+
+`ptr = 100` represents an 8-byte array.
+
+**Reference:**
+[AssemblyScript Memory Layout](https://www.assemblyscript.org/runtime.html#memory-layout)
+
+### Allocation
+
+Contracts must manage their own memory:
+
+```rust
+// Allocate n bytes
+fn allocate(size: usize) -> i32 {
+    let layout = Layout::array::<u8>(size + 4).unwrap();
+    let ptr = unsafe { alloc(layout) };
+    unsafe {
+        *(ptr as *mut u32) = size as u32;  // Store length
+    }
+    (ptr as i32) + 4  // Return data pointer
+}
+
+// Allocate with data
+fn allocate_with_data(data: &[u8]) -> i32 {
+    let ptr = allocate(data.len());
+    unsafe {
+        let dest = ptr as *mut u8;
+        dest.copy_from_nonoverlapping(data.as_ptr(), data.len());
+    }
+    ptr
+}
+```
+
+### Deallocation
+
+WASM has no garbage collection - contracts responsible:
+
+```rust
+fn deallocate(ptr: i32, size: usize) {
+    let layout = Layout::array::<u8>(size + 4).unwrap();
+    unsafe {
+        dealloc((ptr - 4) as *mut u8, layout);
+    }
+}
+```
+
+**Best practice:** Use alkanes-runtime library (handles memory automatically).
+
+## Context Object
+
+Every contract receives a context:
+
+```rust
+pub struct Context {
+    pub myself: AlkaneId,        // This contract's ID
+    pub caller: AlkaneId,        // Caller's ID (0,0 if top-level)
+    pub height: u128,            // Current block height
+    pub inputs: Vec<AlkaneTransfer>,  // Input assets
+}
+
+pub struct AlkaneId {
+    pub block: u128,
+    pub tx: u128,
+}
+
+pub struct AlkaneTransfer {
+    pub id: AlkaneId,
+    pub amount: u128,
+}
+```
+
+**Accessing context:**
+```rust
+use alkanes_runtime::runtime::AlkaneResponder;
+
+impl MyContract {
+    fn execute(&self) -> Result<()> {
+        let ctx = self.context()?;
+        
+        println!("I am contract [{}, {}]", ctx.myself.block, ctx.myself.tx);
+        println!("Called by [{}, {}]", ctx.caller.block, ctx.caller.tx);
+        println!("Current height: {}", ctx.height);
+        
+        for input in ctx.inputs {
+            println!("Received {} of [{},{}]", 
+                input.amount, input.id.block, input.id.tx);
+        }
+        
+        Ok(())
+    }
+}
+```
+
+## Return Value Format
+
+The `__execute` function returns a pointer to return data:
+
+```rust
+fn __execute() -> i32 {
+    // Compute response
+    let response = vec![
+        2u128,          // Transfer 2 assets
+        32, 0, 5000,    // 5000 of [32,0]
+        31, 0, 100,     // 100 of [31,0]
+    ];
+    
+    to_arraybuffer_layout(&response)
+}
+```
+
+**Format:**
+```
+[
+    count: u128,
+    block1: u128, tx1: u128, amount1: u128,
+    block2: u128, tx2: u128, amount2: u128,
+    ...
+]
+```
+
+**Special cases:**
+```rust
+// Success, no transfers
+vec![0u128]
+
+// Failure
+return Err(anyhow!("Insufficient balance"));
+// OR
+std::process::exit(1);
+```
+
+## Execution Flow
+
+### Top-Level Execution
+
+```
+1. Bitcoin transaction confirmed
+   ↓
+2. Indexer parses Protostone
+   ↓
+3. Load contract WASM
+   ↓
+4. Create execution context
+   ↓
+5. Allocate fuel
+   ↓
+6. Call __execute()
+   ↓
+7. Contract executes
+   ↓
+8. Check return value
+   ↓
+9. If 0: Transfer to pointer
+   If non-zero: Refund to refund_pointer
+   ↓
+10. Update state
+```
+
+### Internal Call Flow
+
+```
+Contract A calls Contract B:
+
+1. A: Prepare cellpack + value
+   ↓
+2. A: Create checkpoint
+   ↓
+3. A: Call __call(...)
+   ↓
+4. Host: Load Contract B WASM
+   ↓
+5. Host: Create B's context
+   ctx.caller = A's AlkaneId
+   ctx.inputs = value transfers
+   ↓
+6. Host: Call B.__execute()
+   ↓
+7. B: Executes logic
+   ↓
+8. B: Returns assets
+   ↓
+9. Host: Transfer to A's balance
+   ↓
+10. A: Read return data via __returndatacopy
+   ↓
+11. A: Continue execution
+```
+
+### Revert Handling
+
+```
+Contract execution fails:
+
+1. Exception raised / non-zero return
+   ↓
+2. Roll back state to checkpoint
+   ↓
+3. Refund all input assets
+   ↓
+4. If internal call: return to caller
+   If top-level: refund to refund_pointer
+   ↓
+5. Fuel still consumed
+```
+
+## Gas Metering
+
+### Fuel Injection
+
+wasmi automatically injects fuel checks:
+
+```rust
+// Original WASM
+fn compute(n: u32) -> u32 {
+    let mut sum = 0;
+    for i in 0..n {
+        sum += i;
+    }
+    sum
+}
+
+// After fuel injection (conceptual)
+fn compute(n: u32) -> u32 {
+    check_fuel(10);  // Function entry
+    let mut sum = 0;
+    for i in 0..n {
+        check_fuel(5);  // Loop iteration
+        sum += i;
+    }
+    check_fuel(10);  // Function exit
+    sum
+}
+```
+
+### Out of Fuel
+
+```
+Fuel exhausted during execution:
+
+1. wasmi traps with OutOfFuel
+   ↓
+2. Execution halts immediately
+   ↓
+3. State rolled back
+   ↓
+4. Assets refunded
+   ↓
+5. Transaction marked as reverted
+```
+
+## Security Considerations
+
+### Sandboxing
+
+✅ **Isolated Execution:**
+- No file system access
+- No network access
+- No system calls
+- Only host functions available
+
+✅ **Memory Safety:**
+- WASM memory cannot access host memory
+- Out-of-bounds access trapped
+- Stack overflow protection
+
+### Determinism
+
+✅ **Guaranteed Deterministic:**
+- No floating point (uses integers only)
+- No timestamp access (use block height)
+- No randomness (all inputs from blockchain)
+- No undefined behavior
+
+⚠️ **Developer Responsibility:**
+- Don't use randomness
+- Don't depend on external state
+- Test thoroughly on regtest
+
+### Storage Safety
+
+✅ **Namespace Isolation:**
+- Each contract has isolated storage
+- Cannot read/write other contract storage
+- Only accessible via __call to that contract
+
+✅ **Key Collision Prevention:**
+- Use structured keys: `/balance/address`, `/state/field`
+- Namespace by function: `/deposits/`, `/balances/`
+
+## Performance Characteristics
+
+### Execution Speed
+
+| Operation | Fuel Cost | Notes |
+|-----------|-----------|-------|
+| Function call | ~5 | Per call |
+| Loop iteration | ~5 | Per iteration |
+| Storage read | 500 | Per key |
+| Storage write | 1000 | Per key |
+| Contract call | 500 | Plus subcall fuel |
+| Balance query | 10 | Very cheap |
+| Height query | 10 | Very cheap |
+
+### Optimization Tips
+
+**Minimize storage ops:**
+```rust
+// Bad: Multiple writes
+for i in 0..100 {
+    __store(format!("/item/{}", i), value);  // 100k fuel!
+}
+
+// Good: Batch write
+let batch = serialize_items(items);
+__store("/items/batch", batch);  // 1k fuel
+```
+
+**Cache expensive queries:**
+```rust
+// Bad: Repeated calls
+for addr in addresses {
+    let balance = __balance(addr);  // Multiple calls
+}
+
+// Good: Query once
+let balances = query_all_balances_once();
+```
+
+**Use staticcall for views:**
+```rust
+// Bad: Full call for read
+let result = __call(cellpack, value, checkpoint, fuel);
+
+// Good: Static call
+let result = __staticcall(cellpack, empty_value, checkpoint, fuel);
+```
+
+## Next Steps
+
+- [Fuel System Details →](/native-assets/fuel-system)
+- [Build Your First Contract →](/developer-guide/alkanes-quickstart)
+- [Contract Examples →](https://github.com/kungfuflex/alkanes-rs/tree/main/alkanes)
+- [alkanes-runtime API →](https://docs.rs/alkanes-runtime)
+
+## Resources
+
+- **wasmi Documentation**: [wasmi GitHub](https://github.com/paritytech/wasmi)
+- **WASM Specification**: [WebAssembly.org](https://webassembly.org/)
+- **AssemblyScript**: [assemblyscript.org](https://www.assemblyscript.org/)
+- **Contract Examples**: [alkanes-rs/alkanes/](https://github.com/kungfuflex/alkanes-rs/tree/main/alkanes)

@@ -1,0 +1,49 @@
+# SubTun - P2P VPN
+
+SubTun creates a VPN tunnel over SubP2P, allowing IP-level access to remote peers.
+
+## Quick Start
+
+### Gateway Mode
+
+```bash
+sudo subtun --gateway \
+  --circuit p2p.subfrost.io \
+  --register my-gateway \
+  -p 8545:8545 \
+  -p 3000:3000
+```
+
+### Client Mode
+
+```bash
+sudo subtun \
+  --circuit p2p.subfrost.io \
+  --remote my-gateway.relay
+```
+
+Then access services:
+```bash
+curl http://my-gateway.relay:3000
+cast rpc eth_blockNumber --rpc-url http://my-gateway.relay:8545
+```
+
+## Features
+
+✅ DNS server for `.relay`/`.peer` names  
+✅ TUN interface for IP routing  
+✅ Port forwarding with access control  
+✅ P2P encryption via libp2p  
+✅ Works with any TCP application
+
+## Architecture
+
+```
+App → DNS: "my-gateway.relay"? → 192.168.0.1 (bogon IP)
+App → TCP: 192.168.0.1:8545
+    → SubTun bridges to P2P stream
+    → Gateway forwards to localhost:8545
+    → Response flows back
+```
+
+Full documentation: [SubTun README](https://github.com/subfrost/subfrost/tree/main/crates/subtun)

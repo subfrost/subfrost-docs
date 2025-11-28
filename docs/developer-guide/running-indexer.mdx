@@ -1,0 +1,100 @@
+# Running an Indexer
+
+Set up your own Alkanes indexer node.
+
+## Prerequisites
+
+- Bitcoin Core node (fully synced)
+- Metashrew indexer
+- Alkanes WASM binary
+
+## Installation
+
+### 1. Build Metashrew
+
+```bash
+git clone https://github.com/sandshrewmetaprotocols/metashrew
+cd metashrew
+cargo build --release
+
+# Binary at: target/release/metashrew
+```
+
+### 2. Build Alkanes Indexer
+
+```bash
+git clone https://github.com/kungfuflex/alkanes-rs
+cd alkanes-rs
+cargo build --release
+
+# WASM at: target/wasm32-unknown-unknown/release/alkanes.wasm
+```
+
+## Configuration
+
+### Bitcoin Core
+
+```bash
+# bitcoin.conf
+server=1
+txindex=1
+rpcuser=bitcoinrpc
+rpcpassword=your_password
+rpcport=8332
+```
+
+### Run Indexer
+
+```bash
+metashrew \
+  --daemon-rpc-url http://localhost:8332 \
+  --auth bitcoinrpc:your_password \
+  --db-path ~/.metashrew \
+  --indexer ~/alkanes-rs/target/wasm32-unknown-unknown/release/alkanes.wasm \
+  --start-block 880000 \
+  --host 0.0.0.0 \
+  --port 8080 \
+  --cors '*'
+```
+
+## Monitoring
+
+### Check Sync Status
+
+```bash
+curl http://localhost:8080/api/metashrew/height
+```
+
+### Check Logs
+
+```bash
+tail -f ~/.metashrew/logs/metashrew.log
+```
+
+## Production Setup
+
+### Systemd Service
+
+```ini
+[Unit]
+Description=Alkanes Indexer
+After=bitcoind.service
+
+[Service]
+ExecStart=/usr/local/bin/metashrew \
+  --daemon-rpc-url http://localhost:8332 \
+  --auth bitcoinrpc:password \
+  --db-path /var/lib/metashrew \
+  --indexer /opt/alkanes/alkanes.wasm \
+  --start-block 880000 \
+  --host 0.0.0.0 \
+  --port 8080
+
+[Install]
+WantedBy=multi-user.target
+```
+
+## Resources
+
+- [Metashrew Docs](https://github.com/sandshrewmetaprotocols/metashrew)
+- [Docker Setup](https://github.com/kungfuflex/alkanes-rs#docker)

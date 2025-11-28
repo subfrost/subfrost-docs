@@ -1,0 +1,91 @@
+# Mobile Integration
+
+Integrate SUBFROST into mobile applications.
+
+## Overview
+
+SUBFROST provides FFI bindings for mobile platforms:
+- **iOS/macOS**: Swift bindings via UniFFI
+- **Android**: JNI bindings
+
+## Android Integration
+
+### Add Dependency
+
+```gradle
+dependencies {
+    implementation 'io.subfrost:subfrost-android:0.1.0'
+}
+```
+
+### Initialize
+
+```kotlin
+import io.subfrost.SubfrostClient
+
+val client = SubfrostClient(
+    network = "mainnet",
+    relayUrl = "https://p2p.subfrost.io"
+)
+```
+
+### FROST Operations
+
+```kotlin
+// DKG
+client.frostDkg(
+    threshold = 2,
+    maxSigners = 3,
+    topic = "my-group"
+)
+
+// Sign
+val signature = client.frostSignPsbt(
+    psbt = psbtBase64,
+    topic = "signing-session"
+)
+```
+
+## iOS Integration
+
+### Add Package
+
+```swift
+// Package.swift
+dependencies: [
+    .package(url: "https://github.com/subfrost/subfrost-ios", from: "0.1.0")
+]
+```
+
+### Initialize
+
+```swift
+import Subfrost
+
+let client = SubfrostClient(
+    network: "mainnet",
+    relayUrl: "https://p2p.subfrost.io"
+)
+```
+
+### FROST Operations
+
+```swift
+// DKG
+client.frostDkg(
+    threshold: 2,
+    maxSigners: 3,
+    topic: "my-group"
+)
+
+// Sign
+let signature = try await client.frostSignPsbt(
+    psbt: psbtBase64,
+    topic: "signing-session"
+)
+```
+
+## Resources
+
+- [subfrost-ffi](https://github.com/subfrost/subfrost/tree/main/crates/subfrost-ffi)
+- [subfrost-jni](https://github.com/subfrost/subfrost/tree/main/crates/subfrost-jni)

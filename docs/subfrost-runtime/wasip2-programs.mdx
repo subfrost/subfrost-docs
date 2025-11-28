@@ -1,0 +1,76 @@
+# WASI-P2 Programs
+
+SUBFROST L0 consensus programs use WASI-P2 (WebAssembly System Interface Preview 2) for deterministic, portable execution.
+
+## Overview
+
+WASI-P2 programs are:
+- **Pure functional**: No side effects except I/O
+- **Deterministic**: Same inputs → same outputs
+- **Portable**: Run on any WASI runtime
+- **Sandboxed**: Cannot access host system
+
+## Program Structure
+
+```rust
+use subfrost_runtime::prelude::*;
+
+#[signal]
+fn detect_event() -> Result<EventData> {
+    // Read blockchain state
+    let state = read_signal("/signals/input/chain_state")?;
+    
+    // Process and detect events
+    if let Some(event) = parse_event(&state) {
+        Ok(event)
+    } else {
+        Err(anyhow!("No event"))
+    }
+}
+
+#[signal(depends_on = "detect_event")]
+fn build_transaction(event: EventData) -> Result<Psbt> {
+    // Construct transaction
+    let psbt = create_psbt(&event)?;
+    
+    // Propose for signing
+    write_signal("/signals/output/psbt", &psbt)?;
+    
+    Ok(psbt)
+}
+```
+
+## Signal Macro
+
+```rust
+#[signal]                        // Independent signal
+#[signal(depends_on = "other")]  // Depends on another signal
+```
+
+## Building
+
+```bash
+# Install WASM target
+rustup target add wasm32-wasip2
+
+# Build
+cargo build --target wasm32-wasip2 --release
+
+# Output: target/wasm32-wasip2/release/program.wasm
+```
+
+## Running
+
+```bash
+subfrost-cli rail \
+    --consensus ./program.wasm \
+    --topic my-session \
+    --once  # Run once (for testing)
+```
+
+## Resources
+
+- [Consensus Overview](/subfrost-runtime/consensus-overview)
+- [Example: RNG](/subfrost-runtime/example-programs)
+- [WASI Spec](https://github.com/WebAssembly/WASI)
+

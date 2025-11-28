@@ -1,89 +1,106 @@
----
-title: Getting Started
-sidebar_position: 1
----
-
 # Getting Started
 
-This guide is intended for developers who want to build on, or contribute to, the SUBFROST protocol.
-
-:::info EASIEST WAY TO INTEGRATE
-In our ALPHA phase, we encourage partners to simply integrate SUBFROST's wrap/unwrap via the [oyl-sdk](https://github.com/Oyl-Wallet/oyl-sdk).
-We have created an .md file that can be utilized by your team or LLM of choice. [Let's Integrate.](pathname:///subfrost-integration.md)
-:::
-
-*You can ignore below if you are utilizing the oyl-sdk.*
-
-To start, we will walk you through the process of setting up the necessary tools to interact with the protocol. You will install the `subfrost-node` to connect to the network and the `subrail-cli` CLI for user-level interactions like managing assets.
+Get started with SUBFROST development in minutes.
 
 ## Prerequisites
 
-Before you begin, you must have the Rust programming language and its package manager, Cargo, installed on your system. If you don't have them, follow the official instructions at [rust-lang.org](https://www.rust-lang.org/tools/install).
+- Rust 1.70+
+- Bitcoin Core (optional, for local testing)
+- Git
+
+## Installation
+
+### Install alkanes-cli
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+git clone https://github.com/kungfuflex/alkanes-rs
+cd alkanes-rs
+cargo build --release
+
+# Binary at: target/release/alkanes
+export PATH=$PATH:$(pwd)/target/release
 ```
 
-You will also need Git to clone the required repositories.
-
-## 1. Install `subfrost-node`
-
-The `subfrost-node` is the core software that runs the SUBFROST network. It handles consensus, block production, and communication with other nodes.
-
-First, clone the `subfrost` repository from GitHub:
+### Install subfrost-cli
 
 ```bash
-git clone https://github.com/subfrost/subfrost.git
+git clone https://github.com/subfrost/subfrost
 cd subfrost
+cargo build --release -p subfrost-cli
+
+# Binary at: target/release/subfrost-cli
+export PATH=$PATH:$(pwd)/target/release
 ```
 
-Next, build the `subfrost-node` binary using Cargo. This command compiles the `subfrost-node` crate in release mode for optimal performance.
+## Quick Start
+
+### 1. Create Wallet
 
 ```bash
-cargo build --release --package subfrost-node
+alkanes wallet create
+alkanes wallet addresses
 ```
 
-The compiled binary will be located at `target/release/subfrost-node`. For ease of use, you should move it to a directory in your system's `PATH`, such as `/usr/local/bin`.
+### 2. Get Testnet Coins
+
+Use a signet faucet or run regtest locally.
+
+### 3. Wrap BTC
 
 ```bash
-sudo mv target/release/subfrost-node /usr/local/bin/
+alkanes alkanes wrap-btc 100000 \
+  --from "p2tr:0" \
+  -p signet \
+  -y
 ```
 
-Verify the installation by checking the version:
+### 4. Check Balance
 
 ```bash
-subfrost-node --version
+alkanes alkanes getbalance \
+  --address "bc1p..." \
+  --alkane-id "32:0" \
+  -p signet
 ```
 
-## 2. Install `subrail-cli` CLI
+## Development Environment
 
-The `subrail-cli` CLI is the primary tool for users to interact with the SUBFROST network. It allows you to create wallets, check balances, and initiate transactions like wrapping and unwrapping `frBTC`.
-
-Clone the `subrail-cli` repository:
+### Docker Compose (Recommended)
 
 ```bash
-git clone https://github.com/subfrost/subrail-cli.git
-cd subrail-cli
+git clone https://github.com/kungfuflex/alkanes-rs
+cd alkanes-rs
+docker-compose up
 ```
 
-Build the `subrail-cli` binary:
+Includes:
+- Bitcoin Core (regtest)
+- Alkanes indexer
+- JSON-RPC server
+
+### Local Setup
 
 ```bash
-cargo build --release --package subrail-cli
-```
+# Start Bitcoin Core
+bitcoind -regtest -daemon
 
-Move the compiled binary to your `PATH`:
+# Start indexer
+metashrew --indexer alkanes.wasm \
+  --start-block 0 \
+  --daemon-rpc-url http://localhost:18443
 
-```bash
-sudo mv target/release/subrail-cli /usr/local/bin/
-```
-
-Verify the installation:
-
-```bash
-subrail-cli --version
+# Start JSON-RPC server
+alkanes-jsonrpc --port 8080
 ```
 
 ## Next Steps
 
-With `subfrost-node` and `subrail-cli` installed, you are now ready to run a node and interact with the network. The next sections will guide you through running a node and performing common operations.
+- [Build Your First Contract →](/developer-guide/alkanes-quickstart)
+- [Run an Indexer →](/developer-guide/running-indexer)
+- [API Documentation →](/subfrost-api/overview)
+
+## Resources
+
+- [alkanes-rs README](https://github.com/kungfuflex/alkanes-rs)
+- [subfrost README](https://github.com/subfrost/subfrost)
+- [Discord](https://discord.gg/sandshrew)

@@ -1,0 +1,119 @@
+# FrBTC (BRC2.0)
+
+FrBTC on BRC2.0 is an alternative implementation of synthetic Bitcoin using the BRC20-Prog programmable token standard.
+
+## Overview
+
+**Standard**: BRC20-Prog (BRC2.0)  
+**Reference**: `./reference/subfrost-brc20`  
+**Purpose**: Programmable BRC20 with smart contract capabilities
+
+## Differences from frBTC [32:0]
+
+### frBTC [32:0] (Alkanes)
+- Pure Alkanes implementation
+- Full WASM smart contracts
+- Gas-free (Bitcoin fees only)
+- Maximum composability
+
+### FrBTC (BRC2.0)
+- BRC20-Prog standard
+- EVM-compatible smart contracts
+- Solidity support
+- Broader BRC20 ecosystem compatibility
+
+## Features
+
+### Smart Contract Integration
+
+```solidity
+// Solidity contract on BRC2.0
+contract FrBTCVault {
+    mapping(address => uint256) public balances;
+    
+    function deposit(uint256 amount) external {
+        // BRC2.0 logic
+    }
+    
+    function withdraw(uint256 amount) external {
+        // BRC2.0 logic
+    }
+}
+```
+
+### Deployment
+
+```bash
+# Deploy BRC2.0 contract
+alkanes brc20-prog deploy-contract \
+  ./out/MyContract.sol/MyContract.json \
+  --from "p2tr:0" \
+  --mine \
+  -y
+```
+
+### Interaction
+
+```bash
+# Call contract function
+alkanes brc20-prog transact \
+  --address 0x1234... \
+  --signature "transfer(address,uint256)" \
+  --calldata "0x5678...,1000" \
+  --from "p2tr:0" \
+  -y
+```
+
+### Wrap BTC with Contract Execution
+
+```bash
+# Wrap BTC and execute contract in one transaction
+alkanes brc20-prog wrap-btc 100000 \
+  --target 0xABCD... \
+  --signature "deposit()" \
+  --calldata "" \
+  --from "p2tr:0" \
+  -y
+```
+
+## Architecture
+
+```
+BRC2.0 Layer
+    ↓
+EVM-Compatible Runtime
+    ↓
+Bitcoin L1 Settlement
+```
+
+## Use Cases
+
+### 1. EVM Developers
+
+```
+- Use existing Solidity contracts
+- Leverage Ethereum tooling
+- Familiar development experience
+```
+
+### 2. Cross-Ecosystem Bridges
+
+```
+- Bridge BRC20 ↔ Alkanes
+- Interoperate with BRC20 DeFi
+- Unified liquidity pools
+```
+
+### 3. Hybrid Applications
+
+```
+- Core logic in Alkanes (efficiency)
+- UI/compatibility in BRC2.0
+- Best of both worlds
+```
+
+## Resources
+
+- **Reference**: [subfrost-brc20](https://github.com/subfrost/subfrost-brc20)
+- **BRC20-Prog Spec**: [Documentation](https://github.com/kungfuflex/alkanes-rs/blob/main/docs/cli/brc20-prog.md)
+- **Comparison**: [Alkanes vs BRC2.0]

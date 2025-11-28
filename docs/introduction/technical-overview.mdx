@@ -1,15 +1,733 @@
-import useBaseUrl from '@docusaurus/useBaseUrl';
-
 # Technical Overview
 
-SUBFROST operates as a Layer-0, building fraud proofs as ZK circuits to ensure the integrity of its operations. 
-At its core, SUBFROST uses the FROST (Flexible Round-Optimized Schnorr Threshold) and ROAST (Robust Asynchronous Schnorr Threshold) signature schemes, allowing signing groups of up to 255 participants to collectively sign transactions.
+This document provides a comprehensive technical overview of the SUBFROST architecture, covering the Layer-0 consensus framework, Alkanes metaprotocol, P2P infrastructure, and threshold cryptography systems.
 
-This decentralized approach to custody is managed by a peer-to-peer network built on QUIC and libp2p, ensuring robust and secure communication.
+## System Architecture
 
-In the following pages, we will cover the core components of SUBFROST, including but not limited to:
+SUBFROST consists of five interconnected layers:
 
-- [**FROST & ROAST Cryptography**](/key-components/frost-and-roast): The threshold signature schemes that power decentralized custody.
-- [**Alkanes Metaprotocol**](/key-components/alkanes): The metaprotocol that pegs SUBFROST to the Bitcoin blockchain.
-- [**Subrail**](/developer-guide/subrail): The WASM runtime for executing consensus-critical logic.
-- [**Peer-to-Peer Networking**](/subfrost-networking/introduction-to-subp2p): The communication layer built on QUIC and libp2p.
+### Layer 1: Network Foundation (subp2p)
+
+The foundational P2P networking layer built on libp2p with WebTransport support.
+
+**Key Technologies:**
+- **libp2p**: Modular peer-to-peer networking framework
+- **WebTransport**: Modern web-based transport protocol (QUIC over HTTP/3)
+- **Multi-Transport**: QUIC, WebSocket, TCP fallbacks
+- **Kademlia DHT**: Distributed hash table for peer discovery
+- **GossipSub**: Publish-subscribe messaging for consensus
+- **Circuit Relay v2**: NAT traversal and hole punching (DCUtR)
+- **Noise Protocol**: Encrypted communications
+
+**Cross-Platform Support:**
+- Native applications (Linux, macOS, Windows)
+- Web browsers (via WASM + WebTransport)
+- Mobile (Android via JNI, iOS via Swift bindings)
+
+**Transport Priority:**
+```
+1. QUIC (direct connection, best performance)
+2. WebTransport (browser-compatible, encrypted)
+3. WebSocket (fallback for restricted networks)
+4. TCP (universal fallback)
+5. Circuit Relay v2 (NAT traversal)
+```
+
+[Learn more →](/subfrost-p2p/introduction-to-subp2p)
+
+### Layer 2: P2P Infrastructure
+
+Production infrastructure components for networking services.
+
+#### subrelay - Circuit Relay Server
+
+A production-ready relay node that enables NAT traversal:
+
+- Circuit relay v2 protocol implementation
+- Name registration and resolution (RocksDB persistence)
+- HTTP API for multiaddr resolution
+- TLS certificate management
+- Prometheus metrics
+- Public relay: https://p2p.subfrost.io
+
+#### subproxy - SOCKS5/HTTP Gateway
+
+Bidirectional proxy between traditional protocols and P2P:
+
+- SOCKS5 proxy server for TCP applications
+- HTTP proxy support
+- DNS resolution for `.relay` and `.peer` domains
+- Bridge standard applications to P2P services
+
+#### subtun - VPN Tunnel
+
+IP-level (Layer 3) VPN tunneling over libp2p:
+
+- TUN device integration for full IP stack
+- TCP/UDP routing over P2P streams
+- Built-in DNS server for P2P name resolution
+- Port forwarding with access control
+- Gateway/client architecture
+
+[Learn more →](/subfrost-p2p/subrelay)
+
+### Layer 3: Consensus & Runtime
+
+The Layer-0 consensus engine and WASM runtime for distributed coordination.
+
+#### subfrost-consensus - Signal-Based Reactive Consensus
+
+**Architecture:**
+```
+L0 Program (WASI-P2)
+    ↓ (virtual filesystem I/O)
+Signal Filesystem
+    ↓ (read/write operations)
+Host Runtime
+    ↓ (cryptographic operations)
+FROST/CGGMP24 → Multi-Chain Signing
+```
+
+**Signal System:**
+
+L0 programs interact via a virtual filesystem:
+
+- `/signals/input/` - External inputs (blockchain events)
+- `/signals/state/` - Program state (persistent)
+- `/signals/output/` - Proposed actions (signing requests)
+- `/logs/` - Debug and monitoring output
+
+**Execution Model:**
+
+1. **Deterministic**: Pure functional WASM code
+2. **Reactive**: Triggered by signal changes
+3. **Parallel**: Multiple signals evaluated concurrently
+4. **Cryptography-Free**: Host handles all signing
+
+**Example Signal Flow:**
+```wasm
+// L0 program detects blockchain event
+read("/signals/input/burn_event") 
+    ↓
+// Process event and prepare transaction
+compute_transaction()
+    ↓
+// Write signing request
+write("/signals/output/psbt", psbt_bytes)
+    ↓
+// Host coordinates FROST signing
+host_frost_sign()
+    ↓
+// Broadcast to blockchain
+read("/signals/output/broadcast_tx")
+```
+
+#### subfrost-runtime - WASM Helper Library
+
+Rust library for building L0 consensus programs:
+
+- Signal I/O helpers
+- Bitcoin transaction construction
+- PSBT building utilities
+- Multi-chain address generation
+- Error handling and logging
+
+[Learn more →](/subfrost-runtime/consensus-overview)
+
+### Layer 4: Application Layer
+
+User-facing applications and Bitcoin primitives.
+
+#### subfrost-cli - Multi-Chain Wallet & Coordinator
+
+Command-line interface for threshold operations:
+
+**FROST (Schnorr) Operations:**
+```bash
+# Distributed Key Generation (2-of-3)
+subfrost-cli frost dkg --threshold 2 --max-signers 3 --topic my-group
+
+# Sign Bitcoin PSBT
+subfrost-cli frost sign-psbt --psbt <base64> --topic signing-session
+
+# Get threshold address
+subfrost-cli frost address --topic my-group
+```
+
+**CGGMP24 (ECDSA) Operations:**
+```bash
+# DKG for Ethereum/ECDSA chains
+subfrost-cli cggmp dkg --threshold 2 --max-signers 3 --topic eth-group
+
+# Sign Ethereum transaction
+subfrost-cli cggmp sign-eth --tx <tx-data> --topic eth-signing
+
+# Sign for any ECDSA chain
+subfrost-cli cggmp sign --chain cosmos --tx <tx> --topic cosmos-group
+```
+
+**Alkanes Operations:**
+```bash
+# Wrap BTC to frBTC
+subfrost-cli alkanes wrap-btc 100000 --from "p2tr:0" --mine
+
+# Execute alkanes contract
+subfrost-cli alkanes execute \
+  --inputs "B:10000" \
+  --protostones "[32,0,77]" \
+  --to "bc1p..."
+
+# Deploy contract
+subfrost-cli alkanes deploy contract.wasm --from "p2tr:0"
+```
+
+#### subfrost-common - Bitcoin Primitives
+
+Shared Bitcoin utilities:
+- HD wallet derivation (BIP32/BIP39)
+- Keystore management (encrypted storage)
+- Address generation (P2PKH, P2WPKH, P2TR)
+- Transaction building
+- PSBT manipulation
+
+[Learn more →](/subfrost-runtime/using-subfrost-cli)
+
+### Layer 5: Cross-Platform Bindings
+
+Production bindings for mobile and desktop integration.
+
+#### subfrost-ffi - UniFFI Bindings
+
+Universal Foreign Function Interface for multiple languages:
+
+**Supported Languages:**
+- Swift (iOS/macOS)
+- Kotlin (Android/JVM)
+- Python
+- Ruby
+
+**Exposed Features:**
+- Complete FROST/CGGMP24 API
+- Wallet operations
+- P2P networking
+- Alkanes contract interaction
+- L0 consensus program interaction
+
+#### subfrost-jni - Android Native
+
+Direct JNI bindings for Android:
+- Optimized for mobile performance
+- Background service support
+- Full feature parity with native Rust
+
+[Learn more →](/developer-guide/mobile-integration)
+
+## Alkanes Metaprotocol
+
+A Bitcoin-native smart contract protocol built on the protorunes architecture.
+
+### Core Concepts
+
+#### Metaprotocol Architecture
+
+**Definition**: A set of rules and conditions for a state machine whose inputs are the complete raw data of blocks in a blockchain, processed sequentially to evaluate the confirmed state.
+
+**Key Properties:**
+- State derived entirely from Bitcoin blockchain
+- No additional consensus required
+- Fully verifiable by replaying chain data
+- Bitcoin's PoW provides security
+
+#### Protorunes Compatibility
+
+Alkanes is a **protorunes-compatible subprotocol** of runes:
+
+**Protorune Mechanism:**
+```
+Runes (fungible tokens on Bitcoin)
+    ↓ (protoburn: burn runes to OP_RETURN)
+Protorunes (subprotocol-only assets)
+    ↓ (programmable via Protostone messages)
+Alkanes Smart Contracts
+```
+
+**Protoburn Process:**
+1. User creates Runestone with edicts
+2. Edict targets OP_RETURN output (provably unspendable)
+3. Runes are "burned" from runes protocol perspective
+4. Subprotocol indexer credits protorunes to contract
+5. Protorunes can now be used in smart contracts
+
+**Cross-Protocol Swaps:**
+
+Since Runestone can target multiple protocol IDs in one transaction:
+```
+Single Bitcoin Transaction:
+  - Burn RUNE·X on runes protocol
+  - Mint ALKANE·Y on alkanes protocol ID 1
+  - Swap ALKANE·Y for ALKANE·Z on protocol ID 1
+  - Atomic execution (all or nothing)
+```
+
+### WASM Execution Environment
+
+#### Contract Structure
+
+Alkanes contracts are gzipped WASM binaries with specific exports:
+
+**Required Export:**
+```rust
+#[no_mangle]
+pub extern "C" fn __execute() -> i32 {
+    // Contract logic here
+    // Return 0 on success, non-zero on failure
+}
+```
+
+**Host Functions Available:**
+
+| Function | Purpose |
+|----------|---------|
+| `__request_storage(ptr)` | Request value at key |
+| `__load_storage(ptr, result)` | Load value from storage |
+| `__store(ptr)` | Store key-value pair |
+| `__call(cellpack, value, checkpoint, fuel)` | Internal call to another alkane |
+| `__delegatecall(...)` | Call with same context |
+| `__staticcall(...)` | Read-only call |
+| `__returndatacopy(ptr)` | Copy return data |
+| `__balance(ptr)` | Query balance of AlkaneId |
+| `__height()` | Current block height |
+
+[Full ABI reference →](/native-assets/alkanes-abi)
+
+#### Fuel System
+
+DoS protection through execution metering:
+
+**Fuel Costs:**
+```rust
+FUEL_STORE: 1000      // Storage write
+FUEL_LOAD: 500        // Storage read
+FUEL_BALANCE: 10      // Balance query
+FUEL_HEIGHT: 10       // Height query
+FUEL_EXTCALL: 500     // Contract call
+FUEL_EXTCALL_DEPLOY: 10000  // Contract deployment
+```
+
+**Fuel Provisioning:**
+
+Fuel allocated proportionally to transaction vfsize:
+```
+tx_fuel = (remaining_block_fuel * tx_vfsize) / remaining_block_vfsize
+```
+
+**Limits:**
+- `TOTAL_FUEL`: 20,000,000 per block
+- `MINIMUM_FUEL`: 10,000 per transaction
+- Target: 12 seconds to index a worst-case block
+
+**vfsize Calculation:**
+
+Special handling for deploy vs. call:
+- **Deploy** ([1,0] or [3,n]): Witness stack excluded from vsize
+- **Call** (other): Normal vsize calculation
+- Prevents large witness blobs from consuming disproportionate fuel
+
+[Learn more →](/native-assets/fuel-system)
+
+#### Storage Model
+
+Per-contract isolated storage:
+
+**Storage Layout:**
+```
+Key: Arbitrary bytes (contract-defined)
+Value: Arbitrary bytes (contract-defined)
+Isolation: Each AlkaneId has separate storage namespace
+```
+
+**Storage Operations:**
+```rust
+// Request bytesize of value
+let size = __request_storage(key_ptr);
+
+// Load actual value
+__load_storage(key_ptr, result_ptr);
+
+// Store value
+__store(kv_pair_ptr);
+```
+
+**Growth Limits:**
+
+Worst case: 12MB storage growth per block (realistic multiple of Bitcoin's growth rate)
+
+### Transaction Structure
+
+#### Protostone Message
+
+Extended Runestone structure with Protocol field:
+
+**Runestone Tag:**
+```rust
+enum Tag {
+    Body = 0,
+    Flags = 2,
+    Rune = 4,
+    // ... standard rune tags ...
+    Protocol = 16383,  // 2^14 - 1 (safe, won't clash)
+}
+```
+
+**Protocol Field Contents:**
+```rust
+struct Protostone {
+    protocol_tag: u128,        // Subprotocol identifier (1 = alkanes)
+    message: Vec<u128>,        // Variable-length message
+    edicts: Vec<ProtoruneRuneId>,  // Asset transfers
+    burn: Option<ProtoRuneRuneId>,  // Assets to burn
+    refund: Option<u32>,       // Output for refunds
+    pointer: Option<u32>,      // Output for results
+    from: Option<Vec<u32>>,    // Edict indices to source
+}
+```
+
+**Message Format:**
+
+Protocol-specific; for alkanes:
+```
+[opcode, alkane_block, alkane_tx, ...args]
+```
+
+Example - Call contract [32,0] opcode 77:
+```
+[77, 32, 0, arg1, arg2, arg3]
+```
+
+#### Transaction Flow
+
+**Deploy Transaction:**
+```
+Input: BTC UTXO(s)
+Output 0: OP_RETURN (Runestone with Protocol field)
+Output 1: Change address (pointer)
+Output 2: Refund address (refund_pointer)
+Witness: Gzipped WASM binary
+```
+
+**Execution Transaction:**
+```
+Input 0: BTC UTXO (with protorunes balance)
+Output 0: OP_RETURN (Protostone message)
+Output 1: Result address (pointer)
+Output 2: Refund address (refund_pointer)
+
+Protostone:
+  protocol_tag: 1
+  message: [opcode, block, tx, ...args]
+  pointer: Some(1)
+  refund: Some(2)
+```
+
+**Execution Semantics:**
+
+1. Indexer reads Protostone from OP_RETURN
+2. Loads contract WASM from AlkaneId
+3. Provisions fuel based on vfsize
+4. Calls `__execute()` with context
+5. On success: Transfer assets to pointer output
+6. On failure: Transfer assets to refund output
+
+### Asset Model
+
+#### AlkaneId Structure
+
+Contracts identified by `(block, tx)` tuple:
+
+```rust
+struct AlkaneId {
+    block: u128,  // Block height where deployed
+    tx: u128,     // Transaction index in block
+}
+```
+
+**Encoding:**
+
+AlkaneId is encoded as RuneId for compatibility:
+- `block` → rune height field
+- `tx` → rune tx index field
+
+**Special Ranges:**
+
+Alkane-native assets use high bits to avoid clashing with runes:
+- High 64 bits of block ≠ 0, OR
+- High 96 bits of tx ≠ 0
+
+#### Balance Model
+
+**Per-UTXO Balances:**
+
+Each UTXO can hold multiple AlkaneId balances:
+```
+UTXO: 02a3b...
+  AlkaneId { block: 32, tx: 0 } → 100000 units
+  AlkaneId { block: 31, tx: 0 } → 5000 units
+```
+
+**Contract Internal Balances:**
+
+Contracts maintain their own balance sheets:
+```rust
+contract.balance(AlkaneId { block: 32, tx: 0 })  // Query balance held by contract
+```
+
+**Transfer Semantics:**
+
+Transfers specified in contract return value:
+```rust
+// Return: [count, id1_block, id1_tx, amount1, id2_block, id2_tx, amount2, ...]
+return vec![
+    2,  // Transfer 2 different assets
+    32, 0, 10000,  // 10000 units of [32,0]
+    31, 0, 500,    // 500 units of [31,0]
+];
+```
+
+## Threshold Cryptography
+
+### FROST (Flexible Round-Optimized Schnorr Threshold)
+
+**Use Cases:**
+- Bitcoin (Taproot)
+- Cardano
+- Polkadot
+- Any Schnorr signature chain
+
+**Protocol Flow:**
+
+1. **Distributed Key Generation (DKG):**
+```
+Round 1: Each party generates secret + commitment
+Round 2: Parties exchange commitments
+Round 3: Parties compute shares and verify
+Result: Threshold public key + secret shares
+```
+
+2. **Signing:**
+```
+Preprocessing: Generate nonce commitments (can be batched)
+Round 1: Coordinator requests signature, shares nonces
+Round 2: Parties compute partial signatures
+Aggregation: Coordinator combines into final signature
+```
+
+**Security Properties:**
+- **t-of-n threshold**: Any t parties can sign
+- **Unforgeable**: Less than t parties cannot forge
+- **Robust**: Continue despite non-responsive parties (ROAST)
+
+**Implementation:**
+
+Uses `frost-secp256k1` crate:
+```rust
+// Generate keypair
+let (secret, public) = frost::keygen(threshold, max_signers, rng);
+
+// Sign message
+let signature = frost::sign(message, secret_share, nonces, commitments);
+
+// Verify
+frost::verify(public_key, message, signature);  // Standard Schnorr verify!
+```
+
+### CGGMP24 (Threshold ECDSA)
+
+**Use Cases:**
+- Ethereum
+- Cosmos chains
+- Solana
+- Zcash
+- Any ECDSA chain
+
+**Protocol Flow:**
+
+1. **DKG (more rounds than FROST):**
+```
+Round 1: Commitment to secret
+Round 2: Decommitment + zero-knowledge proofs
+Round 3: Share distribution + verification
+Round 4: Key confirmation
+Result: Threshold public key + secret shares
+```
+
+2. **Signing:**
+```
+Presigning: Multi-round setup (can be precomputed)
+Round 1: Request signature
+Round 2: Delta shares
+Round 3: Combine delta shares
+Round 4: Compute sigma shares
+Round 5: Final signature
+```
+
+**Challenges:**
+
+ECDSA threshold signatures are complex:
+- No native threshold support (unlike Schnorr)
+- Requires multi-party computation (MPC)
+- More rounds than FROST
+- Larger message sizes
+
+**Why Use It?**
+
+Support for existing ECDSA chains without protocol upgrades.
+
+[Learn more →](/subfrost-runtime/cggmp-signatures)
+
+## Cross-Chain Bridge Architecture
+
+Example: frBTC unwrapping (Alkanes → Bitcoin L1)
+
+### Components
+
+1. **Alkanes Contract** (frBTC [32:0])
+   - Holds wrapped Bitcoin
+   - Provides unwrap function
+   - Emits unwrap events
+
+2. **L0 Consensus Program** (unwrap-frbtc.wasm)
+   - Monitors frBTC contract state
+   - Detects unwrap requests
+   - Constructs Bitcoin transactions
+   - Proposes for FROST signing
+
+3. **FROST Signing Group**
+   - M-of-N validators
+   - Hold threshold key shares
+   - Sign release transactions
+   - Broadcast to Bitcoin network
+
+### Flow
+
+```
+1. User calls frBTC.unwrap(amount, btc_address)
+   ↓
+2. Alkanes contract burns frBTC, records request
+   ↓
+3. L0 program detects burn event via signal
+   read("/signals/input/frbtc_state") → new burn
+   ↓
+4. L0 program constructs Bitcoin TX
+   inputs: [threshold UTXO]
+   outputs: [user_btc_address: amount, change]
+   ↓
+5. L0 program proposes PSBT
+   write("/signals/output/psbt", psbt_bytes)
+   ↓
+6. Host coordinates FROST signing
+   - Parallel gossip coordination
+   - t-of-n parties participate
+   - Signature aggregation
+   ↓
+7. Host finalizes and broadcasts
+   write("/signals/output/broadcast_tx", signed_tx)
+   ↓
+8. User receives native BTC on Bitcoin L1
+```
+
+**Security:**
+- **No Wrapped Assets**: User gets actual BTC
+- **Trust-Minimized**: Requires t-of-n validators to collude
+- **Transparent**: All transactions visible on Bitcoin L1
+- **Atomic**: Either full unwrap or revert (no partial states)
+
+## API Architecture
+
+SUBFROST provides comprehensive API access to all protocol layers.
+
+### Endpoint Structure
+
+```
+https://{network}.subfrost.io/v4/{api-type}
+
+Networks: mainnet, signet, testnet
+API Types: jsonrpc, api, subfrost
+```
+
+### API Layers
+
+1. **Esplora API** - Bitcoin blockchain queries
+2. **Ord API** - Ordinals and inscriptions
+3. **Bitcoin Core RPC** - Full node RPC methods
+4. **Metashrew** - Indexer view calls
+5. **Alkanes** - Contract-specific queries
+6. **Lua Scripting** - Custom query scripts
+
+### Rate Limiting
+
+**Free Tier (IP-based):**
+- 100 requests per minute
+- 10,000 requests per day
+- Burst: 20 requests
+
+**Paid Tiers:**
+- API key authentication
+- Higher rate limits
+- Priority routing
+- SLA guarantees
+
+[Complete API Reference →](/subfrost-api/overview)
+
+## Security Considerations
+
+### Alkanes Security
+
+- **Bitcoin's Security**: Contracts inherit Bitcoin's PoW security
+- **Fuel Limits**: DoS protection through execution metering
+- **Storage Limits**: Bounded growth (12MB/block worst case)
+- **Deterministic Execution**: Reproducible state transitions
+- **No Operator Keys**: Fully permissionless deployment
+
+### Threshold Security
+
+- **M-of-N Trust**: Requires malicious majority to compromise
+- **No Single Point of Failure**: Distributed key shares
+- **Forward Secrecy**: Nonces prevent signature reuse
+- **Accountability**: All signing operations logged
+
+### P2P Security
+
+- **Encrypted Transport**: Noise protocol for all connections
+- **Peer Authentication**: libp2p PeerID verification
+- **Sybil Resistance**: Kademlia DHT protections
+- **NAT Traversal**: Circuit relay with access control
+
+## Performance Characteristics
+
+### Alkanes Throughput
+
+- **Block Processing**: 12 seconds worst case
+- **Fuel Budget**: 20M fuel per block
+- **Storage Growth**: 12MB/block worst case
+- **Contract Calls**: ~10,000 deployments per block (theoretical max)
+
+### P2P Latency
+
+- **Direct QUIC**: <50ms typical
+- **WebTransport**: <100ms typical
+- **Circuit Relay**: <200ms typical
+- **Hole Punching**: 80%+ success rate
+
+### Threshold Signing
+
+- **FROST Sign**: 1-2 seconds (2 rounds)
+- **CGGMP Sign**: 3-5 seconds (5 rounds)
+- **DKG**: 10-30 seconds depending on n
+- **Parallel Operations**: Multiple signatures concurrent
+
+## Next Steps
+
+- [Alkanes Metaprotocol Deep Dive →](/native-assets/alkanes-overview)
+- [Build Your First Contract →](/developer-guide/alkanes-quickstart)
+- [Deploy a FROST Signing Group →](/subfrost-runtime/frost-dkg)
+- [Explore the API →](/subfrost-api/overview)

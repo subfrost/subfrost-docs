@@ -1,0 +1,206 @@
+# Esplora API Methods
+
+Electrs-compatible blockchain queries for addresses, transactions, blocks, and mempool.
+
+## Address Methods
+
+### Get Address Information
+
+```
+GET /esplora/address/{address}
+```
+
+Returns summary information for an address.
+
+**Example:**
+```bash
+curl https://mainnet.subfrost.io/v4/api/esplora/address/bc1q...
+```
+
+**Response:**
+```json
+{
+  "address": "bc1q...",
+  "chain_stats": {
+    "funded_txo_count": 5,
+    "funded_txo_sum": 100000,
+    "spent_txo_count": 3,
+    "spent_txo_sum": 50000,
+    "tx_count": 8
+  },
+  "mempool_stats": {
+    "funded_txo_count": 0,
+    "funded_txo_sum": 0,
+    "spent_txo_count": 0,
+    "spent_txo_sum": 0,
+    "tx_count": 0
+  }
+}
+```
+
+### Get Address Transactions
+
+```
+GET /esplora/address/{address}/txs
+GET /esplora/address/{address}/txs/chain
+GET /esplora/address/{address}/txs/mempool
+```
+
+Returns transaction history for an address.
+
+### Get Address UTXOs
+
+```
+GET /esplora/address/{address}/utxo
+```
+
+Returns unspent transaction outputs for an address.
+
+**Example:**
+```bash
+curl https://mainnet.subfrost.io/v4/api/esplora/address/bc1q.../utxo
+```
+
+**Response:**
+```json
+[
+  {
+    "txid": "abc123...",
+    "vout": 0,
+    "status": {
+      "confirmed": true,
+      "block_height": 880000,
+      "block_hash": "000000...",
+      "block_time": 1234567890
+    },
+    "value": 50000
+  }
+]
+```
+
+## Transaction Methods
+
+### Get Transaction
+
+```
+GET /esplora/tx/{txid}
+```
+
+Returns detailed transaction information.
+
+### Get Transaction Status
+
+```
+GET /esplora/tx/{txid}/status
+```
+
+Returns confirmation status.
+
+### Get Transaction Hex
+
+```
+GET /esplora/tx/{txid}/hex
+```
+
+Returns raw transaction in hex format.
+
+### Get Transaction Outspends
+
+```
+GET /esplora/tx/{txid}/outspends
+```
+
+Returns spending status for each output.
+
+## Block Methods
+
+### Get Block
+
+```
+GET /esplora/block/{hash}
+```
+
+Returns block information.
+
+### Get Block at Height
+
+```
+GET /esplora/block-height/{height}
+```
+
+Returns block hash at specific height.
+
+### Get Block Transactions
+
+```
+GET /esplora/block/{hash}/txs
+GET /esplora/block/{hash}/txids
+```
+
+Returns transactions in a block.
+
+## Mempool Methods
+
+### Get Mempool
+
+```
+GET /esplora/mempool
+```
+
+Returns mempool statistics.
+
+### Get Mempool TXIDs
+
+```
+GET /esplora/mempool/txids
+```
+
+Returns list of transaction IDs in mempool.
+
+### Get Recent Mempool
+
+```
+GET /esplora/mempool/recent
+```
+
+Returns recently broadcasted transactions.
+
+## Fee Methods
+
+### Get Fee Estimates
+
+```
+GET /esplora/fee-estimates
+```
+
+Returns fee estimates for different confirmation targets.
+
+**Response:**
+```json
+{
+  "1": 50.5,
+  "3": 35.2,
+  "6": 25.1,
+  "12": 15.5,
+  "24": 10.2
+}
+```
+
+## Method Reference
+
+| Method | Description | Lua Equivalent |
+|--------|-------------|----------------|
+| `/address/{addr}` | Address info | `_RPC.esplora_address(addr)` |
+| `/address/{addr}/txs` | TX history | `_RPC.esplora_address_txs(addr)` |
+| `/address/{addr}/utxo` | UTXOs | `_RPC.esplora_address_utxo(addr)` |
+| `/tx/{txid}` | TX details | `_RPC.esplora_tx(txid)` |
+| `/tx/{txid}/hex` | TX hex | `_RPC.esplora_tx_hex(txid)` |
+| `/block/{hash}` | Block info | `_RPC.esplora_block(hash)` |
+| `/block-height/{h}` | Block by height | `_RPC.esplora_block_height(h)` |
+| `/mempool` | Mempool stats | `_RPC.esplora_mempool()` |
+| `/fee-estimates` | Fee estimates | `_RPC.esplora_fee_estimates()` |
+
+## Resources
+
+- [Complete RPC Methods List](https://github.com/kungfuflex/alkanes-rs/blob/main/crates/alkanes-jsonrpc/RPC_METHODS.md)
+- [Electrs API Docs](https://github.com/Blockstream/esplora/blob/master/API.md)

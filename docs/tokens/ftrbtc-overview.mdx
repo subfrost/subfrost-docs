@@ -1,0 +1,154 @@
+# ftrBTC - Future Bitcoin Options
+
+ftrBTC (Future Bitcoin) is an options-like derivative contract that allows users to lock in future Bitcoin yields. Each ftrBTC instance represents a time-locked option on dxBTC yield.
+
+## Overview
+
+**Master Contract**: [31, 0]  
+**Type**: Master template that clones per-block  
+**Purpose**: Bitcoin yield options with expiry
+
+### Contract Naming
+
+- **Master [31, 0]**: "ftrBTC"
+- **Clones [31, h]**: "ftrBTC[abc123]" (last 6 hex chars of block hash)
+- **Duplicates**: "ftrBTC[abc123]²" (superscript counter for collisions)
+
+## How It Works
+
+### Deployment
+
+```
+1. Master contract [31,0] deployed at genesis
+2. Each block height creates potential clone
+3. First deployment at height H → [31, H]
+4. Subsequent at same height → incrementing tx index
+```
+
+### Minting
+
+Users mint ftrBTC options by:
+
+```
+1. Lock frBTC in dxBTC vault
+2. Receive ftrBTC for that height/expiry
+3. ftrBTC represents claim on future yield
+```
+
+### Exercise
+
+Two exercise options:
+
+**Early Exercise (Opcode 1):**
+```rust
+- Before expiry
+- Receive proportional frBTC
+- Forfeit remaining time value
+```
+
+**Exercise at Expiry (Opcode 2):**
+```rust
+- At or after expiry
+- Receive full frBTC value
+- Maximum value realization
+```
+
+## Contract Operations
+
+### Initialize (Opcode 0)
+
+```rust
+Initialize {
+    frbtc_amount: u128,       // frBTC locked
+    expiry_blocks: u128,      // Blocks until expiry
+    dx_btc_vault_id: AlkaneId,  // Associated vault
+}
+```
+
+### Get Value (Opcode 3)
+
+```rust
+GetValue → (u128, u128, u128)
+```
+
+**Returns:**
+- frBTC value
+- Creation height  
+- Expiry height
+
+### Get Utilization Rate (Opcode 11)
+
+```rust
+GetUtilizationRate → u128
+```
+
+Returns 100-block TWAP utilization rate.
+
+### Get Adjusted Coefficients (Opcode 12)
+
+```rust
+GetAdjustedCoefficients {
+    dx_btc_vault_id: AlkaneId
+} → [u128; 5]
+```
+
+Returns utilization-adjusted premium coefficients.
+
+## Use Cases
+
+### 1. Yield Hedging
+
+```
+Scenario: User expects yields to drop
+Action: Sell ftrBTC options now, lock in current rates
+Result: Receive premium, protected from yield decrease
+```
+
+### 2. Speculative Long
+
+```
+Scenario: User expects yields to rise  
+Action: Buy ftrBTC options
+Result: If yields rise, option value increases
+```
+
+### 3. Time-Locked Savings
+
+```
+Scenario: User wants forced savings
+Action: Mint ftrBTC with long expiry
+Result: Cannot access frBTC until expiry
+```
+
+## Integration Example
+
+```bash
+# Deploy new ftrBTC instance
+alkanes alkanes execute \
+  --protostones "[31,0,0,100000,144,4:5]" \
+  --inputs "frBTC:100000" \
+  --to "bc1p..." \
+  -y
+
+# Parameters:
+# - frbtc_amount: 100000
+# - expiry_blocks: 144 (1 day)
+# - dx_btc_vault_id: [4,5]
+```
+
+## Premium Calculation
+
+Premium based on:
+- Time to expiry
+- Current utilization rate
+- Base coefficients [a0, a1, a2, a3, a4]
+
+**Formula:**
+```
+premium = Σ(ai * (time_factor^i) * utilization_factor)
+```
+
+## Resources
+
+- **Source Code**: [ftr-btc contract](https://github.com/subfrost/subfrost-alkanes/tree/main/alkanes/ftr-btc)
+- **Related**: [dxBTC Vaults →](/tokens/dxbtc-overview)

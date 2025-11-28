@@ -1,0 +1,104 @@
+# Network Information
+
+SUBFROST network details and endpoints.
+
+## Mainnet
+
+**Bitcoin Network**: Bitcoin Mainnet  
+**Genesis Block**: 880000  
+**Protocol ID**: 1 (Alkanes)
+
+### Endpoints
+
+| Service | URL |
+|---------|-----|
+| JSON-RPC | `https://mainnet.subfrost.io/v4/jsonrpc` |
+| REST API | `https://mainnet.subfrost.io/v4/api` |
+| Relay | `https://p2p.subfrost.io` |
+| WebSocket | `wss://mainnet.subfrost.io/v4/ws` |
+
+### Explorer
+
+- [Alkanes Explorer](https://explorer.subfrost.io)
+- [Bitcoin Explorer](https://blockstream.info)
+
+## Signet
+
+**Bitcoin Network**: Bitcoin Signet  
+**Genesis Block**: 0  
+**Protocol ID**: 1
+
+### Endpoints
+
+| Service | URL |
+|---------|-----|
+| JSON-RPC | `https://signet.subfrost.io/v4/jsonrpc` |
+| REST API | `https://signet.subfrost.io/v4/api` |
+| Relay | `https://relay-signet.subfrost.io` |
+
+### Faucet
+
+- [Signet Faucet](https://signetfaucet.com)
+
+## Testnet
+
+**Bitcoin Network**: Bitcoin Testnet  
+**Protocol ID**: 1
+
+### Endpoints
+
+| Service | URL |
+|---------|-----|
+| JSON-RPC | `https://testnet.subfrost.io/v4/jsonrpc` |
+| REST API | `https://testnet.subfrost.io/v4/api` |
+
+## Regtest (Local Development)
+
+**Bitcoin Network**: Bitcoin Regtest
+
+### Docker Compose
+
+```bash
+git clone https://github.com/kungfuflex/alkanes-rs
+cd alkanes-rs
+docker-compose up
+```
+
+**Services:**
+- Bitcoin Core: localhost:18443
+- Indexer: localhost:8080
+- JSON-RPC: localhost:8080
+
+## Network Parameters
+
+### Fuel Limits
+
+| Parameter | Value |
+|-----------|-------|
+| Block Fuel | 20,000,000 |
+| Min TX Fuel | 10,000 |
+| Target Block Time | 12 seconds (worst case) |
+
+### Storage Limits
+
+| Limit | Value |
+|-------|-------|
+| Max Growth/Block | 12 MB |
+| Max Deployments/Block | ~2,100 |
+
+## Status
+
+Check network status:
+
+```bash
+# Mainnet
+curl https://mainnet.subfrost.io/v4/api/health
+
+# Signet
+curl https://signet.subfrost.io/v4/api/health
+```
+
+## Resources
+
+- [Getting Started](/developer-guide/getting-started)
+- [API Documentation](/subfrost-api/overview)

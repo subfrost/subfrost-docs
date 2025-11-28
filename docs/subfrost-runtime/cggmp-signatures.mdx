@@ -1,0 +1,73 @@
+# CGGMP24 Signatures
+
+CGGMP24 (Canetti-Gennaro-Goldfeder-Makriyannis-Peled) provides threshold ECDSA signatures for Ethereum and other ECDSA chains.
+
+## Overview
+
+**Use Cases**: Ethereum, Cosmos, Solana, Zcash, any ECDSA chain  
+**Rounds**: 5 for signing (more complex than FROST)  
+**Security**: t-of-n threshold MPC protocol
+
+## Operations
+
+### Distributed Key Generation
+
+```bash
+# Run DKG for Ethereum (2-of-3)
+subfrost-cli cggmp dkg \
+    --threshold 2 \
+    --max-signers 3 \
+    --topic eth-group
+```
+
+**DKG Rounds**: 4 rounds (vs 2 for FROST)
+
+### Signing Ethereum Transaction
+
+```bash
+subfrost-cli cggmp sign-eth \
+    --tx <tx-data> \
+    --topic eth-signing
+```
+
+### Signing Any ECDSA Chain
+
+```bash
+subfrost-cli cggmp sign \
+    --chain cosmos \
+    --tx <tx> \
+    --topic cosmos-group
+```
+
+## Protocol Complexity
+
+CGGMP24 is more complex than FROST because ECDSA doesn't natively support threshold signatures.
+
+**DKG**:
+1. Commitment to secret
+2. Decommitment + ZK proofs
+3. Share distribution + verification
+4. Key confirmation
+
+**Signing**:
+1. Presigning (can be precomputed)
+2. Request signature
+3. Delta shares
+4. Combine delta
+5. Compute sigma shares
+6. Final signature
+
+## Why Use CGGMP24?
+
+Enables threshold signatures for existing ECDSA chains without protocol upgrades:
+- Ethereum (no native threshold support)
+- Bitcoin pre-Taproot
+- Cosmos chains
+- Solana
+- Most blockchains
+
+## Resources
+
+- [Technical Overview](/introduction/technical-overview)
+- [CGGMP Paper](https://eprint.iacr.org/2021/060)
+
