@@ -1,0 +1,433 @@
+# Futures Economics: Dynamic Premium Model
+
+Comprehensive economic model for the ftrBTC futures system with dynamic premium calculation based on realized yield performance.
+
+## Overview
+
+The ftrBTC futures system uses a **TWAP-based dynamic premium model** that ensures miners who mint futures and exercise them at any time receive fair compensation for yield they forgo, while creating deflationary pressure on dxBTC through premium burns.
+
+### Core Principle
+
+**Miners should break even** when considering:
+- Premium paid at mint (burned yvfrBTC)
+- Premium paid at exercise (burned yvfrBTC)
+- Yield forgone during the holding period
+- frBTC received at exercise
+
+### Key Innovation
+
+Instead of hardcoded premiums, we use a **TWAP (Time-Weighted Average Price) of dxBTC yield performance** over the last 6 blocks to dynamically calculate cubic coefficients that price the option fairly.
+
+---
+
+## Three-Stage Premium System
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Future Lifecycle                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. MINT                                                     │
+│     ├─ Miner sends F frBTC                                  │
+│     ├─ Future swaps to dxBTC → yvfrBTC                      │
+│     ├─ Minting premium P_mint burned (yvfrBTC)             │
+│     └─ Held shares: Y_held = Y_initial - P_mint            │
+│                                                              │
+│  2. HOLD                                                     │
+│     ├─ yvfrBTC appreciates with yield                       │
+│     ├─ Miner forgoes yield accumulation                     │
+│     └─ Future holder benefits from yvfrBTC growth           │
+│                                                              │
+│  3. EXERCISE (at block 100)                                 │
+│     ├─ Exercise premium P_exercise calculated               │
+│     ├─ Premium burned from Y_held                           │
+│     ├─ Withdraw (Y_held - P_exercise) shares                │
+│     └─ Receive F_out frBTC                                  │
+│                                                              │
+│  GOAL: F_out = F (miner breaks even)                        │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Flow with Premiums
+
+### 1. Future Mint (Block H)
+
+Miner sends: **F frBTC** (e.g., 1.0 BTC = 100,000,000 satoshis)
+
+**Future contract operations:**
+
+```
+1. Deposit F into dxBTC vault
+   → Call dxBTC.mint(F)
+
+2. dxBTC swaps F for yvfrBTC shares
+   → Rate R_H = frBTC_per_dxBTC at block H
+   → Y_initial = F / R_H shares
+
+3. Query dxBTC for current cubic coefficients
+   → Get [c₀, c₁, c₂, c₃] computed from 6-block TWAP
+   → Store in future contract storage
+
+4. Calculate minting premium
+   → P_mint = Y_initial × c_mint(T)
+   → Where T = expiry_blocks (e.g., 52560)
+
+5. Burn minting premium
+   → Call dxBTC.BurnShares(P_mint)
+   → Deflates dxBTC supply
+
+6. Store remaining held shares
+   → Y_held = Y_initial - P_mint
+   → Y_held = Y_initial × (1 - c_mint)
+```
+
+### 2. Future Exercise (Block H + t)
+
+Exercise at block t (example: t = 100):
+
+**Future contract operations:**
+
+```
+1. Calculate normalized time
+   → t = blocks_elapsed / total_blocks
+   → t = 100 / 52560 ≈ 0.0019
+
+2. Calculate exercise premium using cubic formula
+   → p(t) = c₃t³ + c₂t² + c₁t + c₀
+   → Use stored coefficients from mint
+   → P_exercise = Y_held × p(t)
+
+3. Burn exercise premium
+   → Call dxBTC.BurnShares(P_exercise)
+   → Further deflates dxBTC supply
+
+4. Withdraw remaining shares
+   → Y_withdraw = Y_held - P_exercise
+   → Y_withdraw = Y_held × (1 - p(t))
+   → Call dxBTC.burn(Y_withdraw)
+
+5. Receive frBTC
+   → Rate R_{H+t} at current block
+   → F_out = Y_withdraw × R_{H+t}
+   → Return F_out to miner
+```
+
+---
+
+## Mathematical Framework
+
+### Break-Even Condition
+
+For a miner to break even, the frBTC received at exercise must equal the frBTC deposited at mint:
+
+```
+F_out = F
+```
+
+### Expanded Equation
+
+```
+Y_withdraw × R_{H+t} = F
+
+Where:
+  Y_withdraw = Y_held × (1 - p(t))
+  Y_held = Y_initial × (1 - c_mint)
+  Y_initial = F / R_H
+
+Substituting:
+  [F / R_H] × (1 - c_mint) × (1 - p(t)) × R_{H+t} = F
+
+Simplifying:
+  (1 - c_mint) × (1 - p(t)) × (R_{H+t} / R_H) = 1
+
+Let growth = R_{H+t} / R_H:
+  (1 - c_mint) × (1 - p(t)) × growth = 1
+```
+
+### Key Relationship
+
+```
+(1 - c_mint) × (1 - p(t)) = 1 / growth
+```
+
+**Interpretation**:
+- If dxBTC grows by 10% (`growth = 1.10`), then the product of (1 - minting premium) and (1 - exercise premium) must equal `1/1.10 ≈ 0.909`
+- This means total premiums (mint + exercise) must consume approximately 9.1% of the shares to break even
+- The split between minting and exercise premiums depends on the time of exercise
+
+---
+
+## TWAP-Based Yield Estimation
+
+### 6-Block TWAP Window
+
+We use a **6-block rolling window** for TWAP calculation to:
+- Capture recent yield performance
+- Protect against worst-case reorg depth (6 blocks)
+- Provide smooth, responsive premium updates
+
+### Rate Tracking
+
+```
+At each new block H:
+  1. Query dxBTC rate: R_H = dxBTC.convertToAssets(1e8) / 1e8
+  2. Store in circular buffer at position (H mod 6)
+  3. Calculate TWAP: TWAP_H = (R_{H-5} + R_{H-4} + ... + R_H) / 6
+```
+
+### Growth Rate Calculation
+
+```rust
+// Growth over last 6 blocks
+let growth_6_blocks = R_H / R_{H-6};
+
+// Average growth per block (geometric mean)
+let growth_per_block = growth_6_blocks.powf(1.0/6.0);
+
+// Estimated growth over T blocks
+let estimated_growth_T = growth_per_block.powf(T);
+
+// Estimated growth over any period t
+let estimated_growth_t = growth_per_block.powf(t);
+```
+
+### Example Calculation
+
+| Block | Rate (frBTC/dxBTC) | Notes |
+|-------|-------------------|-------|
+| H-5   | 1.00000000 | 6 blocks ago |
+| H-4   | 1.00000100 | |
+| H-3   | 1.00000200 | |
+| H-2   | 1.00000300 | |
+| H-1   | 1.00000400 | |
+| H     | 1.00000500 | Current |
+
+```
+TWAP = (1.00000000 + 1.00000100 + ... + 1.00000500) / 6
+     = 1.00000250
+
+Growth over 6 blocks = 1.00000500 / 1.00000000 = 1.000005
+Growth per block = 1.000005^(1/6) ≈ 1.00000083
+
+Estimated growth over 52560 blocks (1 year):
+  = 1.00000083^52560 ≈ 1.0445 (4.45% APY)
+
+Estimated growth over 100 blocks:
+  = 1.00000083^100 ≈ 1.0000833 (0.0833% growth)
+```
+
+---
+
+## Cubic Coefficient Calibration
+
+### Two-Stage Premium Structure
+
+1. **Minting Premium (`c_mint`)**: Flat percentage burned at mint
+2. **Exercise Premium (`p(t)`)**: Cubic decay over normalized time `t ∈ [0, 1]`
+
+### Minting Premium
+
+The minting premium represents the **option premium** for flexibility:
+
+```
+c_mint = α × expected_yield_T
+
+Where:
+  α = 0.3 (30% of expected yield, adjustable parameter)
+  expected_yield_T = estimated_growth_T - 1.0
+```
+
+**Example**:
+- If expected growth over T=52560 blocks is 4.45%
+- Then `c_mint = 0.3 × 0.0445 = 0.01335 = 1.335%`
+- This means 1.335% of yvfrBTC shares are burned at mint
+
+### Exercise Premium Cubic Formula
+
+```
+p(t) = c₀ + c₁t + c₂t² + c₃t³
+
+Where t = blocks_elapsed / total_blocks ∈ [0, 1]
+```
+
+### Boundary Conditions
+
+The cubic must satisfy:
+
+| Condition | Value | Meaning |
+|-----------|-------|---------|
+| `p(0)` | `c_mint / (1 - c_mint)` | Immediate exercise premium |
+| `p(1)` | `1 - 1/[(1-c_mint) × growth_T]` | Full maturity premium |
+| `p'(0)` | `0` | Smooth decay at start |
+| `p'(1)` | `0` | Smooth decay at end |
+
+### Coefficient Calculation
+
+From the boundary conditions:
+
+```rust
+// Boundary values
+let p_0 = c_mint / (1.0 - c_mint);
+let p_1 = 1.0 - 1.0 / ((1.0 - c_mint) * estimated_growth_T);
+
+// Cubic coefficients satisfying all boundary conditions
+let c_0 = p_0;
+let c_1 = 0.0;  // From p'(0) = 0
+let c_2 = -2.0 * (p_1 - p_0);  // From Hermite interpolation
+let c_3 = 3.0 * (p_1 - p_0);   // From p(1) = p_1
+```
+
+### Premium Decay Curve
+
+```
+Premium Decay (normalized time t)
+
+p(t)
+  │
+  │ *
+  │  *
+p_0│   *
+  │    *
+  │     *
+  │      *
+  │       *
+  │        *
+  │         *
+  │          *
+  │           *
+  │            *
+p_1│             *________
+  │                       *
+  └─────────────────────────> t
+  0                         1
+  (mint)                    (expiry)
+
+Characteristics:
+- Smooth S-curve decay
+- High premium at early exercise
+- Low premium near expiry
+- No discontinuities (smooth derivatives)
+```
+
+---
+
+## Break-Even Examples
+
+### Scenario Parameters
+
+```
+Miner deposits: F = 1.0 BTC (100,000,000 satoshis)
+Duration: T = 52560 blocks (~1 year)
+dxBTC TWAP growth: 0.0833% per 100 blocks (~4.45% APY)
+```
+
+### Derived Values
+
+```
+Estimated growth over 52560 blocks: 1.0445
+Expected yield: 4.45%
+Minting premium (30% of yield): c_mint = 0.01335 (1.335%)
+
+Boundary values:
+  p_0 = 0.01335 / (1 - 0.01335) = 0.01353
+  p_1 = 1 - 1/(0.98665 × 1.0445) ≈ 0.0304
+
+Cubic coefficients:
+  c_0 = 0.01353
+  c_1 = 0.0
+  c_2 = -0.03374
+  c_3 = 0.05061
+```
+
+### Exercise at Different Times
+
+| Blocks Elapsed | Normalized t | p(t) | Total Burned | frBTC Out | Break-Even? |
+|----------------|--------------|------|--------------|-----------|-------------|
+| 0 (instant) | 0.0000 | 1.353% | 2.688% | ~0.9731 BTC | ❌ Loss |
+| 100 | 0.0019 | 1.351% | 2.686% | ~0.9991 BTC | ✅ ~Even |
+| 1000 | 0.0190 | 1.300% | 2.635% | ~1.0090 BTC | ✅ Gain |
+| 5000 | 0.0951 | 0.930% | 2.265% | ~1.0223 BTC | ✅ Gain |
+| 26280 (50%) | 0.5000 | 0.435% | 1.770% | ~1.0270 BTC | ✅ Gain |
+| 52560 (100%) | 1.0000 | 3.04% | 4.375% | ~1.0445 BTC | ✅ Even |
+
+**Key Insight**: If yield performance matches TWAP estimates, miner breaks even around 100 blocks and profits if holding longer.
+
+---
+
+## Storage Design
+
+### dxBTC Contract Storage
+
+```
+TWAP Circular Buffer:
+  /twap/index        → u128  (current write position 0-5)
+  /twap/rates/0-5    → u128  (rate at each position)
+  /twap/last_block   → u128  (last block height updated)
+
+Current Coefficients (cached per block):
+  /coefficients/0-3  → u128  (c₀, c₁, c₂, c₃ × 10^18)
+  /coefficients/c_mint → u128  (minting premium × 10^18)
+  /coefficients/block → u128  (block computed for)
+```
+
+### ftr-btc Clone Storage
+
+```
+Future Parameters:
+  /frbtc_value       → u128  (original frBTC deposited)
+  /dxbtc_shares      → u128  (yvfrBTC shares after burn)
+  /creation_height   → u128  (block at mint)
+  /expiry_height     → u128  (block at maturity)
+  /duration          → u128  (total blocks)
+
+Snapshot Coefficients (from mint time):
+  /coefficients/0-3  → u128  (c₀, c₁, c₂, c₃ × 10^18)
+  /coefficients/c_mint → u128  (minting premium)
+
+Exercise State:
+  /exercised         → u8    (0 = active, 1 = exercised)
+```
+
+---
+
+## Economic Guarantees
+
+✅ **Miner Break-Even**: If yield matches TWAP, miner gets back ≈ deposited amount  
+✅ **Fair Pricing**: Premiums calibrated to actual market yield performance  
+✅ **No Arbitrage**: Cannot profit by immediately minting and exercising  
+✅ **Deflation**: All premiums burned, increasing dxBTC value  
+✅ **Market Discovery**: TWAP updates coefficients based on real performance
+
+### dxBTC Deflation Sources
+
+| Source | Mechanism | Beneficiaries |
+|--------|-----------|---------------|
+| Minting Premium | Burned at future mint | All dxBTC holders |
+| Exercise Premium | Burned at future exercise | All dxBTC holders |
+| yvfrBTC Yield | Compounding growth | All dxBTC holders |
+
+**Combined Effect**:
+- Base yvfrBTC yield: e.g., 4% APY
+- Premium burns: e.g., +1% effective yield from deflation
+- **Total dxBTC appreciation**: ~5% APY
+
+---
+
+## Key Formulas Reference
+
+| Component | Formula |
+|-----------|---------|
+| Break-Even | `(1 - c_mint) × (1 - p(t)) × growth = 1` |
+| TWAP Growth | `growth_per_block = (R_H / R_{H-6})^(1/6)` |
+| Minting Premium | `c_mint = 0.3 × (growth_T - 1)` |
+| Exercise Premium | `p(t) = c₀ + c₁t + c₂t² + c₃t³` |
+| Coefficients | `c₀ = p_0`, `c₁ = 0`, `c₂ = -2Δp`, `c₃ = 3Δp` |
+
+## Resources
+
+- [ftrBTC Overview →](/tokens/ftrbtc-overview)
+- [dxBTC Overview →](/tokens/dxbtc-overview)
+- [yvfrBTC Vault →](/tokens/yvfrbtc-overview)
