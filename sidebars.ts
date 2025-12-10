@@ -29,6 +29,16 @@ const sidebars: SidebarsConfig = {
           id: 'introduction/technical-overview',
           label: 'Technical Overview',
         },
+        {
+          type: 'doc',
+          id: 'introduction/subfrost-api-docs',
+          label: 'SUBFROST API Docs',
+        },
+        {
+          type: 'doc',
+          id: 'introduction/subfrost-app-overview',
+          label: 'SUBFROST APP Overview',
+        },
         ]
     },
     {

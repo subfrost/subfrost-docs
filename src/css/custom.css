@@ -314,4 +314,35 @@ a:hover {
   color: #1E3A8A !important;
 }
 
+/* Match Algolia logo color to the footer text (Navigate, Select, Close) */
+:root {
+  --docsearch-logo-color: #9698c3;
+}
+
+/* For dark mode, match the dark theme's muted color */
+html[data-theme='dark'] {
+  --docsearch-logo-color: #7f8497;
+}
+
+/* Code block styling - dark blue semi-transparent background */
+pre, code {
+  background-color: rgba(30, 58, 138, 0.3) !important; /* Dark blue (#1E3A8A) with 30% transparency */
+}
+
+div[class*="codeBlockContainer"] {
+  background-color: rgba(30, 58, 138, 0.3) !important;
+}
+
+pre[class*="prism-code"] {
+  background-color: rgba(30, 58, 138, 0.3) !important;
+}
+
+/* Inline code styling */
+:not(pre) > code {
+  background-color: rgba(30, 58, 138, 0.15) !important;
+  color: #1E3A8A;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
 

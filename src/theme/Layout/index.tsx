@@ -29,12 +29,11 @@ import styles from './styles.module.css';
 import FrostBackdrop from '@site/src/components/FrostBackdrop';
 import SplashLoader from '@site/src/components/SplashLoader';
 
-export default function Layout(props: Props): ReactNode {
+function LayoutContent(props: Props): ReactNode {
   const {
     children,
     noFooter,
     wrapperClassName,
-    // Not really layout-related, but kept for convenience/retro-compatibility
     title,
     description,
   } = props;
@@ -42,10 +41,9 @@ export default function Layout(props: Props): ReactNode {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate a loading delay
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 2000); // 2 seconds delay
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -53,7 +51,7 @@ export default function Layout(props: Props): ReactNode {
   useKeyboardNavigation();
 
   return (
-    <LayoutProvider>
+    <>
       <Head>
         {/* Google tag (gtag.js) */}
         <script
@@ -97,6 +95,14 @@ export default function Layout(props: Props): ReactNode {
 
         {!noFooter && <Footer />}
       </div>
+    </>
+  );
+}
+
+export default function Layout(props: Props): ReactNode {
+  return (
+    <LayoutProvider>
+      <LayoutContent {...props} />
     </LayoutProvider>
   );
 }
