@@ -66,6 +66,11 @@ const sidebars: SidebarsConfig = {
         'tokens/frBTC-smart-contracts',
         {
           type: 'doc',
+          id: 'tokens/frBTC-scripts',
+          label: 'frBTC - Building Scripts',
+        },
+        {
+          type: 'doc',
           id: 'tokens/dxBTC-overview',
           label: 'dxBTC - Yield-bearing BTC',
         },

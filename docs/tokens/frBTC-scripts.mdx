@@ -1,0 +1,325 @@
+---
+title: frBTC - Building Scripts
+sidebar_position: 5
+---
+
+# Building Scripts for frBTC
+
+The `FrBTCScript` and `FrBTCScript2` abstract contracts provide a safe foundation for building executable scripts that interact with frBTC on the BRC2.0 EVM. These contracts handle gas safety, caller validation, and automatic gas estimation.
+
+## Overview
+
+When users call `wrapAndExecute` or `wrapAndExecute2` on the FrBTC contract, their BTC is wrapped into frBTC and then an external script is executed. The `FrBTCScript` contracts ensure that:
+
+1. **Only FrBTC can call**: Scripts can only be executed by the FrBTC contract
+2. **Gas safety**: If insufficient gas remains, tokens are safely returned to the user
+3. **Auto-learning**: Gas requirements are automatically tracked and learned
+
+## Contract Addresses
+
+### FrBTC Addresses
+
+| Network | Chain ID | Address |
+|---------|----------|---------|
+| BRC2.0 Mainnet | `0x4252433230` | `0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337` |
+| BRC2.0 Signet | `0x425243323073` | `0x1EB63D0d0e5A86146B4E1Cebc79b1d6e35093288` |
+
+## FrBTCScript vs FrBTCScript2
+
+| Contract | Interface | Use Case |
+|----------|-----------|----------|
+| `FrBTCScript` | `IScript` | Simple scripts with fixed logic |
+| `FrBTCScript2` | `IScript2` | Scripts that accept custom calldata |
+
+## Quick Start
+
+### Basic Script (FrBTCScript)
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import {FrBTCScript} from "frbtc/FrBTCScript.sol";
+
+contract MySwapScript is FrBTCScript {
+    address public immutable swapRouter;
+
+    constructor(address _swapRouter) {
+        swapRouter = _swapRouter;
+    }
+
+    function _executeScript(address sender, uint256 amount) internal override {
+        // Your script logic here
+        // - sender: the user who initiated the wrap
+        // - amount: the amount of frBTC available
+
+        // Example: swap frBTC for another token
+        // IRouter(swapRouter).swap(getFrBTCAddress(), amount, sender);
+    }
+}
+```
+
+### Script with Calldata (FrBTCScript2)
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import {FrBTCScript2} from "frbtc/FrBTCScript2.sol";
+
+contract MyFlexibleScript is FrBTCScript2 {
+    function _executeScript(
+        address sender,
+        uint256 amount,
+        bytes calldata data
+    ) internal override {
+        // Decode custom parameters from data
+        (address targetToken, uint256 minOut) = abi.decode(data, (address, uint256));
+
+        // Execute with custom parameters
+        // ...
+    }
+}
+```
+
+## Gas Safety Mechanism
+
+The FrBTCScript contracts implement a two-layer gas safety system to ensure users always receive their frBTC tokens, even if something goes wrong.
+
+### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  FrBTC.wrapAndExecute()                                         │
+│                                                                 │
+│  1. Mint frBTC to contract                                      │
+│  2. Check: gasleft() >= MIN_GAS_FOR_SAFE_RETURN (50k)?          │
+│     └─ NO → transfer frBTC to user, return                      │
+│  3. Approve & call script.execute()                             │
+│     └─ try/catch: if fails → transfer frBTC to user             │
+│  4. Transfer remaining frBTC to user                            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  FrBTCScript.execute()                                          │
+│                                                                 │
+│  1. Verify msg.sender == FrBTC                                  │
+│  2. Check: gasleft() >= estimateGas() + MIN_GAS_FOR_SAFE_RETURN?│
+│     └─ NO → transfer frBTC to user, return (safe abort)         │
+│  3. Record gasBefore                                            │
+│  4. Execute _executeScript()                                    │
+│  5. Update maxGasUsed if this execution used more               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Constants
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `MIN_GAS_FOR_SAFE_RETURN` | 50,000 | Buffer gas for safe token return |
+
+This value was determined through benchmarking:
+- Worst case `SafeERC20.safeTransfer`: ~25,597 gas
+- Safety buffer: 2x = ~50,000 gas
+
+## Automatic Gas Estimation
+
+The contracts automatically track gas usage and learn the requirements over time.
+
+### How Auto-Tracking Works
+
+1. **Initial State**: `maxGasUsed = 0`, `estimateGas() = 0`
+2. **After First Execution**: Gas used is recorded in `maxGasUsed`
+3. **Subsequent Executions**: If more gas is used, `maxGasUsed` is updated
+4. **Gas Check**: Before execution, verifies `gasleft() >= maxGasUsed + 50,000`
+
+```solidity
+// Measure gas before execution
+uint256 gasBefore = gasleft();
+
+// Execute the script
+_executeScript(sender, amount);
+
+// Calculate gas used and update max if higher
+uint256 gasUsed = gasBefore - gasleft();
+if (gasUsed > _maxGasUsed) {
+    _maxGasUsed = gasUsed;
+}
+```
+
+### Querying Gas Usage
+
+```solidity
+// Get the tracked maximum gas used
+uint256 maxGas = myScript.maxGasUsed();
+
+// Get the current gas estimate (same as maxGasUsed by default)
+uint256 estimate = myScript.estimateGas();
+```
+
+### Custom Gas Estimation
+
+Override `estimateGas()` if you need custom logic:
+
+```solidity
+contract MyScript is FrBTCScript {
+    function estimateGas() public pure override returns (uint256) {
+        return 200000; // Fixed estimate
+    }
+
+    function _executeScript(address sender, uint256 amount) internal override {
+        // ...
+    }
+}
+```
+
+## Helper Functions
+
+### FrBTCLib
+
+The `FrBTCLib` library provides chain detection utilities:
+
+```solidity
+import {FrBTCLib} from "frbtc/libraries/FrBTCLib.sol";
+
+// Get FrBTC address for current chain
+address frbtc = FrBTCLib.FRBTC_ADDRESS();
+
+// Check chain
+bool isMainnet = FrBTCLib.isMainnet();
+bool isSignet = FrBTCLib.isSignet();
+bool isSupported = FrBTCLib.isSupportedChain();
+
+// Chain IDs
+uint256 mainnetId = FrBTCLib.MAINNET_CHAIN_ID;  // 0x4252433230
+uint256 signetId = FrBTCLib.SIGNET_CHAIN_ID;    // 0x425243323073
+```
+
+### Getting FrBTC Address in Scripts
+
+```solidity
+contract MyScript is FrBTCScript {
+    function _executeScript(address sender, uint256 amount) internal override {
+        // Get the FrBTC token address
+        address frbtc = getFrBTCAddress();
+
+        // Now you can interact with frBTC
+        uint256 balance = IERC20(frbtc).balanceOf(address(this));
+    }
+}
+```
+
+## Security Considerations
+
+### Caller Validation
+
+Scripts automatically validate that only the FrBTC contract can call `execute()`:
+
+```solidity
+require(msg.sender == FrBTCLib.FRBTC_ADDRESS(), "FrBTCScript: caller is not FrBTC");
+```
+
+### Safe Token Return
+
+If anything goes wrong, tokens are returned to the user:
+
+```solidity
+function _safeReturnTokens(address sender) internal {
+    address frbtc = FrBTCLib.FRBTC_ADDRESS();
+    uint256 balance = IERC20(frbtc).balanceOf(address(this));
+    if (balance > 0) {
+        SafeERC20.safeTransfer(IERC20(frbtc), sender, balance);
+    }
+}
+```
+
+### Bootstrap Consideration
+
+On the first execution, `estimateGas()` returns 0 (no historical data). This means:
+- First call always passes the gas check
+- The try/catch in FrBTC.sol still protects against failures
+- After first execution, future calls are protected by learned gas requirements
+
+## Complete Example
+
+Here's a complete example of a script that swaps frBTC for another token:
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import {FrBTCScript2} from "frbtc/FrBTCScript2.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+interface ISwapRouter {
+    function swap(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address recipient
+    ) external returns (uint256 amountOut);
+}
+
+contract FrBTCSwapScript is FrBTCScript2 {
+    using SafeERC20 for IERC20;
+
+    ISwapRouter public immutable router;
+
+    constructor(address _router) {
+        router = ISwapRouter(_router);
+    }
+
+    function _executeScript(
+        address sender,
+        uint256 amount,
+        bytes calldata data
+    ) internal override {
+        // Decode swap parameters
+        (address tokenOut, uint256 minAmountOut) = abi.decode(data, (address, uint256));
+
+        address frbtc = getFrBTCAddress();
+
+        // Approve router to spend frBTC
+        IERC20(frbtc).safeApprove(address(router), amount);
+
+        // Execute swap, sending output directly to user
+        router.swap(frbtc, tokenOut, amount, minAmountOut, sender);
+    }
+}
+```
+
+## Testing
+
+Use Foundry to test your scripts:
+
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.19;
+
+import {Test} from "forge-std/Test.sol";
+import {FrBTCLib} from "frbtc/libraries/FrBTCLib.sol";
+import {MyScript} from "../src/MyScript.sol";
+
+contract MyScriptTest is Test {
+    MyScript public script;
+
+    function setUp() public {
+        script = new MyScript();
+    }
+
+    function testExecute() public {
+        // Set chain to BRC2.0 mainnet
+        vm.chainId(FrBTCLib.MAINNET_CHAIN_ID);
+
+        // Call as FrBTC contract
+        vm.prank(FrBTCLib.MAINNET_FRBTC);
+        script.execute(address(this), 1e8);
+
+        // Verify execution
+        assertTrue(script.maxGasUsed() > 0);
+    }
+}
+```
