@@ -43,6 +43,17 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'SUBFROST APP',
+      items: [
+        'subfrost-app/overview',
+        'subfrost-app/swap',
+        'subfrost-app/vaults',
+        'subfrost-app/futures',
+        'subfrost-app/wallet',
+      ]
+    },
+    {
+      type: 'category',
       label: 'Developer Guide',
       items: [
         'developer-guide/getting-started',

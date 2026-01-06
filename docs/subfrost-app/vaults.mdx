@@ -1,0 +1,163 @@
+---
+title: Vaults
+sidebar_position: 3
+---
+
+# Vaults
+
+:::caution UI In Development
+The SUBFROST APP interface is currently in development and subject to change.
+:::
+
+Vaults provide automated DeFi strategies to earn yield on your Bitcoin and other supported tokens. Deposit your assets, and the vault handles the rest.
+
+![Vaults Overview](/img/app/VaultOverview.png)
+
+## What Are Vaults?
+
+Vaults are automated yield strategies. Instead of manually:
+- Providing liquidity to pools
+- Harvesting rewards
+- Rebalancing positions
+- Compounding earnings
+
+...vaults do all of this for you. You deposit, the vault works, you earn.
+
+## Available Vaults
+
+:::note Coming Soon
+All vaults are currently in development. The vaults listed below will be available at launch.
+:::
+
+| Vault | Description | Risk |
+|-------|-------------|------|
+| **dxBTC Token** | Stake BTC/frBTC for pure BTC yield | Medium |
+| **veUSD Vault** | Stake USD for boosted yield | Low-Medium |
+| **veDIESEL Vault** | Stake DIESEL for boosted yield | Very High |
+| **veORDI Vault** | Stake ORDI for boosted yield | Very High |
+
+## How Vaults Generate Yield
+
+Vaults earn yield through multiple sources:
+
+- **Trading fees** — A portion of swap fees from associated liquidity pools
+- **Rewards** — Protocol incentives and external subsidies
+- **Auto-compounding** — A portion of rewards is automatically reinvested
+
+The specific strategy varies by vault—check each vault's "Strategies" tab for details.
+
+## How to Deposit
+
+### Step 1: Choose a Vault
+
+Browse available vaults using filters:
+- **All** / **Mains** / **Alts**
+- Sort by: Est. APY, Hist. APY, Risk Level, Available, Deposits
+
+![Vault Detail Page](/img/app/VaultDetailPage.png)
+
+### Step 2: Select Input Token
+
+Click on a vault to open the detail view. Select your input token from the dropdown if multiple are supported.
+
+
+### Step 3: Enter Deposit Amount
+
+Enter how much you want to deposit. Use quick-select buttons:
+- **25%** / **50%** / **75%** / **MAX**
+
+### Step 4: Set Miner Fee
+
+Choose your fee rate:
+- **Slow** / **Medium** / **Fast** / **Custom**
+
+![Deposit Input with Fee Selector](/img/app/DepositInputwithFeeSelector.png)
+
+### Step 5: Confirm Deposit
+
+Click "Deposit" and sign the transaction with your wallet. You'll receive vault tokens representing your position.
+
+<div className="screenshot-placeholder">
+  ? Screenshot: Deposit confirmation
+</div>
+
+## How to Withdraw
+
+### Step 1: Go to Withdraw Tab
+
+In the vault detail view, switch to the Withdraw tab.
+
+<div className="screenshot-placeholder">
+  ? Screenshot: Withdraw tab
+</div>
+
+### Step 2: Select Your Position
+
+Select the vault position you want to redeem.
+
+### Step 3: Confirm Withdrawal
+
+Sign the transaction. Your original tokens (plus any earned yield) return to your wallet.
+
+<div className="screenshot-placeholder">
+  ? Screenshot: Withdrawal confirmation
+</div>
+
+:::note Withdrawal Timing
+Most vaults have no lockup period—withdraw your funds whenever you need them.
+:::
+
+## Yield Boosting
+
+Some vaults support yield boosting. By staking vxFROST, you can increase your yield multiplier.
+
+![Boost Section](/img/app/BoostSectionShowingMultiplier.png)
+
+Check each vault's detail page to see if boosting is available and your current boost multiplier.
+
+:::note Coming Soon
+Boost features will be available after the vxFROST token launch.
+:::
+
+## Fee Structure
+
+| Fee Type | Rate |
+|----------|------|
+| **Management Fee** | 0% |
+| **Performance Fee** | 10% of yield |
+| **Withdrawal Fee** | 0% |
+| **Entry Fee** | 0% (only network fees) |
+
+## Understanding Risk
+
+Each vault displays a risk indicator. Higher potential yield typically means higher risk.
+
+![Risk Level Indicator](/img/app/RiskLevelIndicator.png)
+
+### Risk Categories
+
+| Risk Type | Description |
+|-----------|-------------|
+| **Smart Contract** | Potential bugs in vault code |
+| **Strategy** | The yield strategy may underperform |
+| **Market** | Asset prices can decline |
+| **Liquidity** | Withdrawals may be delayed in extreme conditions |
+
+## Vault Information Tabs
+
+Each vault detail page includes information tabs:
+
+- **About** — What the vault does in plain language
+- **Strategies** — How yield is generated
+- **Info** — Technical details and contract info
+- **Risk** — Detailed risk breakdown
+
+![Vault Info Tabs](/img/app/VaultInfoTab.png)
+
+## Tips
+
+- **Diversify** across multiple vaults to spread risk
+- **Start small** to understand how a vault works before committing more
+- **Monitor performance** — yields change over time
+- **Check risk level** — higher APY vaults typically carry more risk
+- **Read the strategy** — understand what you're investing in

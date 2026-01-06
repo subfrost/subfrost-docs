@@ -345,4 +345,18 @@ pre[class*="prism-code"] {
   border-radius: 4px;
 }
 
+/* Screenshot placeholder styling */
+.screenshot-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(30, 58, 138, 0.1);
+  border: 2px dashed rgba(30, 58, 138, 0.3);
+  border-radius: 8px;
+  padding: 3rem 2rem;
+  margin: 1.5rem 0;
+  color: rgba(30, 58, 138, 0.5);
+  font-size: 1rem;
+  text-align: center;
+}
 

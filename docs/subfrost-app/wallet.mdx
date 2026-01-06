@@ -1,0 +1,187 @@
+---
+title: Wallet
+sidebar_position: 5
+---
+
+# Wallet
+
+:::caution UI In Development
+The SUBFROST APP interface is currently in development and subject to change.
+:::
+
+The Wallet section is your home base in the SUBFROST APP. View your assets, manage UTXOs, track transactions, and configure your wallet settings.
+
+![Wallet Dashboard](/img/app/WalletDashboard.png)
+
+## Browser Keystore (Self-Custodial)
+
+Create a fully self-custodial wallet stored locally in your browser—no extensions required.
+
+![Connect Wallet Options](/img/app/KeystoreCreationFlow1.png)
+
+### Create a New Wallet
+
+1. Click **"Create New Wallet"** from the Connect Wallet menu
+2. Set a strong password (minimum 8 characters)
+3. Optionally add a password hint for Google Drive backup
+
+![Create New Wallet](/img/app/KeystoreCreationFlow2.png)
+
+4. **Write down your 12-word recovery phrase** — store it somewhere safe offline
+5. Optionally backup to Google Drive for convenience
+
+![Save Your Recovery Phrase](/img/app/KeystoreCreationFlow3.png)
+
+### Restore an Existing Wallet
+
+1. Click **"Restore Wallet"** from the Connect Wallet menu
+2. Enter your 12-word seed phrase, keystore file, or restore from Google Drive
+3. Set a new password
+4. Your wallet is restored with all your addresses
+
+### Security Features
+
+- **Encrypted storage** — Your wallet data is encrypted with your password
+- **Password protected** — Required to access your wallet each session
+- **Backup options**:
+  - Export encrypted backup file
+  - Reveal seed phrase (password required)
+  - Backup to Google Drive
+
+:::warning Keep Your Seed Phrase Safe
+Your 12-word seed phrase is the master key to your wallet. Anyone with access to it can take your funds. Never share it, never store it digitally, never enter it on any website except SUBFROST.
+:::
+
+## Supported Wallets
+
+Already have a Bitcoin wallet? Connect it directly:
+
+| Wallet | Notes |
+|--------|-------|
+| **Unisat** | Popular inscription wallet |
+| **Xverse** | Supports ordinals + payment addresses |
+| **Phantom** | Multi-chain |
+| **OKX Wallet** | Multi-chain support |
+| **Leather** | Multiple address types |
+| **Magic Eden** | NFT marketplace wallet |
+| **Wizz** | Stacks-native |
+
+![Wallet Connection Modal](/img/app/WalletConnectionModal.png)
+
+### Connecting
+
+1. Click **"Connect Wallet"** in the header
+2. Select your wallet provider
+3. Approve the connection in your wallet extension
+4. Your addresses appear in the header
+
+## Dual Address Support
+
+SUBFROST generates two address types for full compatibility:
+
+| Address Type | Format | Use Case |
+|--------------|--------|----------|
+| **Taproot** | `bc1p...` | Modern, efficient transactions |
+| **Native SegWit** | `bc1q...` | Broad compatibility |
+
+Both addresses are displayed in the wallet header with copy buttons. Some apps and exchanges prefer one format over the other—having both ensures you can always receive funds.
+
+![Dual Address Display](/img/app/DualAddressDisplay.png)
+
+## Wallet Tabs
+
+### Balances
+
+View your complete asset holdings. The Balances tab shows:
+
+- **Bitcoin Balance** — Total BTC with USD value
+- **Spendable BTC** — Available for transactions
+- **Unspendable (with Assets)** — BTC locked with inscriptions or tokens
+- **Address breakdown** — Native SegWit / Taproot / Pending Transactions
+- **Protorune Assets** — Alkanes and similar protocol tokens
+- **Inscription Assets** — BRC20 and other inscription-based tokens
+
+### UTXO Management
+
+Fine-grained control over your Bitcoin outputs:
+
+<div className="screenshot-placeholder">
+  ? Screenshot: UTXO management tab
+</div>
+
+**What are UTXOs?** Bitcoin works differently than traditional banking—your balance is made up of individual "coins" called UTXOs (Unspent Transaction Outputs). Managing them lets you control exactly which coins you spend.
+
+**Filter by:**
+- Address type (Native SegWit / Taproot)
+- Asset type (Runes / Tokens / Inscriptions)
+
+**Actions:**
+
+| Action | What It Does |
+|--------|--------------|
+| **Freeze** | Protect a UTXO from being spent accidentally |
+| **Unfreeze** | Make it spendable again |
+| **Split** | Separate inscriptions from the BTC they're attached to |
+
+:::tip Protect Your Valuables
+Freeze UTXOs containing rare inscriptions or collectibles so you don't accidentally spend them as transaction fees.
+:::
+
+### Transaction History
+
+View all wallet activity:
+
+<div className="screenshot-placeholder">
+  ? Screenshot: Transaction history tab
+</div>
+
+- **Status** — Confirmed (green) or pending (yellow)
+- **Transaction ID** — Click to view on block explorer
+- **Date/time** and block confirmation
+- **Fee paid**
+- **Expandable details** — See all inputs and outputs
+
+### Settings
+
+Configure your wallet:
+
+![Settings Tab](/img/app/SettingsTab.png)
+
+- **Network Configuration** — Select Mainnet, Signet, or Testnet
+- **HD Wallet Derivation** — View your active addresses and configure derivation
+- **Security & Backup** — Export backups, manage your seed phrase
+
+## Sending Bitcoin
+
+![Send Modal](/img/app/SendModal.png)
+
+1. **Enter recipient address** — Supports all Bitcoin address formats
+2. **Enter amount** — In BTC
+3. **Choose fee rate** — Slow / Medium / Fast / Custom
+4. **Review & Send** — Check everything before confirming
+5. **Sign & broadcast** — Your wallet signs the transaction
+
+:::warning Fee Safety
+The app warns you if your fee seems unusually high—always double-check before confirming large transactions.
+:::
+
+**Advanced: Manual UTXO Selection**
+
+For power users, you can disable auto-select and manually choose which UTXOs to spend. Useful for privacy, consolidation, or avoiding specific coins.
+
+## Receiving Bitcoin
+
+![Receive Modal with QR Code](/img/app/RecieveModalwithQRCode.png)
+
+- **QR code** — Scan with any mobile wallet
+- **Your Bitcoin Address** — Full address with copy button
+- **Important warnings** — Only send Bitcoin, verify the address, can be reused
+- **Bitcoin URL** — For direct opening in mobile wallets
+
+## Tips
+
+- **Use both addresses** — Some services prefer one format over another
+- **Freeze valuable UTXOs** — Protect inscriptions and rare sats from accidental spending
+- **Export backups regularly** — Keep encrypted backups in multiple safe locations
+- **Verify addresses** — Always double-check recipient addresses before sending
+- **Compare fee rates** — Check current network conditions for large transactions

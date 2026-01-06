@@ -1,0 +1,158 @@
+---
+title: Futures
+sidebar_position: 4
+---
+
+# Futures
+
+:::caution UI In Development
+The SUBFROST APP interface is currently in development and subject to change.
+:::
+
+The Futures market lets you trade **ftrBTC**—time-locked Bitcoin positions with deterministic pricing. Hold to expiry for full redemption, or exercise early with a small premium.
+
+![Futures Trading Dashboard](/img/app/FuturesTradingDashboard.png)
+
+## What is ftrBTC?
+
+**ftrBTC** (Future Bitcoin) is a time-locked position where:
+- You choose a lock period between **1-95 blocks**
+- At expiry: **1 ftrBTC = 1 BTC** (full redemption)
+- Early exercise: Pay a small premium that decreases as expiry approaches
+
+## How Pricing Works
+
+### The Premium
+
+When you exercise ftrBTC before expiry, you pay a small premium. This premium:
+- Is highest when the contract is new
+- Decreases steadily as expiry approaches
+- Reaches nearly zero at expiry
+
+| Time to Expiry | Approximate Premium |
+|----------------|---------------------|
+| Just created | ~5% |
+| Halfway | ~2-3% |
+| Near expiry | ~0.1% |
+| At expiry | ~0% |
+
+### Market Price vs Exercise Price
+
+- **Market Price**: What you pay to buy ftrBTC from other traders
+- **Exercise Price**: What you receive when you redeem (deterministic based on time remaining)
+
+:::tip Profit Strategy
+Buy when the market price is below what the exercise price will be at your intended hold time, then hold until that point.
+:::
+
+![Price Information and Market View](/img/app/PriceInformationDisplayANDMarketView.png)
+
+## Markets View
+
+The Markets tab displays active unlockable positions:
+
+Each contract shows:
+- **Contract** — Unique contract identifier
+- **Time Left** — Blocks until expiry
+- **Market Price** — Current buy price
+- **Exercise Price** — Current redemption value
+- **Distribution** — How much is remaining vs exercised
+
+Click "View Details" on any contract to see more information.
+
+## Opening a Position
+
+### Step 1: Enter Investment Amount
+
+Specify how much BTC you want to invest.
+
+![Investment Amount Input](/img/app/InvestmentAmountInput.png)
+
+Use quick-select buttons: **25%** / **50%** / **75%** / **Max**
+
+### Step 2: Set Lock Period
+
+Choose your lock period in blocks (1-95). Longer lock periods mean lower premiums.
+
+![Lock Period Selection](/img/app/HoldPeriodSelection.png)
+
+### Step 3: Review the Calculator
+
+The interface automatically shows:
+- **Total Yield** — Expected percentage return
+- **Total Profit** — Profit in BTC
+- **Investment (BTC)** — Amount you're investing
+- **Total Payout (BTC)** — What you'll receive at expiry
+- **Payout Timeline** — Visual timeline showing when you'll receive funds
+
+![Profit Calculator](/img/app/ProfitCalculator.png)
+
+### Step 4: Confirm Purchase
+
+Click "Buy ftrBTC" and sign the transaction. Your position appears in the Positions tab.
+
+## Managing Positions
+
+Switch to the **Positions** tab to view your holdings:
+
+![Positions Table](/img/app/PositionsTable.png)
+
+For each position you can see:
+- **Contract** — Which ftrBTC contract
+- **Amount (ftrBTC)** — How much you hold
+- **Exercise Value** — What you'd receive if exercising now
+- **Last Trade (Market)** — Most recent market price
+- **Blocks Left** — Until contract expiry
+
+### Exercising a Position
+
+Click **Exercise** to redeem your ftrBTC for BTC. The exercise value moves deterministically as blocks pass—holding to expiry removes the time penalty (0% fee).
+
+
+## Contract Details
+
+Expand any position to see detailed information:
+
+![Contract Detail Modal](/img/app/ContractDetailModal.png)
+
+- **Contract** — Contract identifier
+- **Notional** — Amount in ftrBTC
+- **Time to expiry** — Blocks remaining
+- **Exercise now** — Current redemption value
+- **Last market trade** — Most recent trade price
+- **Behaviour** — How the exercise value changes over time
+
+## Strategies
+
+### Hold to Expiry
+
+The simplest strategy—buy ftrBTC at a discount and hold until expiry for 1:1 redemption.
+
+### Active Trading
+
+Monitor market prices for contracts trading below their fair value. Buy undervalued contracts and either hold or sell when the price rises.
+
+### For Miners
+
+Futures can help smooth out mining revenue by locking in future value.
+
+## Risk Considerations
+
+:::warning Trading Risk
+- Market prices can move against you
+- Early exercise costs a premium
+- Don't invest more than you can afford to hold until expiry
+:::
+
+| Risk | How to Manage |
+|------|---------------|
+| **Premium Cost** | Hold longer to reduce the premium |
+| **Market Movement** | Don't chase prices, use limit orders |
+| **Missing Expiry** | Set reminders, leave time buffer for transactions |
+
+## Tips
+
+- **Check multiple contracts** — Different contracts have different expiry times
+- **Use the calculator** — Let the interface show you expected returns
+- **Don't wait until the last moment** — Leave time for your transaction to confirm
+- **Start small** — Understand the mechanics before committing large amounts
