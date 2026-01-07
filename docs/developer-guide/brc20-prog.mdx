@@ -1,0 +1,381 @@
+---
+title: BRC2.0 (brc20-prog)
+sidebar_label: BRC2.0 Developer Guide
+sidebar_position: 6
+---
+
+# BRC2.0 (brc20-prog) Developer Guide
+
+BRC2.0 (also known as **brc20-prog**) is a protocol for deploying and executing EVM-compatible smart contracts directly on Bitcoin via inscriptions. It enables Solidity developers to bring their skills to Bitcoin without learning a new language.
+
+:::note
+BRC2.0 complements Alkanes—use Alkanes for token-focused operations and BRC2.0 for general computation and complex contract logic.
+:::
+
+## What is BRC2.0?
+
+BRC2.0 allows you to:
+
+- **Deploy EVM bytecode** onto Bitcoin as inscriptions
+- **Call contract functions** using standard Ethereum ABI encoding
+- **Execute Solidity contracts** within the Bitcoin ecosystem
+- **Interoperate with Alkanes** for cross-protocol token operations
+
+Unlike Alkanes which uses a custom binary protocol, BRC2.0 uses the standard **ord inscription format** with JSON payloads, making it compatible with existing ord indexers.
+
+## Core Concepts
+
+### Inscription Format
+
+BRC2.0 operations are inscribed as JSON payloads:
+
+**Deploy a contract:**
+```json
+{
+  "p": "brc20-prog",
+  "op": "deploy",
+  "d": "0x608060405234801561001057600080fd5b50..."
+}
+```
+
+**Call a contract function:**
+```json
+{
+  "p": "brc20-prog",
+  "op": "call",
+  "c": "0x1234567890abcdef1234567890abcdef12345678",
+  "d": "0xa9059cbb000000000000000000000000..."
+}
+```
+
+### The Commit-Reveal Pattern
+
+BRC2.0 uses a commit-reveal pattern to prevent frontrunning attacks:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  COMMIT TX                                              │
+│  ─────────                                              │
+│  • Sends funds to a taproot address                     │
+│  • Pubkey+CHECKSIG script prevents frontrunning         │
+│  • Only the key holder can create a valid reveal        │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  REVEAL TX                                              │
+│  ─────────                                              │
+│  • Spends the commit output                             │
+│  • Inscribes the JSON payload                           │
+│  • Creates the on-chain inscription                     │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼ (optional, for deployments)
+┌─────────────────────────────────────────────────────────┐
+│  ACTIVATION TX                                          │
+│  ─────────────                                          │
+│  • Spends the inscription UTXO                          │
+│  • Sends to OP_RETURN                                   │
+│  • "Activates" the deployed contract                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Anti-Frontrunning Protection
+
+The protocol implements multiple layers of protection:
+
+1. **Pubkey+CHECKSIG**: The reveal script starts with a pubkey check, ensuring only the commit creator can reveal
+2. **Atomic Broadcasting**: All transactions (commit + reveal + activation) are broadcast in a single RPC batch call
+3. **RBF Support**: Transactions are RBF-enabled for fee bumping if needed
+
+### Contract Address Derivation
+
+BRC2.0 uses Ethereum's contract address derivation:
+
+```
+contract_address = keccak256(rlp([sender_address, nonce]))[12:]
+```
+
+This means you can predict the contract address before deployment.
+
+## Setting Up Your Environment
+
+### Prerequisites
+
+- Rust and Cargo installed
+- Bitcoin Core node (or access to one)
+- Foundry (for Solidity compilation)
+- The alkanes-rs toolkit
+
+### Installing Foundry
+
+```bash
+# Install Foundry
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Verify installation
+forge --version
+```
+
+### Building alkanes-rs
+
+```bash
+git clone https://github.com/kungfuflex/alkanes-rs
+cd alkanes-rs
+cargo build --release
+```
+
+## Writing Your First Contract
+
+### 1. Create a Solidity Contract
+
+```solidity
+// src/MyToken.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+contract MyToken {
+    string public name = "My BRC2.0 Token";
+    string public symbol = "MBT";
+    uint8 public decimals = 18;
+    uint256 public totalSupply;
+
+    mapping(address => uint256) public balanceOf;
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    function mint(address to, uint256 amount) public {
+        balanceOf[to] += amount;
+        totalSupply += amount;
+        emit Transfer(address(0), to, amount);
+    }
+
+    function transfer(address to, uint256 amount) public returns (bool) {
+        require(balanceOf[msg.sender] >= amount, "Insufficient balance");
+        balanceOf[msg.sender] -= amount;
+        balanceOf[to] += amount;
+        emit Transfer(msg.sender, to, amount);
+        return true;
+    }
+}
+```
+
+### 2. Compile with Foundry
+
+```bash
+# Initialize Foundry project (if not already done)
+forge init --no-commit
+
+# Compile
+forge build
+
+# Output will be in out/MyToken.sol/MyToken.json
+```
+
+### 3. Deploy to Bitcoin
+
+Using the alkanes CLI:
+
+```bash
+alkanes brc20-prog deploy \
+  --foundry-json out/MyToken.sol/MyToken.json \
+  --from bc1p... \
+  --change bc1p... \
+  --fee-rate 30 \
+  --use-activation
+```
+
+The CLI will output:
+- **Commit txid**: The funding transaction
+- **Reveal txid**: The inscription transaction
+- **Activation txid**: The activation transaction (if `--use-activation` used)
+- **Contract address**: The deployed contract's address
+
+## Calling Contract Functions
+
+### ABI Encoding
+
+BRC2.0 uses standard Ethereum ABI encoding for function calls:
+
+```rust
+// Function signature: transfer(address,uint256)
+// Selector: keccak256("transfer(address,uint256)")[:4] = 0xa9059cbb
+
+// Arguments:
+// - to: 0x1234...
+// - amount: 1000000000000000000 (1 token with 18 decimals)
+
+// Encoded calldata:
+// 0xa9059cbb
+// 0000000000000000000000001234567890abcdef1234567890abcdef12345678
+// 0000000000000000000000000000000000000000000000000de0b6b3a7640000
+```
+
+### Making a Call
+
+```bash
+alkanes brc20-prog call \
+  --contract 0x1234567890abcdef1234567890abcdef12345678 \
+  --function "transfer(address,uint256)" \
+  --args "0xrecipient...,1000000000000000000" \
+  --from bc1p... \
+  --fee-rate 30
+```
+
+## FrBTC: The Reference Implementation
+
+FrBTC is the flagship BRC2.0 application—a trustless BTC wrapper that mints frBTC tokens:
+
+### Key Functions
+
+| Function | Description |
+|----------|-------------|
+| `wrap()` | Mint frBTC for BTC sent to the contract |
+| `unwrap(amount, vout)` | Burn frBTC and queue a BTC payment |
+| `wrapAndExecute2(target, data)` | Wrap BTC and call another contract atomically |
+
+### Network Addresses
+
+| Network | FrBTC Contract Address |
+|---------|------------------------|
+| Mainnet | `0xdBB5b6A1D...` |
+| Signet | `0x8A3d3eB...` |
+| Regtest | `0x00...` |
+
+### Example: Wrapping BTC
+
+```bash
+alkanes brc20-prog frbtc wrap \
+  --amount 0.01 \
+  --from bc1p... \
+  --fee-rate 30
+```
+
+## Cross-Protocol Interoperability
+
+### BRC2.0 ↔ Alkanes
+
+BRC2.0 contracts can interact with Alkanes tokens:
+
+```
+User sends BTC
+      │
+      ▼
+┌─────────────────┐
+│  FrBTC.wrap()   │  ← BRC2.0 contract
+│  mints frBTC    │
+└─────────────────┘
+      │
+      ▼
+┌─────────────────┐
+│  Alkanes Vault  │  ← Alkanes contract
+│  holds frBTC    │
+│  issues auth    │
+└─────────────────┘
+      │
+      ▼
+User receives vault tokens
+```
+
+### The wrapAndExecute2 Pattern
+
+This powerful pattern atomically wraps BTC and calls another contract:
+
+```solidity
+function wrapAndExecute2(address target, bytes calldata data) public {
+    // 1. Wrap incoming BTC to frBTC
+    uint256 wrapped = _wrap(msg.sender);
+
+    // 2. Approve target contract
+    _approve(msg.sender, target, wrapped);
+
+    // 3. Call target with provided data
+    (bool success, ) = target.call(data);
+    require(success, "Target call failed");
+}
+```
+
+## BRC2.0 vs Alkanes
+
+| Aspect | BRC2.0 | Alkanes |
+|--------|--------|---------|
+| **Language** | Solidity | Rust |
+| **Encoding** | JSON inscriptions | Binary protocol |
+| **Indexer** | Standard ord | Alkanes-specific |
+| **Best For** | Complex computation | Token operations |
+| **ABI** | Ethereum ABI | Custom opcodes |
+| **Tooling** | Foundry, Hardhat | Cargo, alkanes-runtime |
+
+**When to use BRC2.0:**
+- Porting existing Solidity contracts
+- Complex business logic
+- EVM-compatible interfaces
+- Cross-chain compatibility needs
+
+**When to use Alkanes:**
+- Token minting/burning
+- Simple state machines
+- Performance-critical operations
+- Native Bitcoin integrations
+
+## Advanced Topics
+
+### Inscription Protection
+
+If your UTXOs contain other inscriptions, BRC2.0 automatically protects them via a split transaction:
+
+```
+UTXO with inscription
+      │
+      ▼
+┌─────────────────┐
+│  Split TX       │
+├─────────────────┤
+│ Out 1: Clean    │ → Used for commit
+│ Out 2: Original │ → Keeps inscription safe
+└─────────────────┘
+```
+
+### Fee Calculation
+
+BRC2.0 uses precise fee calculation via the "dummy transaction" technique:
+
+1. Build a complete reveal transaction with real script
+2. Calculate exact vsize (not estimated)
+3. Set commit output = inscription_output + reveal_fee
+4. No change output (avoids dust)
+
+### Mempool State Tracking
+
+The executor tracks inscription state through unconfirmed transactions, allowing:
+- Resume from partial deployments
+- Trace inscriptions through pending UTXOs
+- Handle reorgs gracefully
+
+## Troubleshooting
+
+### Common Issues
+
+**"Insufficient funds"**
+- Ensure your wallet has enough BTC for fees + inscription output (546 sats)
+- Check that UTXOs aren't locked or already spent
+
+**"Frontrun detected"**
+- This shouldn't happen with atomic broadcasting
+- If it does, the transaction can be resumed
+
+**"Contract address mismatch"**
+- Verify the nonce used in address derivation
+- Check that the sender address is correct
+
+### Getting Help
+
+- GitHub Issues: [kungfuflex/alkanes-rs](https://github.com/kungfuflex/alkanes-rs)
+- Documentation: This guide and related pages
+
+## Next Steps
+
+- Read the [Alkanes Developer Guide](./getting-started) for token operations
+- Explore [Key Technical Components](../key-components/alkanes) for deeper protocol understanding
+- Check [SUBFROST Networking](../subfrost-networking/introduction-to-subp2p) for P2P integration

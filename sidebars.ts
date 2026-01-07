@@ -61,6 +61,7 @@ const sidebars: SidebarsConfig = {
         'developer-guide/subfrost-runtime',
         'developer-guide/subrail',
         'developer-guide/SubSwap',
+        'developer-guide/brc20-prog',
       ]
     },
     {
@@ -102,6 +103,7 @@ const sidebars: SidebarsConfig = {
       label: 'Key Technical Components',
       items: [
         'key-components/alkanes',
+        'key-components/brc20-prog',
         'key-components/frost-and-roast',
         'key-components/schnorr-signatures',
         'key-components/keystore-management',
