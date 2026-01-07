@@ -346,3 +346,15 @@ The executor tracks inscription state through unconfirmed transactions, allowing
 
 - GitHub Issues: [kungfuflex/alkanes-rs](https://github.com/kungfuflex/alkanes-rs)
 - Message @SUBFROSTio on X
+
+## Key Implementation Files
+
+The reference implementation lives in `alkanes-rs`:
+
+| File | Purpose |
+|------|---------|
+| `execute.rs` | Core execution engine (commit-reveal-activation) |
+| `envelope.rs` | Ord inscription envelope construction |
+| `calldata.rs` | Ethereum ABI encoding |
+| `contract_address.rs` | Address derivation |
+| `types.rs` | Parameter and result types |

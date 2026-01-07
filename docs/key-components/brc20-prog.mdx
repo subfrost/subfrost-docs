@@ -177,38 +177,7 @@ UTXO containing inscription
 
 The mempool indexer traces inscription state through unconfirmed transactions, allowing safe splitting.
 
-## BRC2.0 vs Alkanes
-
-| Feature | BRC2.0 | Alkanes |
-|---------|--------|---------|
-| **Encoding** | JSON inscriptions | Binary (BIN protocol) |
-| **Language** | Solidity/EVM | Rust |
-| **Indexer** | Standard ord | Alkanes-specific |
-| **State Model** | EVM accounts | UTXO-based |
-| **Best For** | General computation | Token operations |
-
-### Interoperability
-
-BRC2.0 and Alkanes can interoperate:
-
-- BRC2.0 contracts can trigger Alkanes operations
-- Alkanes contracts can hold assets managed by BRC2.0
-- The `wrapAndExecute2` pattern enables atomic cross-protocol calls
-
-## Key Implementation Files
-
-The reference implementation lives in `alkanes-rs`:
-
-| File | Purpose |
-|------|---------|
-| `execute.rs` | Core execution engine (commit-reveal-activation) |
-| `envelope.rs` | Ord inscription envelope construction |
-| `calldata.rs` | Ethereum ABI encoding |
-| `contract_address.rs` | Address derivation |
-| `types.rs` | Parameter and result types |
-
 ## See Also
 
-- [BRC2.0 Developer Guide](../developer-guide/brc20-prog) — How to deploy and call contracts
+- [BRC2.0 Integration](../developer-guide/brc20-prog) — How to deploy and call contracts
 - [Alkanes Metaprotocol](./alkanes) — Token-focused operations
-- [Schnorr Signatures](./schnorr-signatures) — Underlying cryptography
