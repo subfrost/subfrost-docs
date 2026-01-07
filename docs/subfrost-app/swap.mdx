@@ -11,26 +11,14 @@ Interface is currently in development and subject to change.
 
 The Swap feature lets you trade between supported assets in a single transaction, settled directly on Bitcoin L1. No bridges, no wrapped tokens to manage manually—just straightforward trading.
 
-**Highlights:**
+**Highlights (some features in development):**
 - Single-transaction swaps settled on Bitcoin L1
 - Automatic routing for best rates
-- Cross-chain support for ETH, SOL, ZEC, USDC, USDT
-- BTC ↔ frBTC conversion at 1:1
+- Cross-BTCFi support for Alkanes & BRC20s
+- Cross-chain support for USDT, SOL, ZEC, USDC, USDT
+- Direct swaps to-and-from Native BTC
 
 ![Main Swap Interface](/img/app/MainSwapInterface.png)
-
-## Supported Assets
-
-| Asset | Description |
-|-------|-------------|
-| **BTC** | Native Bitcoin |
-| **frBTC** | DeFi-compatible wrapped Bitcoin |
-| **bUSD / DIESEL** | Bitcoin-native stablecoin |
-| **USDC** | Cross-chain stablecoin |
-| **USDT** | Cross-chain stablecoin |
-| **ETH** | Cross-chain Ethereum |
-| **SOL** | Cross-chain Solana |
-| **ZEC** | Cross-chain Zcash |
 
 ## How to Swap
 
@@ -47,9 +35,9 @@ Type the amount you want to swap. Use the quick-select buttons for convenience:
 
 The balance bar shows your usage with color-coded feedback.
 
-![Amount Input](/img/app/AmountInput.png)
+![Balance Bar](/img/app/BalanceBar.png)
 
-### Step 3: Review the Quote
+### Step 3: Customize Settings & Review
 
 Before confirming, you'll see:
 - **Exchange rate** — How much you'll receive per unit
@@ -60,10 +48,6 @@ Before confirming, you'll see:
 - **Miner fee rate** — Network fee for the transaction
 
 ![Quote Details](/img/app/QuoteDetailsSwapSummary.png)
-
-:::warning High Slippage Warning
-If slippage exceeds 5%, you'll see a warning. Always review large trades carefully.
-:::
 
 ### Step 4: Confirm & Execute
 
@@ -83,36 +67,27 @@ The AMM automatically routes your swap for the best rate:
 | **Multi-hop** | Token A → Bridge Token → Token B |
 | **Wrap/Unwrap** | BTC ↔ frBTC (1:1 conversion) |
 
-### BTC Swaps
+### Direct BTC Swaps
 
-When swapping **BTC to another token**, the app first wraps your BTC to frBTC, then swaps to your target token. This happens in a guided flow.
+When swapping **BTC to another token**, the app first wraps your BTC to frBTC, then swaps to your target token. This happens atomically without the user having to manually wrap their BTC. The wrapping process is abstracted away completely.
 
-When swapping **to BTC**, the reverse happens—your token swaps to frBTC, then unwraps to native BTC.
+When swapping **to BTC**, the reverse happens—your token swaps to frBTC, then unwraps to native BTC automatically. There is a 3-block confirmation period (safety mechanism) before the SUBFROST protocol sends the unwrapped BTC.
 
 ## Cross-Chain Swaps
 
-For cross-chain tokens (USDT, USDC, ETH, SOL, ZEC), the interface guides you through a bridge process:
+For cross-chain tokens (USDT, USDC, ETH, SOL, ZEC), the interface guides you through a simple bridge process:
 
-1. **Deposit detection** — Waiting for your deposit
+1. **User Sends** — Waiting for your deposit
 2. **Confirmation** — Confirming on source chain
-3. **Swap execution** — Converting on SUBFROST
-4. **Sending** — Bridging to destination
-5. **Complete** — Funds delivered
+3. **Swap execution** — Converting & swapping
+4. **SUBFROST Sends** — User receives funds
+5. **Complete** — Funds confirmed
+
+This is all done automatically once the user performs step 1.
 
 <div className="screenshot-placeholder">
   ? Screenshot: Cross-chain bridge UI with progress steps
 </div>
-
-## Fee Rate Options
-
-Select your Bitcoin miner fee rate:
-
-| Preset | Description |
-|--------|-------------|
-| **Slow** | Lower fee, longer confirmation |
-| **Medium** | Balanced fee and speed |
-| **Fast** | Higher fee, faster confirmation |
-| **Custom** | Specify exact sats/vB |
 
 ## Liquidity Pools
 
@@ -127,7 +102,7 @@ Switch to the **Liquidity** tab to provide or remove liquidity:
 3. Enter amounts for both tokens
 4. Click "Add Liquidity" and sign the transaction
 
-Liquidity providers earn fees from trades in their pool.
+Liquidity providers earn fees from trades in their pool. Note: For BTC pools, user BTC is atomically wrapped to frBTC.
 
 ### Removing Liquidity
 
@@ -136,6 +111,5 @@ Switch to the **Remove** tab to withdraw your liquidity position and reclaim you
 ## Tips
 
 - **Check the rate** before confirming—compare against external sources for large trades
-- **Start small** if you're new to the platform to understand the flow
+- **Start small** if you're new to the platform, to understand the flow
 - **Watch price impact** on larger trades; splitting into multiple swaps may get better rates
-- **Use wrap/unwrap** for BTC ↔ frBTC conversions (1:1, no slippage)
