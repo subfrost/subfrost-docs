@@ -1,0 +1,230 @@
+---
+title: FR-BTC Wrapping & Unwrapping
+sidebar_label: FR-BTC Wrapping
+sidebar_position: 3
+---
+
+# FR-BTC Wrapping & Unwrapping
+
+FR-BTC is a synthetic Bitcoin token pegged 1:1 to BTC. This guide explains how wrapping and unwrapping works at the protocol level.
+
+## How Wrapping Works
+
+Wrapping converts native BTC to FR-BTC in a single atomic Bitcoin transaction:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  WRAP TRANSACTION                                       │
+├─────────────────────────────────────────────────────────┤
+│  Input: Your BTC UTXO                                   │
+├─────────────────────────────────────────────────────────┤
+│  Output 0: BTC → SUBFROST signer address                │
+│  Output 1: FR-BTC → Your address (via protostone)       │
+│  Output 2+: Change → Your change address                │
+├─────────────────────────────────────────────────────────┤
+│  OP_RETURN: Protostone calling exchange() opcode 77     │
+└─────────────────────────────────────────────────────────┘
+```
+
+The FR-BTC contract at `{32, 0}` validates that BTC was sent to the correct signer address and mints an equivalent amount of FR-BTC to your address.
+
+### Wrap Using CLI
+
+```bash
+alkanes alkanes wrap-btc <AMOUNT> \
+  --to <RECIPIENT_ADDRESS> \
+  --from <YOUR_ADDRESS> \
+  --change <CHANGE_ADDRESS> \
+  --fee-rate <SAT_PER_VB> \
+  -y
+```
+
+**Example: Wrap 0.01 BTC**
+
+```bash
+alkanes alkanes wrap-btc 0.01 \
+  --to bc1p... \
+  --from bc1p... \
+  --change bc1p... \
+  --fee-rate 10 \
+  -y
+```
+
+### Wrap Using BRC2.0
+
+For integration with EVM contracts:
+
+```bash
+alkanes brc20-prog wrap-btc <AMOUNT> \
+  --from <ADDRESSES> \
+  -y
+```
+
+### Wrap and Execute
+
+Atomically wrap BTC and call a contract function:
+
+```bash
+alkanes brc20-prog wrap-and-execute2 <AMOUNT> \
+  --target 0x<CONTRACT_ADDRESS> \
+  --signature "deposit()" \
+  -y
+```
+
+This pattern is useful for depositing into vaults or other DeFi protocols in a single transaction.
+
+## How Unwrapping Works
+
+Unwrapping converts FR-BTC back to native BTC in a two-step process:
+
+### Step 1: Burn FR-BTC
+
+Create a transaction that burns your FR-BTC and queues a payment request:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  UNWRAP TRANSACTION                                     │
+├─────────────────────────────────────────────────────────┤
+│  Input: Your FR-BTC UTXO                                │
+├─────────────────────────────────────────────────────────┤
+│  OP_RETURN: Protostone calling unwrap() opcode 78       │
+│             with vout and amount parameters             │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Step 2: Receive BTC
+
+The SUBFROST signers monitor for unwrap requests and cooperatively sign a Bitcoin transaction to release the locked BTC to your specified address.
+
+```bash
+alkanes brc20-prog unwrap-btc <AMOUNT> \
+  --vout <OUTPUT_INDEX> \
+  --to <YOUR_BTC_ADDRESS> \
+  -y
+```
+
+### Minimum Unwrap Amount
+
+Due to dust limits and transaction fees, there's a minimum unwrap amount:
+
+```bash
+alkanes subfrost minimum-unwrap \
+  --fee-rate <SAT_PER_VB> \
+  --premium 0.001
+```
+
+The formula considers:
+- Dust threshold (546 sats)
+- Fee per output based on transaction size
+- Protocol premium (default 0.1%)
+
+## Transaction Structure
+
+### Protostone Format
+
+Wrap transactions include a protostone in the OP_RETURN:
+
+```
+Protostone {
+  cellpack: {
+    target: {block: 32, tx: 0},  // FR-BTC contract
+    inputs: [77]                  // exchange() opcode
+  },
+  bitcoin_transfer: {
+    amount: <SATS>,
+    target: Output(0)             // Send BTC to output 0
+  },
+  pointer: Output(1),             // FR-BTC goes to output 1
+  refund: Output(1)               // Unused tokens back to output 1
+}
+```
+
+### Signer Address
+
+The SUBFROST signer address is derived from the FR-BTC contract:
+
+```bash
+alkanes brc20-prog signer-address
+```
+
+This queries opcode 103 (GET_SIGNER) on the FR-BTC contract and returns the Taproot address derived from the signer's public key.
+
+## Checking Balances
+
+### FR-BTC Balance
+
+```bash
+alkanes alkanes getbalance --address <YOUR_ADDRESS>
+```
+
+### Pending Unwraps
+
+View pending unwrap requests:
+
+```bash
+alkanes alkanes unwrap --block-tag latest
+```
+
+Or via BRC2.0:
+
+```bash
+alkanes brc20-prog unwrap
+```
+
+## Key Parameters
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| FR-BTC Contract | `{32, 0}` | Block 32, Transaction 0 |
+| Wrap Opcode | `77` | exchange() function |
+| Unwrap Opcode | `78` | unwrap() function |
+| Default Premium | `0.1%` | Protocol fee on unwrap |
+| Dust Threshold | `546 sats` | Minimum output value |
+
+## Error Handling
+
+**"Insufficient funds"**
+- Ensure you have enough BTC for the wrap amount plus transaction fees
+- Check that your UTXOs aren't locked or already spent
+
+**"Below minimum unwrap"**
+- Your unwrap amount is below the dust threshold plus fees
+- Use `minimum-unwrap` command to check the current minimum
+
+**"Signer address mismatch"**
+- The BTC was sent to the wrong address
+- Query the current signer address before wrapping
+
+## Integration Example
+
+Here's a complete wrap flow:
+
+```bash
+# 1. Create wallet if needed
+alkanes wallet create
+
+# 2. Check your addresses
+alkanes wallet addresses --range 0:3
+
+# 3. Fund your wallet with BTC (external step)
+
+# 4. Check balance
+alkanes wallet balance
+
+# 5. Wrap 0.01 BTC
+alkanes alkanes wrap-btc 0.01 \
+  --to bc1p... \
+  --from bc1p... \
+  --change bc1p... \
+  --fee-rate 10 \
+  -y
+
+# 6. Verify FR-BTC balance
+alkanes alkanes getbalance --address bc1p...
+```
+
+## See Also
+
+- [FR-BTC Smart Contracts](./frBTC-smart-contracts) — Contract opcodes and methods
+- [Alkanes CLI](./subfrost-cli) — Full CLI reference
+- [BRC2.0 Integration](./brc20-prog) — EVM contract integration

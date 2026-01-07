@@ -58,9 +58,8 @@ const sidebars: SidebarsConfig = {
       items: [
         'developer-guide/getting-started',
         'developer-guide/subfrost-cli',
-        'developer-guide/subfrost-runtime',
-        'developer-guide/subrail',
-        'developer-guide/SubSwap',
+        'developer-guide/wrapping-frBTC',
+        'developer-guide/frBTC-smart-contracts',
         'developer-guide/brc20-prog',
       ]
     },
@@ -74,8 +73,6 @@ const sidebars: SidebarsConfig = {
           label: 'frBTC - Defi-compatible BTC',
         },
         'tokens/frBTC-roadmap',
-        'tokens/wrapping-frBTC',
-        'tokens/frBTC-smart-contracts',
         {
           type: 'doc',
           id: 'tokens/frBTC-scripts',

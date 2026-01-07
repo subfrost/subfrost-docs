@@ -1,107 +1,271 @@
 ---
-sidebar_label: subfrost-cli
+sidebar_label: Alkanes CLI
+sidebar_position: 2
 ---
 
-# `subfrost-cli`: The SUBFROST Command Line Interface
+# Alkanes CLI
 
-`subfrost-cli` is the primary command-line tool for interacting with the SUBFROST network. It provides a rich set of commands for managing your FROST keystore, participating in signing ceremonies, and interacting with services running on the `subp2p` network.
+The Alkanes CLI (`alkanes`) is the primary command-line tool for interacting with the Alkanes metaprotocol on Bitcoin. It provides commands for wallet management, token operations, contract deployment, and querying the network.
 
 ## Installation
 
-You can install `subfrost-cli` using `cargo`:
-
-```sh
-cargo install subfrost-cli
-```
-
-## Keystore Management
-
-A SUBFROST keystore is a file that securely stores your cryptographic keys. `subfrost-cli` provides a set of commands for creating and managing your keystore.
-
-### Creating a Keystore
-
-To create a new keystore, you can use the `frost create` command:
-
-```sh
-subfrost-cli frost create --threshold 2 --signers 3 > keystore.json
-```
-
-This command will create a new keystore with a 2-of-3 threshold and save it to a file named `keystore.json`. You will be prompted to enter a passphrase to encrypt the keystore.
-
-### Inspecting a Keystore
-
-You can inspect the contents of a keystore using the `frost info` command:
-
-```sh
-subfrost-cli frost info --keystore keystore.json
-```
-
-This will print out the public information about the keystore, such as the group public key and the list of participants.
-
-## FROST Wallet
-
-The `frost` subcommand provides a complete FROST wallet that allows you to participate in Distributed Key Generation (DKG) and signing ceremonies.
-
-### Distributed Key Generation (DKG)
-
-To create a new FROST group, you and the other participants must perform a DKG ceremony. This is an interactive process where you will exchange messages with the other participants to collaboratively generate a group public key and your individual secret shares.
-
-To start a DKG ceremony, use the `frost dkg` command:
-
-```sh
-subfrost-cli frost dkg --keystore keystore.json --passphrase <your-passphrase> --threshold 2 --signers 3 --topic my-dkg-topic
-```
-
-This will start the DKG process and wait for the other participants to join the `my-dkg-topic` on the `subp2p` network.
-
-### Signing
-
-Once a FROST group has been created, you can use it to sign messages. To sign a message, use the `frost sign` command:
-
-```sh
-subfrost-cli frost sign --keystore keystore.json --passphrase <your-passphrase> --message "Hello, world!" --topic my-signing-topic
-```
-
-This will initiate a signing ceremony on the `my-signing-topic`. Once the required threshold of participants have joined and provided their partial signatures, the final aggregated signature will be printed to the console.
-
-## Interacting with `subp2p` Services
-
-The `rail` subcommand allows you to interact with any JSON-RPC service running on the `subp2p` network.
-
-```sh
-subfrost-cli rail <service-uri> <method> [params...]
-```
-
-*   `<service-uri>`: The `.rail` or `.peer` address of the service.
-*   `<method>`: The name of the JSON-RPC method to call.
-*   `[params...]`: The parameters to pass to the method.
-
-For example, to call the `get_height` method on a `subrail` service running at `my-consensus-node.rail`:
-
-```sh
-subfrost-cli rail subp2p://my-consensus-node.rail subrail_height
-```
-
-This powerful command allows you to interact with any service on the `subp2p` network directly from the command line, making it an invaluable tool for debugging and development.
-
-## `subfrost-cli` in SUBFROST
-
-The `subfrost-cli` is the primary tool for interacting with the SUBFROST network. It can be used to:
-
-*   **Manage your keystore:** Create, import, and export your SUBFROST keystore.
-*   **Participate in FROST signing ceremonies:** Participate in DKG and signing ceremonies to create and use FROST threshold signatures.
-*   **Interact with `subp2p` services:** Interact with any JSON-RPC service running on the `subp2p` network.
-*   **Wrap and unwrap `frBTC`:** Wrap BTC to mint `frBTC` and unwrap `frBTC` to redeem BTC.
-*   **Mint and burn `dxBTC`:** Mint `dxBTC` by locking up `frBTC` and burn `dxBTC` to redeem `frBTC`.
-*   **Stake `dxFROST`:** Stake `dxFROST` tokens to become a signer in the FROST threshold signature group.
-*   **Participate in governance:** Vote on governance proposals.
-
-### Getting the Balance of an `frBTC` Address
-
-Here is an example of how to use the `subfrost-cli` to get the balance of an `frBTC` address:
+Install from the alkanes-rs repository:
 
 ```bash
-subfrost-cli rail subp2p://my-consensus-node.rail fr_btc_balance --address <your-subfrost-address>
+git clone https://github.com/kungfuflex/alkanes-rs
+cd alkanes-rs
+cargo build --release
 ```
 
-This command will call the `fr_btc_balance` method on the `subrail` service running at `my-consensus-node.rail` and return the balance of the specified address.
+The binary will be available at `target/release/alkanes`.
+
+## Global Options
+
+All commands support these global options:
+
+| Option | Description |
+|--------|-------------|
+| `--wallet-file <PATH>` | Path to wallet file |
+| `--passphrase <PHRASE>` | Wallet passphrase for signing |
+| `--wallet-address <ADDR>` | Watch-only mode (read-only) |
+| `--jsonrpc-url <URL>` | Custom JSON-RPC endpoint |
+| `--provider <PROVIDER>` | Network: `regtest`, `signet`, `mainnet` |
+| `--frbtc-address <ADDR>` | Override FR-BTC contract address |
+
+## Wallet Commands
+
+### Create a Wallet
+
+```bash
+alkanes wallet create
+```
+
+Creates a new wallet with a 12-word mnemonic phrase. Store this phrase securely.
+
+### List Addresses
+
+```bash
+alkanes wallet addresses --range 0:5
+```
+
+Shows wallet addresses. Use range notation `start:end` to specify which addresses to display.
+
+### Check Balance
+
+```bash
+alkanes wallet balance
+```
+
+Displays BTC and token balances for your wallet.
+
+### List UTXOs
+
+```bash
+alkanes wallet utxos
+```
+
+Lists all unspent transaction outputs in your wallet.
+
+## Alkanes Operations
+
+### Wrap BTC to FR-BTC
+
+```bash
+alkanes alkanes wrap-btc <AMOUNT> \
+  --to <RECIPIENT_ADDRESS> \
+  --from <YOUR_ADDRESS> \
+  --change <CHANGE_ADDRESS> \
+  --fee-rate <SAT_PER_VB> \
+  -y
+```
+
+Wraps native BTC to FR-BTC tokens. The `-y` flag auto-confirms the transaction.
+
+**Example:**
+```bash
+alkanes alkanes wrap-btc 0.01 \
+  --to bc1p... \
+  --from bc1p... \
+  --change bc1p... \
+  --fee-rate 10 \
+  -y
+```
+
+### Check Token Balance
+
+```bash
+alkanes alkanes getbalance --address <ADDRESS>
+```
+
+### View Pending Unwraps
+
+```bash
+alkanes alkanes unwrap --block-tag latest
+```
+
+Shows pending FR-BTC unwrap requests waiting to be processed.
+
+### Execute Custom Transactions
+
+```bash
+alkanes alkanes execute \
+  --inputs <REQUIREMENTS> \
+  --to <ADDRESSES> \
+  --protostones <SPECS> \
+  -y
+```
+
+For advanced users building custom Alkanes transactions.
+
+**Input format:**
+- `B:amount` — Bitcoin amount in sats
+- `BLOCK:TX:amount` — Specific token amount
+
+### Inspect Contracts
+
+```bash
+alkanes alkanes inspect <OUTPOINT> --disasm --meta
+```
+
+Disassemble and inspect contract bytecode.
+
+### Simulate Transactions
+
+```bash
+alkanes alkanes simulate <TX_HEX>
+```
+
+Simulate an Alkanes transaction without broadcasting.
+
+## BRC2.0 Commands
+
+### Deploy a Contract
+
+```bash
+alkanes brc20-prog deploy-contract <FOUNDRY_JSON> \
+  --from <ADDRESS> \
+  --change <ADDRESS> \
+  --fee-rate <SAT_PER_VB> \
+  -y
+```
+
+Deploy a Solidity contract compiled with Foundry.
+
+### Call a Contract
+
+```bash
+alkanes brc20-prog transact \
+  --address 0x<CONTRACT_ADDRESS> \
+  --signature "functionName(type1,type2)" \
+  --calldata "arg1,arg2" \
+  --from <ADDRESS> \
+  -y
+```
+
+### Query Contract State
+
+```bash
+alkanes brc20-prog call \
+  --address 0x<CONTRACT_ADDRESS> \
+  --signature "viewFunction()" \
+  --calldata ""
+```
+
+### Get Contract Code
+
+```bash
+alkanes brc20-prog get-code --address 0x<CONTRACT_ADDRESS>
+```
+
+### Wrap and Execute
+
+```bash
+alkanes brc20-prog wrap-and-execute2 <AMOUNT> \
+  --target 0x<CONTRACT_ADDRESS> \
+  --signature "deposit()" \
+  -y
+```
+
+Atomically wrap BTC to FR-BTC and call a contract function.
+
+## Bitcoin RPC Commands
+
+Direct Bitcoin Core RPC access:
+
+```bash
+# Get block count
+alkanes bitcoind getblockcount
+
+# Get raw transaction
+alkanes bitcoind getrawtransaction <TXID>
+
+# Decode transaction
+alkanes bitcoind decoderawtransaction <TX_HEX>
+
+# Send transaction
+alkanes bitcoind sendrawtransaction <TX_HEX>
+```
+
+## Esplora Commands
+
+Query Esplora API:
+
+```bash
+# Get address info
+alkanes esplora address <ADDRESS>
+
+# Get address UTXOs
+alkanes esplora address-utxo <ADDRESS>
+
+# Get transaction
+alkanes esplora tx <TXID>
+
+# Fee estimates
+alkanes esplora fee-estimates
+```
+
+## Transaction Options
+
+### Fee Rate
+
+Set custom fee rate in sat/vB:
+
+```bash
+--fee-rate 15
+```
+
+### Broadcasting Methods
+
+| Option | Description |
+|--------|-------------|
+| Default | Standard mempool broadcast |
+| `--use-slipstream` | MARA Slipstream (bypasses mempool) |
+| `--use-rebar` | Rebar Shield (private relay with MEV protection) |
+| `--mine` | Mine immediately (regtest only) |
+
+### Auto-confirm
+
+Skip confirmation prompts:
+
+```bash
+-y, --auto-confirm
+```
+
+## Key Constants
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| FR-BTC Contract | `{32, 0}` | Block 32, Transaction 0 |
+| Wrap Opcode | `77` | FR-BTC exchange function |
+| Unwrap Opcode | `78` | FR-BTC unwrap function |
+| Get Signer Opcode | `103` | Query signer address |
+| Genesis Block | `880000` | Mainnet genesis |
+
+## Getting Help
+
+```bash
+alkanes --help
+alkanes <COMMAND> --help
+```
+
+For issues and contributions: [kungfuflex/alkanes-rs](https://github.com/kungfuflex/alkanes-rs)
