@@ -8,10 +8,6 @@ sidebar_position: 6
 
 BRC2.0 (also known as **brc20-prog**) is a protocol for deploying and executing EVM-compatible smart contracts directly on Bitcoin via inscriptions. It enables Solidity developers to bring their skills to Bitcoin without learning a new language.
 
-:::note
-BRC2.0 complements Alkanes—use Alkanes for token-focused operations and BRC2.0 for general computation and complex contract logic.
-:::
-
 ## What is BRC2.0?
 
 BRC2.0 allows you to:
@@ -198,7 +194,7 @@ The CLI will output:
 
 BRC2.0 uses standard Ethereum ABI encoding for function calls:
 
-```rust
+```text
 // Function signature: transfer(address,uint256)
 // Selector: keccak256("transfer(address,uint256)")[:4] = 0xa9059cbb
 
@@ -223,21 +219,21 @@ alkanes brc20-prog call \
   --fee-rate 30
 ```
 
-## FrBTC: The Reference Implementation
+## FR-BTC: The Reference Implementation
 
-FrBTC is the flagship BRC2.0 application—a trustless BTC wrapper that mints frBTC tokens:
+FR-BTC is the flagship BRC2.0 application—a trustless BTC wrapper that mints FR-BTC tokens:
 
 ### Key Functions
 
 | Function | Description |
 |----------|-------------|
-| `wrap()` | Mint frBTC for BTC sent to the contract |
-| `unwrap(amount, vout)` | Burn frBTC and queue a BTC payment |
+| `wrap()` | Mint FR-BTC for BTC sent to the contract |
+| `unwrap(amount, vout)` | Burn FR-BTC and queue a BTC payment |
 | `wrapAndExecute2(target, data)` | Wrap BTC and call another contract atomically |
 
 ### Network Addresses
 
-| Network | FrBTC Contract Address |
+| Network | FR-BTC Contract Address |
 |---------|------------------------|
 | Mainnet | `0xdBB5b6A1D...` |
 | Signet | `0x8A3d3eB...` |
@@ -263,14 +259,14 @@ User sends BTC
       │
       ▼
 ┌─────────────────┐
-│  FrBTC.wrap()   │  ← BRC2.0 contract
-│  mints frBTC    │
+│  FR-BTC.wrap()  │  ← BRC2.0 contract
+│  mints FR-BTC   │
 └─────────────────┘
       │
       ▼
 ┌─────────────────┐
 │  Alkanes Vault  │  ← Alkanes contract
-│  holds frBTC    │
+│  holds FR-BTC   │
 │  issues auth    │
 └─────────────────┘
       │
@@ -284,7 +280,7 @@ This powerful pattern atomically wraps BTC and calls another contract:
 
 ```solidity
 function wrapAndExecute2(address target, bytes calldata data) public {
-    // 1. Wrap incoming BTC to frBTC
+    // 1. Wrap incoming BTC to FR-BTC
     uint256 wrapped = _wrap(msg.sender);
 
     // 2. Approve target contract
@@ -296,30 +292,7 @@ function wrapAndExecute2(address target, bytes calldata data) public {
 }
 ```
 
-## BRC2.0 vs Alkanes
-
-| Aspect | BRC2.0 | Alkanes |
-|--------|--------|---------|
-| **Language** | Solidity | Rust |
-| **Encoding** | JSON inscriptions | Binary protocol |
-| **Indexer** | Standard ord | Alkanes-specific |
-| **Best For** | Complex computation | Token operations |
-| **ABI** | Ethereum ABI | Custom opcodes |
-| **Tooling** | Foundry, Hardhat | Cargo, alkanes-runtime |
-
-**When to use BRC2.0:**
-- Porting existing Solidity contracts
-- Complex business logic
-- EVM-compatible interfaces
-- Cross-chain compatibility needs
-
-**When to use Alkanes:**
-- Token minting/burning
-- Simple state machines
-- Performance-critical operations
-- Native Bitcoin integrations
-
-## Advanced Topics
+## Good to Know
 
 ### Inscription Protection
 
@@ -372,10 +345,4 @@ The executor tracks inscription state through unconfirmed transactions, allowing
 ### Getting Help
 
 - GitHub Issues: [kungfuflex/alkanes-rs](https://github.com/kungfuflex/alkanes-rs)
-- Documentation: This guide and related pages
-
-## Next Steps
-
-- Read the [Alkanes Developer Guide](./getting-started) for token operations
-- Explore [Key Technical Components](../key-components/alkanes) for deeper protocol understanding
-- Check [SUBFROST Networking](../subfrost-networking/introduction-to-subp2p) for P2P integration
+- Message @SUBFROSTio on X
