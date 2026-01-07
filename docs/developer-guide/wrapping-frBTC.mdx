@@ -1,12 +1,44 @@
 ---
-title: frBTC Wrapping & Unwrapping
-sidebar_label: frBTC Wrapping
-sidebar_position: 3
+title: frBTC - Alkanes
+sidebar_label: frBTC - Alkanes
+sidebar_position: 4
 ---
 
-# frBTC Wrapping & Unwrapping
+# frBTC on Alkanes
 
-frBTC is a synthetic Bitcoin token pegged 1:1 to BTC. This guide explains how wrapping and unwrapping works at the protocol level.
+frBTC is the native Bitcoin synthetic token on the Alkanes metaprotocol, pegged 1:1 to BTC. This guide covers wrapping, unwrapping, and interacting with the frBTC contract using Alkanes.
+
+## Contract Location
+
+| Property | Value |
+|----------|-------|
+| **Alkane ID** | `{32, 0}` |
+| **Block** | 32 |
+| **Transaction** | 0 |
+
+The frBTC contract is deployed at genesis and is immutable.
+
+## Contract Opcodes
+
+The frBTC contract exposes these methods via opcodes:
+
+### Core Operations
+
+| Opcode | Method | Parameters | Description |
+|--------|--------|------------|-------------|
+| `77` | `exchange()` | None | Wrap BTC to frBTC |
+| `78` | `unwrap()` | `vout: u128, amount: u128` | Burn frBTC and queue BTC payment |
+
+### Query Methods
+
+| Opcode | Method | Returns | Description |
+|--------|--------|---------|-------------|
+| `99` | `get_name()` | `"Fractional BTC"` | Token name |
+| `100` | `get_symbol()` | `"frBTC"` | Token symbol |
+| `101` | `get_pending_unwraps()` | `Payment[]` | List pending payments |
+| `102` | `get_decimals()` | `8` | Decimal places |
+| `103` | `get_signer()` | `[u8; 32]` | Current signer pubkey |
+| `105` | `get_total_supply()` | `u128` | Total frBTC supply |
 
 ## How Wrapping Works
 
@@ -19,7 +51,7 @@ Wrapping converts native BTC to frBTC in a single atomic Bitcoin transaction:
 │  Input: Your BTC UTXO                                   │
 ├─────────────────────────────────────────────────────────┤
 │  Output 0: BTC → SUBFROST signer address                │
-│  Output 1: frBTC → Your address (via protostone)       │
+│  Output 1: frBTC → Your address (via protostone)        │
 │  Output 2+: Change → Your change address                │
 ├─────────────────────────────────────────────────────────┤
 │  OP_RETURN: Protostone calling exchange() opcode 77     │
@@ -50,28 +82,17 @@ alkanes alkanes wrap-btc 0.01 \
   -y
 ```
 
-### Wrap Using BRC2.0
+### Advanced: Execute with Protostone
 
-For integration with EVM contracts:
-
-```bash
-alkanes brc20-prog wrap-btc <AMOUNT> \
-  --from <ADDRESSES> \
-  -y
-```
-
-### Wrap and Execute
-
-Atomically wrap BTC and call a contract function:
+For custom transactions:
 
 ```bash
-alkanes brc20-prog wrap-and-execute2 <AMOUNT> \
-  --target 0x<CONTRACT_ADDRESS> \
-  --signature "deposit()" \
+alkanes alkanes execute \
+  --inputs "B:1000000" \
+  --to "<SIGNER_ADDR>,bc1p..." \
+  --protostones "[32,0,77]:v1:v1" \
   -y
 ```
-
-This pattern is useful for depositing into vaults or other DeFi protocols in a single transaction.
 
 ## How Unwrapping Works
 
@@ -85,7 +106,7 @@ Create a transaction that burns your frBTC and queues a payment request:
 ┌─────────────────────────────────────────────────────────┐
 │  UNWRAP TRANSACTION                                     │
 ├─────────────────────────────────────────────────────────┤
-│  Input: Your frBTC UTXO                                │
+│  Input: Your frBTC UTXO                                 │
 ├─────────────────────────────────────────────────────────┤
 │  OP_RETURN: Protostone calling unwrap() opcode 78       │
 │             with vout and amount parameters             │
@@ -95,13 +116,6 @@ Create a transaction that burns your frBTC and queues a payment request:
 ### Step 2: Receive BTC
 
 The SUBFROST signers monitor for unwrap requests and cooperatively sign a Bitcoin transaction to release the locked BTC to your specified address.
-
-```bash
-alkanes brc20-prog unwrap-btc <AMOUNT> \
-  --vout <OUTPUT_INDEX> \
-  --to <YOUR_BTC_ADDRESS> \
-  -y
-```
 
 ### Minimum Unwrap Amount
 
@@ -139,15 +153,16 @@ Protostone {
 }
 ```
 
-### Signer Address
+### Payment Storage
 
-The SUBFROST signer address is derived from the frBTC contract:
+Unwrap payments are stored by block height:
 
-```bash
-alkanes brc20-prog signer-address
 ```
-
-This queries opcode 103 (GET_SIGNER) on the frBTC contract and returns the Taproot address derived from the signer's public key.
+/alkanes/{32:0}/storage/
+  /payments/byheight/{height}  // Payments created at block
+  /fulfilled                    // Fulfilled payment tracking
+  /last_block                   // Last processed block
+```
 
 ## Checking Balances
 
@@ -165,21 +180,20 @@ View pending unwrap requests:
 alkanes alkanes unwrap --block-tag latest
 ```
 
-Or via BRC2.0:
+## Security Model
 
-```bash
-alkanes brc20-prog unwrap
-```
+### Atomic Wrapping
 
-## Key Parameters
+- Wrapping is trustless and permissionless
+- BTC lock and frBTC mint happen in the same transaction
+- If the BTC transfer fails, no frBTC is minted
 
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| frBTC Contract | `{32, 0}` | Block 32, Transaction 0 |
-| Wrap Opcode | `77` | exchange() function |
-| Unwrap Opcode | `78` | unwrap() function |
-| Default Premium | `0.1%` | Protocol fee on unwrap |
-| Dust Threshold | `546 sats` | Minimum output value |
+### Trust-Minimized Unwrapping
+
+- Unwrapping requires SUBFROST signer cooperation
+- Signers monitor for unwrap events
+- Multi-party threshold signature required for BTC release
+- Users can verify pending payments on-chain
 
 ## Error Handling
 
@@ -195,7 +209,7 @@ alkanes brc20-prog unwrap
 - The BTC was sent to the wrong address
 - Query the current signer address before wrapping
 
-## Integration Example
+## Complete Example
 
 Here's a complete wrap flow:
 
@@ -223,8 +237,17 @@ alkanes alkanes wrap-btc 0.01 \
 alkanes alkanes getbalance --address bc1p...
 ```
 
+## Key Parameters
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| frBTC Contract | `{32, 0}` | Block 32, Transaction 0 |
+| Wrap Opcode | `77` | exchange() function |
+| Unwrap Opcode | `78` | unwrap() function |
+| Default Premium | `0.1%` | Protocol fee on unwrap |
+| Dust Threshold | `546 sats` | Minimum output value |
+
 ## See Also
 
-- [frBTC Smart Contracts](./frBTC-smart-contracts) — Contract opcodes and methods
-- [Alkanes CLI](./subfrost-cli) — Full CLI reference
-- [BRC2.0 Integration](./brc20-prog) — EVM contract integration
+- [Alkanes Integration](./subfrost-cli) — CLI reference for Alkanes
+- [Alkanes Protocol](../key-components/alkanes) — Protocol overview

@@ -57,10 +57,26 @@ const sidebars: SidebarsConfig = {
       label: 'Developer Guide',
       items: [
         'developer-guide/getting-started',
-        'developer-guide/subfrost-cli',
-        'developer-guide/wrapping-frBTC',
-        'developer-guide/frBTC-smart-contracts',
-        'developer-guide/brc20-prog',
+        {
+          type: 'doc',
+          id: 'developer-guide/subfrost-cli',
+          label: 'Alkanes Integration',
+        },
+        {
+          type: 'doc',
+          id: 'developer-guide/brc20-prog',
+          label: 'BRC2.0 Integration',
+        },
+        {
+          type: 'doc',
+          id: 'developer-guide/wrapping-frBTC',
+          label: 'frBTC - Alkanes',
+        },
+        {
+          type: 'doc',
+          id: 'developer-guide/frBTC-brc20',
+          label: 'FR-BTC - BRC2.0',
+        },
       ]
     },
     {
@@ -73,11 +89,6 @@ const sidebars: SidebarsConfig = {
           label: 'frBTC - Defi-compatible BTC',
         },
         'tokens/frBTC-roadmap',
-        {
-          type: 'doc',
-          id: 'tokens/frBTC-scripts',
-          label: 'frBTC - Building Scripts',
-        },
         {
           type: 'doc',
           id: 'tokens/dxBTC-overview',

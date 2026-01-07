@@ -1,9 +1,9 @@
 ---
-sidebar_label: Alkanes CLI
+sidebar_label: Alkanes Integration
 sidebar_position: 2
 ---
 
-# Alkanes CLI
+# Alkanes Integration
 
 The Alkanes CLI (`alkanes`) is the primary command-line tool for interacting with the Alkanes metaprotocol on Bitcoin. It provides commands for wallet management, token operations, contract deployment, and querying the network.
 
@@ -137,57 +137,6 @@ alkanes alkanes simulate <TX_HEX>
 
 Simulate an Alkanes transaction without broadcasting.
 
-## BRC2.0 Commands
-
-### Deploy a Contract
-
-```bash
-alkanes brc20-prog deploy-contract <FOUNDRY_JSON> \
-  --from <ADDRESS> \
-  --change <ADDRESS> \
-  --fee-rate <SAT_PER_VB> \
-  -y
-```
-
-Deploy a Solidity contract compiled with Foundry.
-
-### Call a Contract
-
-```bash
-alkanes brc20-prog transact \
-  --address 0x<CONTRACT_ADDRESS> \
-  --signature "functionName(type1,type2)" \
-  --calldata "arg1,arg2" \
-  --from <ADDRESS> \
-  -y
-```
-
-### Query Contract State
-
-```bash
-alkanes brc20-prog call \
-  --address 0x<CONTRACT_ADDRESS> \
-  --signature "viewFunction()" \
-  --calldata ""
-```
-
-### Get Contract Code
-
-```bash
-alkanes brc20-prog get-code --address 0x<CONTRACT_ADDRESS>
-```
-
-### Wrap and Execute
-
-```bash
-alkanes brc20-prog wrap-and-execute2 <AMOUNT> \
-  --target 0x<CONTRACT_ADDRESS> \
-  --signature "deposit()" \
-  -y
-```
-
-Atomically wrap BTC to frBTC and call a contract function.
-
 ## Bitcoin RPC Commands
 
 Direct Bitcoin Core RPC access:
@@ -269,3 +218,8 @@ alkanes <COMMAND> --help
 ```
 
 For issues and contributions: [kungfuflex/alkanes-rs](https://github.com/kungfuflex/alkanes-rs)
+
+## See Also
+
+- [frBTC - Alkanes](./wrapping-frBTC) — Wrapping and unwrapping frBTC
+- [Alkanes Protocol](../key-components/alkanes) — Protocol overview
