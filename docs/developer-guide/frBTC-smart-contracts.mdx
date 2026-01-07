@@ -1,12 +1,12 @@
 ---
-title: FR-BTC Smart Contract
-sidebar_label: FR-BTC Contract
+title: frBTC Smart Contract
+sidebar_label: frBTC Contract
 sidebar_position: 4
 ---
 
-# FR-BTC Smart Contract
+# frBTC Smart Contract
 
-The FR-BTC contract is the core Alkanes smart contract that manages the wrapping and unwrapping of Bitcoin. It runs on the Alkanes metaprotocol and is responsible for minting, burning, and tracking FR-BTC supply.
+The frBTC contract is the core Alkanes smart contract that manages the wrapping and unwrapping of Bitcoin. It runs on the Alkanes metaprotocol and is responsible for minting, burning, and tracking frBTC supply.
 
 ## Contract Location
 
@@ -20,14 +20,14 @@ The contract is deployed at genesis and is immutable.
 
 ## Contract Opcodes
 
-The FR-BTC contract exposes the following methods via opcodes:
+The frBTC contract exposes the following methods via opcodes:
 
 ### Core Operations
 
 | Opcode | Method | Parameters | Description |
 |--------|--------|------------|-------------|
-| `77` | `exchange()` | None | Wrap BTC to FR-BTC |
-| `78` | `unwrap()` | `vout: u128, amount: u128` | Burn FR-BTC and queue BTC payment |
+| `77` | `exchange()` | None | Wrap BTC to frBTC |
+| `78` | `unwrap()` | `vout: u128, amount: u128` | Burn frBTC and queue BTC payment |
 
 ### Administration
 
@@ -44,33 +44,33 @@ The FR-BTC contract exposes the following methods via opcodes:
 | `101` | `get_pending_unwraps()` | `Payment[]` | List pending payments |
 | `102` | `get_decimals()` | `8` | Decimal places |
 | `103` | `get_signer()` | `[u8; 32]` | Current signer pubkey |
-| `105` | `get_total_supply()` | `u128` | Total FR-BTC supply |
+| `105` | `get_total_supply()` | `u128` | Total frBTC supply |
 
 ## How exchange() Works (Opcode 77)
 
-The `exchange()` method is the entry point for wrapping BTC to FR-BTC:
+The `exchange()` method is the entry point for wrapping BTC to frBTC:
 
 1. User creates a transaction with BTC sent to the signer address
 2. Transaction includes a protostone calling opcode 77
 3. Contract validates the BTC transfer
-4. Contract mints equivalent FR-BTC to the pointer output
+4. Contract mints equivalent frBTC to the pointer output
 
 ```
 Transaction Structure:
 ├─ Output 0: BTC → Signer address
-├─ Output 1: Receives FR-BTC (pointer target)
+├─ Output 1: Receives frBTC (pointer target)
 ├─ Output 2+: Change
 └─ OP_RETURN: Protostone with cellpack {32, 0, 77}
 ```
 
-The wrapping is atomic—if the BTC transfer is invalid, no FR-BTC is minted.
+The wrapping is atomic—if the BTC transfer is invalid, no frBTC is minted.
 
 ## How unwrap() Works (Opcode 78)
 
-The `unwrap()` method burns FR-BTC and queues a BTC payment:
+The `unwrap()` method burns frBTC and queues a BTC payment:
 
 1. User calls opcode 78 with output index and amount
-2. Contract burns the specified FR-BTC
+2. Contract burns the specified frBTC
 3. Contract creates a payment record in storage
 4. SUBFROST signers fulfill the payment
 
@@ -116,7 +116,7 @@ Or:
 alkanes alkanes unwrap --block-tag latest
 ```
 
-### Get FR-BTC Balance
+### Get frBTC Balance
 
 ```bash
 alkanes brc20-prog get-balance --address <ADDRESS>
@@ -153,7 +153,7 @@ alkanes alkanes execute \
   -y
 ```
 
-### Unwrap FR-BTC
+### Unwrap frBTC
 
 ```bash
 alkanes brc20-prog unwrap-btc <AMOUNT> \
@@ -186,7 +186,7 @@ let address = P2TR::from_xonly(pubkey);
 
 ## Contract Storage
 
-The FR-BTC contract maintains the following state:
+The frBTC contract maintains the following state:
 
 | Key | Type | Description |
 |-----|------|-------------|
@@ -201,8 +201,8 @@ The FR-BTC contract maintains the following state:
 ### Atomic Wrapping
 
 - Wrapping is trustless and permissionless
-- BTC lock and FR-BTC mint happen in the same transaction
-- If the BTC transfer fails, no FR-BTC is minted
+- BTC lock and frBTC mint happen in the same transaction
+- If the BTC transfer fails, no frBTC is minted
 
 ### Trust-Minimized Unwrapping
 
@@ -219,6 +219,6 @@ The FR-BTC contract maintains the following state:
 
 ## See Also
 
-- [FR-BTC Wrapping](./wrapping-frBTC) — Step-by-step wrapping guide
+- [frBTC Wrapping](./wrapping-frBTC) — Step-by-step wrapping guide
 - [Alkanes CLI](./subfrost-cli) — CLI reference
 - [Alkanes Protocol](../key-components/alkanes) — Protocol overview

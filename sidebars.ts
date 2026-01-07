@@ -65,7 +65,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Tokens (frBTC, dxBTC, FROST)',
+      label: 'Tokens (frBTC, dxBTC, FUEL)',
       items: [
         {
           type: 'doc',
@@ -85,13 +85,8 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
-          id: 'tokens/minting-dxBTC',
-          label: 'dxBTC - Minting/Burning',
-        },
-        {
-          type: 'doc',
           id: 'tokens/FROST-token',
-          label: 'FROST - Protocol Token',
+          label: 'FUEL - Protocol Token',
         },
       ]
     },

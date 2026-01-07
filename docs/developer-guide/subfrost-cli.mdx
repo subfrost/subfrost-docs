@@ -30,7 +30,7 @@ All commands support these global options:
 | `--wallet-address <ADDR>` | Watch-only mode (read-only) |
 | `--jsonrpc-url <URL>` | Custom JSON-RPC endpoint |
 | `--provider <PROVIDER>` | Network: `regtest`, `signet`, `mainnet` |
-| `--frbtc-address <ADDR>` | Override FR-BTC contract address |
+| `--frbtc-address <ADDR>` | Override frBTC contract address |
 
 ## Wallet Commands
 
@@ -68,7 +68,7 @@ Lists all unspent transaction outputs in your wallet.
 
 ## Alkanes Operations
 
-### Wrap BTC to FR-BTC
+### Wrap BTC to frBTC
 
 ```bash
 alkanes alkanes wrap-btc <AMOUNT> \
@@ -79,7 +79,7 @@ alkanes alkanes wrap-btc <AMOUNT> \
   -y
 ```
 
-Wraps native BTC to FR-BTC tokens. The `-y` flag auto-confirms the transaction.
+Wraps native BTC to frBTC tokens. The `-y` flag auto-confirms the transaction.
 
 **Example:**
 ```bash
@@ -103,7 +103,7 @@ alkanes alkanes getbalance --address <ADDRESS>
 alkanes alkanes unwrap --block-tag latest
 ```
 
-Shows pending FR-BTC unwrap requests waiting to be processed.
+Shows pending frBTC unwrap requests waiting to be processed.
 
 ### Execute Custom Transactions
 
@@ -186,7 +186,7 @@ alkanes brc20-prog wrap-and-execute2 <AMOUNT> \
   -y
 ```
 
-Atomically wrap BTC to FR-BTC and call a contract function.
+Atomically wrap BTC to frBTC and call a contract function.
 
 ## Bitcoin RPC Commands
 
@@ -255,9 +255,9 @@ Skip confirmation prompts:
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| FR-BTC Contract | `{32, 0}` | Block 32, Transaction 0 |
-| Wrap Opcode | `77` | FR-BTC exchange function |
-| Unwrap Opcode | `78` | FR-BTC unwrap function |
+| frBTC Contract | `{32, 0}` | Block 32, Transaction 0 |
+| Wrap Opcode | `77` | frBTC exchange function |
+| Unwrap Opcode | `78` | frBTC unwrap function |
 | Get Signer Opcode | `103` | Query signer address |
 | Genesis Block | `880000` | Mainnet genesis |
 
