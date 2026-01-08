@@ -6,93 +6,7 @@ sidebar_position: 3
 
 # BRC2.0 (brc20-prog) Integration
 
-BRC2.0 (also known as **brc20-prog**) is a protocol for deploying and executing EVM-compatible smart contracts directly on Bitcoin via inscriptions. It enables Solidity developers to bring their skills to Bitcoin without learning a new language.
-
-## What is BRC2.0?
-
-BRC2.0 allows you to:
-
-- **Deploy EVM bytecode** onto Bitcoin as inscriptions
-- **Call contract functions** using standard Ethereum ABI encoding
-- **Execute Solidity contracts** within the Bitcoin ecosystem
-- **Interoperate with Alkanes** for cross-protocol token operations
-
-Unlike Alkanes which uses a custom binary protocol, BRC2.0 uses the standard **ord inscription format** with JSON payloads, making it compatible with existing ord indexers.
-
-## Core Concepts
-
-### Inscription Format
-
-BRC2.0 operations are inscribed as JSON payloads:
-
-**Deploy a contract:**
-```json
-{
-  "p": "brc20-prog",
-  "op": "deploy",
-  "d": "0x608060405234801561001057600080fd5b50..."
-}
-```
-
-**Call a contract function:**
-```json
-{
-  "p": "brc20-prog",
-  "op": "call",
-  "c": "0x1234567890abcdef1234567890abcdef12345678",
-  "d": "0xa9059cbb000000000000000000000000..."
-}
-```
-
-### The Commit-Reveal Pattern
-
-BRC2.0 uses a commit-reveal pattern to prevent frontrunning attacks:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  COMMIT TX                                              │
-│  ─────────                                              │
-│  • Sends funds to a taproot address                     │
-│  • Pubkey+CHECKSIG script prevents frontrunning         │
-│  • Only the key holder can create a valid reveal        │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│  REVEAL TX                                              │
-│  ─────────                                              │
-│  • Spends the commit output                             │
-│  • Inscribes the JSON payload                           │
-│  • Creates the on-chain inscription                     │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼ (optional, for deployments)
-┌─────────────────────────────────────────────────────────┐
-│  ACTIVATION TX                                          │
-│  ─────────────                                          │
-│  • Spends the inscription UTXO                          │
-│  • Sends to OP_RETURN                                   │
-│  • "Activates" the deployed contract                    │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Anti-Frontrunning Protection
-
-The protocol implements multiple layers of protection:
-
-1. **Pubkey+CHECKSIG**: The reveal script starts with a pubkey check, ensuring only the commit creator can reveal
-2. **Atomic Broadcasting**: All transactions (commit + reveal + activation) are broadcast in a single RPC batch call
-3. **RBF Support**: Transactions are RBF-enabled for fee bumping if needed
-
-### Contract Address Derivation
-
-BRC2.0 uses Ethereum's contract address derivation:
-
-```
-contract_address = keccak256(rlp([sender_address, nonce]))[12:]
-```
-
-This means you can predict the contract address before deployment.
+While Alkanes uses a binary protocol for token operations, BRC2.0 uses standard ord inscriptions with JSON payloads to enable general-purpose computation.
 
 ## Setting Up Your Environment
 
@@ -230,14 +144,6 @@ FR-BTC is the flagship BRC2.0 application—a trustless BTC wrapper that mints F
 | `wrap()` | Mint FR-BTC for BTC sent to the contract |
 | `unwrap(amount, vout)` | Burn FR-BTC and queue a BTC payment |
 | `wrapAndExecute2(target, data)` | Wrap BTC and call another contract atomically |
-
-### Network Addresses
-
-| Network | FR-BTC Contract Address |
-|---------|------------------------|
-| Mainnet | `0xdBB5b6A1D...` |
-| Signet | `0x8A3d3eB...` |
-| Regtest | `0x00...` |
 
 ### Example: Wrapping BTC
 

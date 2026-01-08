@@ -34,11 +34,6 @@ const sidebars: SidebarsConfig = {
           id: 'introduction/subfrost-api-docs',
           label: 'SUBFROST API Docs',
         },
-        {
-          type: 'doc',
-          id: 'introduction/subfrost-app-overview',
-          label: 'SUBFROST APP Overview',
-        },
         ]
     },
     {
@@ -56,11 +51,15 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Developer Guide',
       items: [
-        'developer-guide/getting-started',
         {
           type: 'doc',
-          id: 'developer-guide/subfrost-cli',
+          id: 'developer-guide/alkanes-integration',
           label: 'Alkanes Integration',
+        },
+        {
+          type: 'doc',
+          id: 'developer-guide/wrapping-frBTC',
+          label: 'frBTC on Alkanes',
         },
         {
           type: 'doc',
@@ -69,13 +68,8 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
-          id: 'developer-guide/wrapping-frBTC',
-          label: 'frBTC - Alkanes',
-        },
-        {
-          type: 'doc',
           id: 'developer-guide/frBTC-brc20',
-          label: 'FR-BTC - BRC2.0',
+          label: 'FR-BTC on BRC2.0',
         },
       ]
     },
@@ -96,7 +90,7 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
-          id: 'tokens/FROST-token',
+          id: 'tokens/FUEL-token',
           label: 'FUEL - Protocol Token',
         },
       ]
