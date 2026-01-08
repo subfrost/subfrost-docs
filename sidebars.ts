@@ -49,32 +49,6 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Developer Guide',
-      items: [
-        {
-          type: 'doc',
-          id: 'developer-guide/alkanes-integration',
-          label: 'Alkanes Integration',
-        },
-        {
-          type: 'doc',
-          id: 'developer-guide/wrapping-frBTC',
-          label: 'frBTC on Alkanes',
-        },
-        {
-          type: 'doc',
-          id: 'developer-guide/brc20-prog',
-          label: 'BRC2.0 Integration',
-        },
-        {
-          type: 'doc',
-          id: 'developer-guide/frBTC-brc20',
-          label: 'FR-BTC on BRC2.0',
-        },
-      ]
-    },
-    {
-      type: 'category',
       label: 'Tokens (frBTC, dxBTC, FUEL)',
       items: [
         {
@@ -92,6 +66,32 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
           id: 'tokens/FUEL-token',
           label: 'FUEL - Protocol Token',
+        },
+        {
+          type: 'category',
+          label: 'Developer Guide',
+          items: [
+            {
+              type: 'doc',
+              id: 'developer-guide/alkanes-integration',
+              label: 'Alkanes Integration',
+            },
+            {
+              type: 'doc',
+              id: 'developer-guide/wrapping-frBTC',
+              label: 'frBTC on Alkanes',
+            },
+            {
+              type: 'doc',
+              id: 'developer-guide/brc20-prog',
+              label: 'BRC2.0 Integration',
+            },
+            {
+              type: 'doc',
+              id: 'developer-guide/frBTC-brc20',
+              label: 'FR-BTC on BRC2.0',
+            },
+          ]
         },
       ]
     },
