@@ -360,3 +360,72 @@ pre[class*="prism-code"] {
   text-align: center;
 }
 
+/* Sidebar scrollbar styling - transparent background, hover-only thumb */
+.theme-doc-sidebar-container,
+.theme-doc-sidebar-menu,
+.menu {
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.theme-doc-sidebar-container:hover,
+.theme-doc-sidebar-menu:hover,
+.menu:hover {
+  /* Firefox - show thumb on hover */
+  scrollbar-color: rgba(30, 58, 138, 0.3) transparent;
+}
+
+/* WebKit (Chrome, Safari, Edge) scrollbar styling */
+.theme-doc-sidebar-container::-webkit-scrollbar,
+.theme-doc-sidebar-menu::-webkit-scrollbar,
+.menu::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.theme-doc-sidebar-container::-webkit-scrollbar-track,
+.theme-doc-sidebar-menu::-webkit-scrollbar-track,
+.menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.theme-doc-sidebar-container::-webkit-scrollbar-thumb,
+.theme-doc-sidebar-menu::-webkit-scrollbar-thumb,
+.menu::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.2s ease-in-out;
+}
+
+.theme-doc-sidebar-container:hover::-webkit-scrollbar-thumb,
+.theme-doc-sidebar-menu:hover::-webkit-scrollbar-thumb,
+.menu:hover::-webkit-scrollbar-thumb {
+  background: rgba(30, 58, 138, 0.3);
+}
+
+.theme-doc-sidebar-container::-webkit-scrollbar-thumb:hover,
+.theme-doc-sidebar-menu::-webkit-scrollbar-thumb:hover,
+.menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(30, 58, 138, 0.5);
+}
+
+/* Dark mode scrollbar colors */
+html[data-theme='dark'] .theme-doc-sidebar-container:hover,
+html[data-theme='dark'] .theme-doc-sidebar-menu:hover,
+html[data-theme='dark'] .menu:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+html[data-theme='dark'] .theme-doc-sidebar-container:hover::-webkit-scrollbar-thumb,
+html[data-theme='dark'] .theme-doc-sidebar-menu:hover::-webkit-scrollbar-thumb,
+html[data-theme='dark'] .menu:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+html[data-theme='dark'] .theme-doc-sidebar-container::-webkit-scrollbar-thumb:hover,
+html[data-theme='dark'] .theme-doc-sidebar-menu::-webkit-scrollbar-thumb:hover,
+html[data-theme='dark'] .menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
