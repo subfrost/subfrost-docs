@@ -9,7 +9,7 @@ export default function NavbarLogo() {
 
   return (
     <Link
-      to="/"
+      href="https://subfrost.io/"
       aria-label={title}
       className="navbar__brand">
       <SnowflakeIcon style={{ width: '29px', height: '29px', marginRight: '0.375em', marginLeft: '0.07em' }} />
