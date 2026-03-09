@@ -1,0 +1,92 @@
+---
+sidebar_label: subp2p 简介
+---
+
+# `subp2p` 简介
+
+`subp2p` 是 SUBFROST 生态系统的基础点对点网络层。它构建在功能强大且灵活的 [`libp2p`](https://libp2p.io/) 框架之上，为所有其他 SUBFROST 组件之间的通信提供安全可靠的基础。
+
+## 核心概念
+
+`subp2p` 的核心职责包括：
+
+*   **节点发现：** 在网络上查找并连接到其他节点。
+*   **传输：** 在节点之间建立安全可靠的通信通道。
+*   **流多路复用：** 允许多个独立的通信流在单个连接上共存。
+*   **协议协商：** 允许节点协商用于通信的协议。
+
+## 主要特性
+
+`subp2p` 利用 `libp2p` 丰富的功能集，并扩展了 SUBFROST 特有的功能。
+
+### 多传输协议支持
+
+`subp2p` 支持多种传输协议，使其能够在各种网络环境中运行：
+
+*   **TCP：** 适用于大多数互联网流量的标准传输协议。
+*   **QUIC：** 一种现代加密传输协议，提供更快的连接建立速度和在丢包网络上更好的性能。
+*   **WebTransport：** 一种基于 HTTP/3 和 QUIC 的新协议，允许在 Web 客户端和服务器之间进行安全的多路复用通信。这是 SUBFROST 使用的主要传输协议，因为它允许 `subp2p` 节点直接在浏览器中运行，并且可以轻松地通过标准 Web 服务器和 Cloudflare 等 CDN 进行代理。
+
+### 节点发现
+
+`subp2p` 使用多种节点发现机制：
+
+*   **mDNS：** 组播 DNS 允许节点在本地网络上相互发现，无需中央服务器。
+*   **Kademlia DHT：** 分布式哈希表 (DHT) 用于在公共互联网上发现节点。节点可以将其联系信息发布到 DHT，其他节点可以查询 DHT 来找到它们。
+
+### 安全和私密通信
+
+`subp2p` 网络上的所有通信都使用现代加密协议进行加密和认证。`subp2p` 使用 `noise` 进行加密握手，确保节点之间的所有通信都是私密和安全的。
+
+### 网络地址转换 (NAT) 穿透
+
+`subp2p` 集成了多种 NAT 穿透机制，允许防火墙和 NAT 后面的节点相互连接：
+
+*   **AutoNAT：** 允许节点发现其自身的公共 IP 地址。
+*   **打洞 (DCUtR)：** 允许两个 NAT 后面的节点在中继节点的帮助下建立直接连接。
+*   **电路中继：** 当无法建立直接连接时，`subp2p` 可以使用中继节点在两个节点之间转发流量。
+
+## `SUBFROSTNetworkBehaviour`
+
+`subp2p` 节点的核心是 `SUBFROSTNetworkBehaviour`。这是一个复合的 `libp2p` `NetworkBehaviour`，它组合了 SUBFROST 使用的所有不同协议和行为：
+
+*   **`gossipsub`：** 用于发布/订阅消息传递。
+*   **`mdns`：** 用于本地节点发现。
+*   **`kademlia`：** 用于分布式节点发现和内容路由。
+*   **`relay_client` 和 `relay_server`：** 用于电路中继。
+*   **`dcutr`：** 用于通过 NAT 进行直接连接升级。
+*   **`identify`：** 用于发现节点的公共地址。
+*   **`autonat`：** 用于确定节点是否在 NAT 后面。
+*   **`ping`：** 用于检查节点的活跃状态。
+*   **`request_response`：** 用于简单的请求-响应交互。
+*   **`proxy_stream`：** 一种自定义协议，用于在节点之间创建通用的代理双工流。
+
+这种模块化和可扩展的架构使 `subp2p` 能够提供丰富的网络功能，可以被 SUBFROST 生态系统中的上层应用轻松使用。
+
+## SUBFROST 中的 `subp2p`
+
+`subfrost-cli` 使用 `subp2p` 连接到 SUBFROST 网络并与其他节点通信。当你运行 `subfrost-cli` 时，它会创建一个 `subp2p` 节点并加入 SUBFROST 网络。这使它能够：
+
+*   **发现其他节点：** `subfrost-cli` 使用 Kademlia DHT 发现网络上的其他节点。
+*   **与其他节点通信：** `subfrost-cli` 使用 `gossipsub` 向网络广播消息，使用 `request_response` 向其他节点发送直接消息。
+*   **参与 FROST 签名仪式：** `subfrost-cli` 使用 `subp2p` 在 FROST 签名仪式期间与其他签名者通信。
+
+### 创建 `subp2p` 节点
+
+以下是创建 `subp2p` 节点的示例：
+
+```rust
+use subp2p::Subp2p;
+
+// Create a new subp2p node
+let mut subp2p = Subp2p::new().await?;
+
+// Listen on a random TCP port
+subp2p.listen_on("/ip4/0.0.0.0/tcp/0".parse()?).await?;
+
+// Start the event loop
+loop {
+    let event = subp2p.next_event().await;
+    println!("New event: {:?}", event);
+}
+```

@@ -1,0 +1,73 @@
+---
+sidebar_label: 在 subp2p 上构建微服务
+---
+
+# 在 `subp2p` 上构建微服务
+
+`subp2p` 网络堆栈不仅用于构建单体应用程序，它也是构建去中心化点对点微服务的强大平台。通过组合 SUBFROST 网络堆栈的不同组件，您可以创建一组小型独立服务，它们通过安全且弹性的网络相互通信。
+
+## 核心组件
+
+以下是您在 `subp2p` 上构建微服务时将使用的关键组件：
+
+*   **`subp2p`：** 提供安全点对点通信的基础网络层。
+*   **`subrelay`：** 中继和名称注册器，允许您的服务从网络上的任何位置被发现和访问。
+*   **`subproxy`：** 桥梁，允许您的服务与传统互联网通信，也允许传统应用程序与您的服务通信。
+*   **`subtun`：** 点对点 VPN，允许您为服务创建私有虚拟网络。
+
+## 去中心化微服务架构
+
+假设您想要构建一个去中心化的电子商务应用程序。您可以将其构建为一组在 `subp2p` 上运行的微服务：
+
+*   **商品服务：** 管理商品目录的服务。
+*   **订单服务：** 管理订单的服务。
+*   **支付服务：** 处理支付的服务。
+*   **Web 前端：** 提供用户界面的 Web 应用程序。
+
+以下是您可以在 `subp2p` 上部署此架构的方式：
+
+1.  **部署后端服务：** 每个后端服务（商品、订单、支付）都是一个独立的应用程序，监听本地 TCP 端口。然后使用 `subproxy` 的反向代理模式将这些服务暴露给 `subp2p` 网络，并赋予唯一的 `.rail` 名称：
+
+    ```sh
+    # Expose the product service
+    subproxy --reverse-proxy localhost:8081 --register products.my-shop.rail --circuit p2p.subfrost.io
+
+    # Expose the order service
+    subproxy --reverse-proxy localhost:8082 --register orders.my-shop.rail --circuit p2p.subfrost.io
+
+    # Expose the payment service
+    subproxy --reverse-proxy localhost:8083 --register payments.my-shop.rail --circuit p2p.subfrost.io
+    ```
+
+2.  **部署 Web 前端：** Web 前端是一个标准的 Web 应用程序，使用 `.rail` 地址与后端服务通信。为此，Web 服务器需要通过以 SOCKS5 代理模式运行的 `subproxy` 实例路由其流量。
+
+3.  **创建私有网络（可选）：** 为了增强安全性，您可以使用 `subtun` 为所有服务创建私有虚拟网络。这将确保您的服务只能相互通信，而不能与公共 `subp2p` 网络通信。
+
+## 在 `subp2p` 上构建的优势
+
+在 `subp2p` 上构建微服务相比传统的集中式架构有几个优势：
+
+*   **去中心化：** 您的应用程序不依赖于单个中央服务器。这使其对审查和单点故障更具弹性。
+*   **安全性：** `subp2p` 网络上的所有通信都是端到端加密的，使用 `.rail` 名称提供了一种安全的方式来发现和访问服务。
+*   **灵活性：** SUBFROST 网络堆栈的模块化组件允许您创建各种网络拓扑和应用程序架构。
+*   **互操作性：** 您的服务可以轻松地与 `subp2p` 网络上的任何其他服务通信，无论其运行位置或使用何种编程语言。
+
+通过提供一组强大且灵活的网络原语，`subp2p` 使开发者能够构建下一代去中心化应用程序和服务。
+
+## SUBFROST 中的微服务
+
+`subfrost-cli` 提供了一组用于在 `subp2p` 网络上创建和管理微服务的命令。这些命令允许您：
+
+*   **创建新的微服务：** `subfrost-cli service create` 命令创建新的微服务并将其注册到 `subrelay`。
+*   **列出微服务：** `subfrost-cli service list` 命令列出注册到 `subrelay` 的微服务。
+*   **删除微服务：** `subfrost-cli service delete` 命令从 `subrelay` 删除微服务。
+
+### 创建微服务
+
+以下是使用 `subfrost-cli` 创建微服务的示例：
+
+```bash
+subfrost-cli service create --name my-service --proxy localhost:8080 --register my-service.rail --circuit p2p.subfrost.io
+```
+
+此命令将创建一个名为 `my-service` 的新微服务，将流量代理到 `localhost:8080`。它还将在 `p2p.subfrost.io` 的 `subrelay` 上注册名称 `my-service.rail`。

@@ -1,0 +1,377 @@
+---
+title: BRC2.0 上的 FR-BTC
+sidebar_label: BRC2.0 上的 FR-BTC
+sidebar_position: 5
+---
+
+# BRC2.0 上的 FR-BTC
+
+FR-BTC 提供了两个强大的函数，用于在 BRC2.0 上构建可组合的 DeFi 应用：`wrapAndExecute` 和 `wrapAndExecute2`。这些函数在单笔交易中原子性地将 BTC 包装为 FR-BTC 并执行自定义逻辑。
+
+## 概述
+
+当用户向 FR-BTC 合约发送 BTC 时，可以选择：
+1. 简单地包装为 FR-BTC 代币（`wrap()`）
+2. 包装并执行已部署的脚本（`wrapAndExecute`）
+3. 包装并使用自定义 calldata 执行脚本（`wrapAndExecute2`）
+
+核心优势是**原子性执行**：如果您的脚本因任何原因失败（包括 gas 耗尽），用户仍然可以安全地收到他们的 FR-BTC 代币。
+
+## 合约地址
+
+| 网络 | Chain ID | FR-BTC 地址 |
+|---------|----------|---------------|
+| BRC2.0 Mainnet | `0x4252433230` | `0xdBB5b6A1D422fca2813cF486e5F986ADB09D8337` |
+| BRC2.0 Signet | `0x425243323073` | `0x1EB63D0d0e5A86146B4E1Cebc79b1d6e35093288` |
+
+## 工作原理
+
+### wrapAndExecute
+
+包装 BTC 并执行通过 CREATE2 部署的脚本：
+
+```solidity
+function wrapAndExecute(bytes memory script) public;
+```
+
+- `script`：要部署和执行的合约字节码
+- 脚本通过 CREATE2 部署（如果已部署则复用现有部署）
+- 脚本必须实现 `IScript` 接口
+
+### wrapAndExecute2
+
+包装 BTC 并使用自定义 calldata 调用已部署的脚本：
+
+```solidity
+function wrapAndExecute2(address target, bytes memory data) public;
+```
+
+- `target`：已部署脚本合约的地址
+- `data`：传递给脚本的自定义 calldata
+- 脚本必须实现 `IScript2` 接口
+
+**`wrapAndExecute2` 是大多数场景的推荐方式**，因为脚本只需部署一次即可重复使用。
+
+## 脚本接口
+
+### IScript
+
+```solidity
+interface IScript {
+    function execute(address sender, uint256 amount) external;
+}
+```
+
+- `sender`：发起包装的用户（使用此地址向用户发送代币）
+- `amount`：铸造的 FR-BTC 数量
+
+### IScript2
+
+```solidity
+interface IScript2 {
+    function execute(address sender, uint256 amount, bytes calldata data) external;
+}
+```
+
+- `sender`：发起包装的用户
+- `amount`：铸造的 FR-BTC 数量
+- `data`：用于灵活脚本逻辑的自定义 calldata
+
+## Gas 安全机制
+
+FR-BTC 实现了健壮的 gas 安全机制，确保用户始终能收到他们的代币，即使脚本失败或 gas 耗尽。
+
+### 工作原理
+
+```
+用户调用 wrapAndExecute2(target, data)
+  │
+  ├─ 1. 将 FR-BTC 铸造到 FrBTC 合约
+  ├─ 2. 检查 gasleft() >= 50,000 (MIN_GAS_FOR_SAFE_RETURN)
+  │     └─ 否 → 将 FR-BTC 转给用户，返回
+  ├─ 3. 授权脚本花费 FR-BTC
+  ├─ 4. 计算 gasForScript = gasleft() - 50,000
+  ├─ 5. 使用有限 gas 进行底层调用：
+  │     target.call{gas: gasForScript}(execute(...))
+  │     │
+  │     ├─ 成功 → 继续
+  │     └─ 失败（回滚、OOG 等） → 将 FR-BTC 转给用户，返回
+  │
+  └─ 6. 将剩余 FR-BTC 转给用户
+```
+
+### 关键要点
+
+1. **OOG 保护**：脚本在具有有限 gas 的子调用中运行。即使脚本无限循环，FR-BTC 也保留 50,000 gas 以安全返回代币。
+
+2. **自动代币返还**：任何失败情况下，FR-BTC 代币都会自动转给用户。
+
+3. **无需信任**：脚本不需要特殊的 gas 处理——FR-BTC 在调用者层面处理。
+
+## 构建脚本
+
+### 基础脚本 (IScript2)
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import {IScript2} from "frbtc/interfaces/IScript2.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+contract MyScript is IScript2 {
+    using SafeERC20 for IERC20;
+
+    address public immutable frbtc;
+
+    constructor(address _frbtc) {
+        frbtc = _frbtc;
+    }
+
+    function execute(
+        address sender,
+        uint256 amount,
+        bytes calldata data
+    ) external override {
+        // 仅 FR-BTC 合约可以调用此函数
+        require(msg.sender == frbtc, "only frbtc");
+
+        // 您的逻辑写在这里...
+        // FR-BTC 合约已授权 `amount` 数量的代币给本合约
+
+        // 示例：将 FR-BTC 转给发送者
+        IERC20(frbtc).safeTransferFrom(msg.sender, sender, amount);
+    }
+}
+```
+
+### 兑换脚本示例
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import {IScript2} from "frbtc/interfaces/IScript2.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+interface ISwapRouter {
+    function swap(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address recipient
+    ) external returns (uint256 amountOut);
+}
+
+contract FrBTCSwapScript is IScript2 {
+    using SafeERC20 for IERC20;
+
+    address public immutable frbtc;
+    ISwapRouter public immutable router;
+
+    constructor(address _frbtc, address _router) {
+        frbtc = _frbtc;
+        router = ISwapRouter(_router);
+    }
+
+    function execute(
+        address sender,
+        uint256 amount,
+        bytes calldata data
+    ) external override {
+        require(msg.sender == frbtc, "only frbtc");
+
+        // 从 calldata 解码兑换参数
+        (address tokenOut, uint256 minAmountOut) = abi.decode(data, (address, uint256));
+
+        // 将 FR-BTC 从 FR-BTC 合约转到本脚本
+        IERC20(frbtc).safeTransferFrom(msg.sender, address(this), amount);
+
+        // 授权路由器
+        IERC20(frbtc).safeApprove(address(router), amount);
+
+        // 执行兑换，将输出直接发送给用户
+        router.swap(frbtc, tokenOut, amount, minAmountOut, sender);
+    }
+}
+```
+
+### 从前端调用
+
+```javascript
+// 编码脚本的 calldata
+const tokenOut = "0x..."; // 要兑换的目标代币
+const minAmountOut = ethers.parseUnits("100", 18);
+const data = ethers.AbiCoder.defaultAbiCoder().encode(
+    ["address", "uint256"],
+    [tokenOut, minAmountOut]
+);
+
+// 调用 wrapAndExecute2
+const tx = await frbtc.wrapAndExecute2(swapScriptAddress, data);
+```
+
+## 辅助库：FrBTCLib
+
+`FrBTCLib` 库提供链检测工具：
+
+```solidity
+import {FrBTCLib} from "frbtc/libraries/FrBTCLib.sol";
+
+// 获取当前链的 FR-BTC 地址
+address frbtc = FrBTCLib.FRBTC_ADDRESS();
+
+// 检查链
+bool isMainnet = FrBTCLib.isMainnet();
+bool isSignet = FrBTCLib.isSignet();
+bool isSupported = FrBTCLib.isSupportedChain();
+
+// Chain ID
+uint256 mainnetId = FrBTCLib.MAINNET_CHAIN_ID;  // 0x4252433230
+uint256 signetId = FrBTCLib.SIGNET_CHAIN_ID;    // 0x425243323073
+```
+
+## CLI 命令
+
+使用 `alkanes` CLI 的 `brc20-prog` 子命令与 FR-BTC 交互：
+
+### 包装 BTC
+
+```bash
+alkanes brc20-prog wrap-btc <AMOUNT> \
+  --from <ADDRESSES> \
+  -y
+```
+
+### 解包 FR-BTC
+
+```bash
+alkanes brc20-prog unwrap-btc <AMOUNT> \
+  --vout <OUTPUT_INDEX> \
+  --to <YOUR_BTC_ADDRESS> \
+  -y
+```
+
+### 包装并执行
+
+原子性地包装 BTC 并调用合约：
+
+```bash
+alkanes brc20-prog wrap-and-execute2 <AMOUNT> \
+  --target 0x<CONTRACT_ADDRESS> \
+  --signature "deposit()" \
+  -y
+```
+
+### 查询余额
+
+```bash
+alkanes brc20-prog get-balance --address <ADDRESS>
+```
+
+### 获取签名者地址
+
+```bash
+alkanes brc20-prog signer-address
+```
+
+### 查看待处理的解包
+
+```bash
+alkanes brc20-prog unwrap
+```
+
+## 安全注意事项
+
+### 调用者验证
+
+始终验证只有 FR-BTC 合约可以调用脚本的 `execute` 函数：
+
+```solidity
+require(msg.sender == frbtc, "only frbtc");
+```
+
+或使用 FrBTCLib 进行多链部署：
+
+```solidity
+require(msg.sender == FrBTCLib.FRBTC_ADDRESS(), "only frbtc");
+```
+
+### 代币处理
+
+FR-BTC 合约在调用 `execute` 之前会授权您的脚本花费铸造的代币。您必须：
+1. 使用 `transferFrom` 从 FR-BTC 合约转移代币
+2. 在您的逻辑中使用代币
+3. 将剩余代币发送给 `sender`
+
+如果您的脚本回滚或 gas 耗尽，FR-BTC 会自动将代币返还给用户。
+
+### 重入攻击
+
+FR-BTC 在 `wrapAndExecute` 和 `wrapAndExecute2` 上使用 `nonReentrant` 修饰符。您的脚本无法重入这些函数。
+
+## 测试
+
+使用 Foundry 测试您的脚本：
+
+```solidity
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.19;
+
+import {Test} from "forge-std/Test.sol";
+import {MyScript} from "../src/MyScript.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract MyScriptTest is Test {
+    MyScript public script;
+    address public frbtc;
+    address public user = address(0x1234);
+
+    function setUp() public {
+        // 部署或模拟 FR-BTC
+        frbtc = address(new MockFrBTC());
+        script = new MyScript(frbtc);
+    }
+
+    function testExecute() public {
+        uint256 amount = 1e8; // 1 BTC
+
+        // 向 FR-BTC 合约铸造代币（模拟包装）
+        MockFrBTC(frbtc).mint(frbtc, amount);
+
+        // 授权脚本
+        vm.prank(frbtc);
+        IERC20(frbtc).approve(address(script), amount);
+
+        // 以 FR-BTC 合约身份执行
+        bytes memory data = abi.encode(/* your params */);
+        vm.prank(frbtc);
+        script.execute(user, amount, data);
+
+        // 验证结果
+        // ...
+    }
+
+    function testOnlyFrBTCCanCall() public {
+        vm.expectRevert("only frbtc");
+        script.execute(user, 1e8, "");
+    }
+}
+```
+
+## 最佳实践
+
+1. **保持脚本简洁**：复杂的逻辑会增加 gas 成本和失败风险
+2. **验证输入**：始终检查 calldata 参数是否有效
+3. **使用 SafeERC20**：确保安全的代币转账
+4. **全面测试**：测试成功场景、失败场景和边界情况
+5. **考虑 gas 成本**：用户需要为脚本执行支付 gas
+6. **处理粉尘金额**：在兑换/计算中考虑舍入误差
+
+## 另请参阅
+
+- [BRC2.0 集成](./brc20-prog) — 部署和调用 BRC2.0 合约
+- [frBTC - Alkanes](./wrapping-frBTC) — Alkanes 协议上的 frBTC

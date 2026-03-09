@@ -1,0 +1,49 @@
+---
+title: subrail-cli 命令行工具
+sidebar_label: subrail-cli
+sidebar_position: 3
+---
+
+# `subrail-cli` 参考
+
+本页提供 `subrail-cli` 命令行界面中所有命令、子命令和选项的完整参考。`subrail-cli` 是与 Subrail 运行时交互的主要工具。
+
+## 全局选项
+
+这些选项可与任何命令一起使用。
+
+-   `--help`：显示帮助信息。
+-   `--version`：显示版本信息。
+
+## 主要命令
+
+### `rail`
+
+用于与 Subrail 运行时交互的命令。
+
+**用法：**
+```bash
+subrail-cli rail <SUBCOMMAND>
+```
+
+**子命令：**
+
+-   `deploy`：将 Subrail 程序部署到 `subp2p` 网络。
+-   `run`：在本地机器上运行 Subrail 程序。
+
+### `alkanes`
+
+用于与 Alkanes 元协议的自动做市商（AMM）功能交互的命令。
+
+**用法：**
+```bash
+subrail-cli alkanes <SUBCOMMAND>
+```
+
+**子命令：**
+
+-   `create-pool`：创建一个新的流动性池。
+-   `add-liquidity`：向现有池中添加流动性。
+-   `remove-liquidity`：从池中移除流动性。
+-   `swap`：在流动性池中将一种代币兑换为另一种。
+-   `execute`：在 Alkanes 元协议上执行交易。

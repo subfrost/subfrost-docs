@@ -1,0 +1,54 @@
+---
+sidebar_label: subproxy
+---
+
+# `subproxy`：连接 `subp2p` 网络的桥梁
+
+`subproxy` 是一个多功能工具，充当 `subp2p` 网络与传统互联网之间的桥梁。它允许标准应用程序访问在 `subp2p` 网络上运行的服务，也允许将本地服务暴露给 `subp2p` 网络。
+
+`subproxy` 可以在两种主要模式下运行：作为 **SOCKS5 代理**和作为**反向代理**。
+
+## SOCKS5 代理模式
+
+以 SOCKS5 代理模式运行时，`subproxy` 会创建一个本地 SOCKS5 服务器，应用程序可以使用它将流量路由到 `subp2p` 网络。这对于没有原生 `subp2p` 支持的应用程序特别有用。
+
+例如，您可以使用 `curl` 访问在 `subp2p` 网络上运行的 Web 服务器：
+
+```sh
+# Start subproxy in SOCKS5 mode
+subproxy --bind-proxy localhost:1080 --circuit p2p.subfrost.io
+
+# Use curl with the SOCKS5 proxy to access a service
+all_proxy=socks5://localhost:1080 curl http://my-service.rail
+```
+
+在此示例中，`subproxy` 将使用 `subp2p` 网络上的名称注册服务解析 `.rail` 地址 `my-service.rail`，然后将 HTTP 请求转发给该服务。
+
+## 反向代理模式
+
+以反向代理模式运行时，`subproxy` 会将本地 TCP 服务暴露给 `subp2p` 网络。这允许您将本地机器上运行的服务提供给 `subp2p` 网络上的其他节点访问。
+
+例如，您可以将运行在端口 8080 上的本地 Web 服务器暴露给 `subp2p` 网络：
+
+```sh
+# Start subproxy in reverse proxy mode and register a name for the service
+subproxy --reverse-proxy localhost:8080 --register my-service.rail --circuit p2p.subfrost.io
+```
+
+在此示例中，`subproxy` 将在 `subp2p` 网络上注册名称 `my-service.rail`，并将该名称的所有传入流量转发到 `localhost:8080` 上的本地服务。
+
+这是一个强大的功能，允许您创建可从 `subp2p` 网络上任何位置访问的去中心化服务，无需公共 IP 地址或复杂的防火墙配置。
+
+## SUBFROST 中的 `subproxy`
+
+`subfrost-cli` 可用于运行 `subproxy` 服务器。这对于在 SUBFROST 网络和传统互联网之间创建桥梁非常有用。
+
+### 运行 `subproxy` 服务器
+
+以下是以 SOCKS5 模式运行 `subproxy` 服务器的示例：
+
+```bash
+subfrost-cli proxy --bind-proxy localhost:1080 --circuit p2p.subfrost.io
+```
+
+此命令将启动一个 `subproxy` 服务器，在端口 1080 上监听 SOCKS5 连接。然后您可以配置应用程序使用此代理来访问 SUBFROST 网络上的服务。

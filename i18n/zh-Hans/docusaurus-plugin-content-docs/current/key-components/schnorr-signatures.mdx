@@ -1,0 +1,55 @@
+---
+sidebar_label: Schnorr 签名
+---
+
+# Schnorr 签名
+
+Schnorr 签名是一种以简洁性、可证明安全性和线性性著称的数字签名方案。它是 SUBFROST 协议的关键构建模块，也是 FROST 和 ROAST 签名得以实现的基础。
+
+## 什么是数字签名？
+
+数字签名是一种用于验证数字消息或文档的真实性和完整性的密码学机制。它是手写签名或印章的数字等价物。
+
+数字签名方案通常由三个算法组成：
+
+1.  **密钥生成：** 一种生成私钥和对应公钥的算法。
+2.  **签名：** 一种使用私钥为消息生成签名的算法。
+3.  **验证：** 一种使用公钥验证消息签名的算法。
+
+## Schnorr 签名的优势
+
+多年来，Bitcoin 和其他加密货币中使用的主要数字签名方案是椭圆曲线数字签名算法（ECDSA）。然而，Schnorr 签名相比 ECDSA 有诸多优势，这也是它被纳入 Bitcoin Taproot 升级以及在 SUBFROST 中使用的原因。
+
+### 线性性
+
+Schnorr 签名最重要的优势是其**线性性**。这一特性允许多个签名者的签名被聚合为一个单一的有效签名。这在 ECDSA 中是不可能的。
+
+这种线性性使得 FROST 等门限签名方案成为可能。在 FROST 签名仪式中，多个参与者可以各自创建部分签名，然后将这些部分签名组合成一个对群组有效的单一 Schnorr 签名。
+
+### 更小的体积
+
+Schnorr 签名也比 ECDSA 签名更小。Schnorr 签名通常为 64 字节，而 ECDSA 签名可达 72 字节。这看起来差别不大，但它对交易手续费和区块链的整体可扩展性有显著影响。
+
+### 可证明的安全性
+
+Schnorr 签名在标准密码学假设下是可证明安全的。这意味着存在数学证明表明该签名方案是安全的，只要底层数学问题（如离散对数问题）难以求解。
+
+## 总结
+
+Schnorr 签名是一种强大的密码学工具，相比旧的签名方案具有诸多优势。其线性性、更小的体积和可证明的安全性使其成为加密货币、其他去中心化系统以及 SUBFROST 的理想选择。
+
+## Schnorr 签名在 SUBFROST 中的应用
+
+SUBFROST 在整个协议中广泛使用 Schnorr 签名。`schnorrkel` crate 用于提供核心 Schnorr 签名功能。
+
+### `frBTC` 和 `dxBTC` 代币
+
+`frBTC` 和 `dxBTC` 代币都由 Schnorr 签名保护。当用户想要铸造 `frBTC` 代币时，必须首先将其 BTC 锁定在一个由 SUBFROST 签名者集合控制的 Bitcoin 地址中。该地址的私钥是由签名者持有的 Schnorr 密钥。
+
+当用户想要将其 `frBTC` 代币赎回为 BTC 时，必须向 SUBFROST 网络提交请求。SUBFROST 签名者将使用其 Schnorr 密钥签署一笔 Bitcoin 交易，将 BTC 发送到用户的地址。
+
+### `schnorrkel` Crate
+
+`schnorrkel` crate 是 Schnorr 签名的纯 Rust 实现。它提供了一个简单易用的 API，用于创建和验证 Schnorr 签名。
+
+`subfrost-core` crate 使用 `schnorrkel` crate 来实现 FROST 和 ROAST 签名协议。`schnorrkel` crate 也用于创建保护 `frBTC` 和 `dxBTC` 代币的 Schnorr 签名。

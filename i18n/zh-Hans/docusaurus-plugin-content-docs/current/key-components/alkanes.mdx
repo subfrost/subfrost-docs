@@ -1,0 +1,76 @@
+---
+title: Alkanes 协议
+sidebar_label: Alkanes 协议
+sidebar_position: 4
+---
+
+# Alkanes 协议
+
+Alkanes 协议是一个强大的系统，用于在 Bitcoin 区块链上构建有状态的、类似智能合约的应用程序。它是驱动 `frBTC` 等合成资产的引擎，能够以底层 SUBFROST 共识可验证的方式执行复杂逻辑。
+
+## Runestones
+
+Alkanes 建立在 Runes 概念之上，将协议消息嵌入 Bitcoin 交易的 `OP_RETURN` 输出中。这些嵌入的数据被称为 **Runestone**。
+
+Runestone 是一段结构化数据，用于指示 Alkanes 元协议如何改变其"链上"程序的状态。由于这些数据是有效 Bitcoin 交易的一部分，**它继承了 Bitcoin 区块链的安全性和不可篡改性。**
+
+SUBFROST 协议使用 `metashrew` 索引器来读取这些 `OP_RETURN` 输出，解释 Runestones，并将产生的状态变更应用到 Alkanes 状态数据库中。
+
+这一机制提供了一种灵活且富有表现力的方式来管理数字资产和执行复杂逻辑，同时**锚定于 Bitcoin 区块链的安全性之上。**
+
+## Runestone 的结构
+
+Runestone 代币操作包含以下几个关键字段：
+
+-   `protocolTag`：特定元协议的标识符（例如，`1n` 代表基础 protorune 协议）。
+-   `edicts`：一组修改 rune 余额的指令。
+    -   `id`：受影响的 rune 的 ID（例如，`{ block: 32n, tx: 0n }` 代表 `frBTC`）。
+    -   `amount`：要铸造或转移的 rune 数量。
+    -   `output`：接收 runes 的交易输出索引。
+-   `pointer`：用于分配任何未分配 runes 的默认输出索引。
+-   `calldata`：一个任意字节数组，可用于向 Alkane 合约传递数据，实质上是调用一个函数。
+
+### 示例：铸造 `frBTC`（包装）
+
+当用户包装 BTC 时，他们会创建一笔包含如下 Runestone 的交易：
+
+```json
+{
+  "protostones": [{
+    "protocolTag": 1n,
+    "edicts": [{
+      "id": { "block": 32n, "tx": 0n }, // frBTC Alkane ID
+      "amount": 100000000n,             // 1.0 frBTC (in satoshis)
+      "output": 2                      // Assign to the 3rd output
+    }],
+    "pointer": 1,
+    "calldata": [32n, 0n, 77n] // Call the 'exchange' function
+  }]
+}
+```
+
+这个 Runestone 指示协议执行以下操作：
+1.  识别 `frBTC` Alkane 合约。
+2.  铸造 `1.0` 个新的 `frBTC`。
+3.  将这些新 `frBTC` 的所有权分配给交易第三个输出的接收者。
+4.  将 `[32, 0, 77]` 作为 calldata 传递给合约逻辑（目标区块 32，交易 0，操作码 77）。
+
+### 示例：销毁 `frBTC`（解包装）
+
+要进行解包装，用户需要花费包含 `frBTC` 的 UTXO。此交易中的 Runestone 将具有一个空的 `edicts` 数组，表示销毁操作。`calldata` 用于指定释放抵押品的目标 Bitcoin 地址。
+
+```json
+{
+  "protostones": [{
+    "protocolTag": 1n,
+    "edicts": [], // An empty array signifies a burn of input runes
+    "pointer": 0,
+    "calldata": [32n, 0n, 78n, /*...destination address...*/] // Call 'unwrap'
+  }]
+}
+```
+
+## 另请参阅
+
+- [Alkanes 集成](../developer-guide/alkanes-integration) — Alkanes 的 CLI 命令
+- [frBTC - Alkanes](../developer-guide/wrapping-frBTC) — frBTC 的包装与解包装

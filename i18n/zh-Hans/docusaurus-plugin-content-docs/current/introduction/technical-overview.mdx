@@ -1,0 +1,15 @@
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
+# 技术概述
+SUBFROST 作为 Layer-0 运行，通过构建 ZK 电路形式的欺诈证明来确保其操作的完整性。
+其核心采用灵活轮次优化 Schnorr 门限签名（FROST）和鲁棒异步 Schnorr 门限签名（ROAST）方案，允许多达 255 个参与者组成的签名组集体签署交易。
+
+这种去中心化的托管方式由基于 QUIC 和 libp2p 构建的点对点网络管理，确保稳健且安全的通信。
+
+在接下来的页面中，我们将介绍 SUBFROST 的核心组件，包括但不限于：
+
+- [**FROST 与 ROAST 密码学**](/key-components/frost-and-roast)：驱动去中心化托管的门限签名方案。
+- [**Alkanes 协议**](/key-components/alkanes)：将 SUBFROST 锚定到比特币区块链的元协议。
+- [**点对点网络**](/subfrost-networking/introduction-to-subp2p)：基于 QUIC 和 libp2p 构建的通信层。
+
+*如果您正在查找 SUBFROST API 文档（一套面向比特币原生应用开发的全方位工具），请访问：[SUBFROST API 文档](https://api.subfrost.io/docs)。*

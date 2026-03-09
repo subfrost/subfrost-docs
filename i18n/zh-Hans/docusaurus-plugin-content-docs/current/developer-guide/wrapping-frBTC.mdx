@@ -1,0 +1,253 @@
+---
+title: Alkanes 上的 frBTC
+sidebar_label: Alkanes 上的 frBTC
+sidebar_position: 4
+---
+
+# Alkanes 上的 frBTC
+
+frBTC 是 Alkanes 元协议上的原生比特币合成代币，与 BTC 保持 1:1 锚定。本指南涵盖了使用 Alkanes 进行包装、解包以及与 frBTC 合约交互的内容。
+
+## 合约位置
+
+| 属性 | 值 |
+|----------|-------|
+| **Alkane ID** | `{32, 0}` |
+| **区块** | 32 |
+| **交易** | 0 |
+
+frBTC 合约在创世时部署，且不可变更。
+
+## 合约操作码
+
+frBTC 合约通过操作码暴露以下方法：
+
+### 核心操作
+
+| 操作码 | 方法 | 参数 | 描述 |
+|--------|--------|------------|-------------|
+| `77` | `exchange()` | 无 | 将 BTC 包装为 frBTC |
+| `78` | `unwrap()` | `vout: u128, amount: u128` | 销毁 frBTC 并排队 BTC 支付 |
+
+### 查询方法
+
+| 操作码 | 方法 | 返回值 | 描述 |
+|--------|--------|---------|-------------|
+| `99` | `get_name()` | `"Fractional BTC"` | 代币名称 |
+| `100` | `get_symbol()` | `"frBTC"` | 代币符号 |
+| `101` | `get_pending_unwraps()` | `Payment[]` | 待处理支付列表 |
+| `102` | `get_decimals()` | `8` | 小数位数 |
+| `103` | `get_signer()` | `[u8; 32]` | 当前签名者公钥 |
+| `105` | `get_total_supply()` | `u128` | frBTC 总供应量 |
+
+## 包装原理
+
+包装过程在单个原子性 Bitcoin 交易中将原生 BTC 转换为 frBTC：
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  包装交易                                                │
+├─────────────────────────────────────────────────────────┤
+│  输入：您的 BTC UTXO                                     │
+├─────────────────────────────────────────────────────────┤
+│  输出 0：BTC → SUBFROST 签名者地址                        │
+│  输出 1：frBTC → 您的地址（通过 protostone）               │
+│  输出 2+：找零 → 您的找零地址                              │
+├─────────────────────────────────────────────────────────┤
+│  OP_RETURN：调用 exchange() 操作码 77 的 Protostone       │
+└─────────────────────────────────────────────────────────┘
+```
+
+位于 `{32, 0}` 的 frBTC 合约会验证 BTC 是否已发送到正确的签名者地址，并铸造等量的 frBTC 到您的地址。
+
+### 使用 CLI 包装
+
+```bash
+alkanes alkanes wrap-btc <AMOUNT> \
+  --to <RECIPIENT_ADDRESS> \
+  --from <YOUR_ADDRESS> \
+  --change <CHANGE_ADDRESS> \
+  --fee-rate <SAT_PER_VB> \
+  -y
+```
+
+**示例：包装 0.01 BTC**
+
+```bash
+alkanes alkanes wrap-btc 0.01 \
+  --to bc1p... \
+  --from bc1q... \
+  --change bc1q... \
+  --fee-rate 10 \
+  -y
+```
+
+### 高级用法：使用 Protostone 执行
+
+用于自定义交易：
+
+```bash
+alkanes alkanes execute \
+  --inputs "B:1000000" \
+  --to "<SIGNER_ADDR>,bc1p..." \
+  --protostones "[32,0,77]:v1:v1" \
+  -y
+```
+
+## 解包原理
+
+解包过程将 frBTC 转换回原生 BTC，分为两个步骤：
+
+### 第一步：销毁 frBTC
+
+创建一笔交易来销毁您的 frBTC 并排队支付请求：
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  解包交易                                                │
+├─────────────────────────────────────────────────────────┤
+│  输入：您的 frBTC UTXO                                   │
+├─────────────────────────────────────────────────────────┤
+│  OP_RETURN：调用 unwrap() 操作码 78 的 Protostone         │
+│             包含 vout 和 amount 参数                      │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 第二步：接收 BTC
+
+SUBFROST 签名者监控解包请求，并协作签署一笔 Bitcoin 交易，将锁定的 BTC 释放到您指定的地址。
+
+### 最低解包金额
+
+由于粉尘限制和交易手续费，存在最低解包金额：
+
+```bash
+alkanes subfrost minimum-unwrap \
+  --fee-rate <SAT_PER_VB> \
+  --premium 0.001
+```
+
+计算公式考虑以下因素：
+- 粉尘阈值（546 聪）
+- 基于交易大小的每输出手续费
+- 协议溢价（默认 0.1%）
+
+## 交易结构
+
+### Protostone 格式
+
+包装交易在 OP_RETURN 中包含一个 protostone：
+
+```
+Protostone {
+  cellpack: {
+    target: {block: 32, tx: 0},  // frBTC 合约
+    inputs: [77]                  // exchange() 操作码
+  },
+  bitcoin_transfer: {
+    amount: <SATS>,
+    target: Output(0)             // 将 BTC 发送到输出 0
+  },
+  pointer: Output(1),             // frBTC 发送到输出 1
+  refund: Output(1)               // 未使用的代币返回到输出 1
+}
+```
+
+### 支付存储
+
+解包支付按区块高度存储：
+
+```
+/alkanes/{32:0}/storage/
+  /payments/byheight/{height}  // 在该区块创建的支付
+  /fulfilled                    // 已完成的支付追踪
+  /last_block                   // 最后处理的区块
+```
+
+## 查询余额
+
+### frBTC 余额
+
+```bash
+alkanes alkanes getbalance --address <YOUR_ADDRESS>
+```
+
+### 待处理的解包
+
+查看待处理的解包请求：
+
+```bash
+alkanes alkanes unwrap --block-tag latest
+```
+
+## 安全模型
+
+### 原子性包装
+
+- 包装是无需信任且无需许可的
+- BTC 锁定和 frBTC 铸造在同一笔交易中完成
+- 如果 BTC 转账失败，则不会铸造 frBTC
+
+### 最小化信任的解包
+
+- 解包需要 SUBFROST 签名者的协作
+- 签名者监控解包事件
+- BTC 释放需要多方门限签名
+- 用户可以在链上验证待处理的支付
+
+## 错误处理
+
+**"Insufficient funds"（资金不足）**
+- 确保您有足够的 BTC 来支付包装金额和交易手续费
+- 检查您的 UTXO 是否被锁定或已被花费
+
+**"Below minimum unwrap"（低于最低解包金额）**
+- 您的解包金额低于粉尘阈值加手续费
+- 使用 `minimum-unwrap` 命令查看当前最低金额
+
+**"Signer address mismatch"（签名者地址不匹配）**
+- BTC 被发送到了错误的地址
+- 在包装之前查询当前签名者地址
+
+## 完整示例
+
+以下是完整的包装流程：
+
+```bash
+# 1. 如需要，创建钱包
+alkanes wallet create
+
+# 2. 查看您的地址
+alkanes wallet addresses --range 0:3
+
+# 3. 向您的钱包充入 BTC（外部步骤）
+
+# 4. 查询余额
+alkanes wallet balance
+
+# 5. 包装 0.01 BTC
+alkanes alkanes wrap-btc 0.01 \
+  --to bc1p... \
+  --from bc1q... \
+  --change bc1q... \
+  --fee-rate 10 \
+  -y
+
+# 6. 验证 frBTC 余额
+alkanes alkanes getbalance --address bc1p...
+```
+
+## 关键参数
+
+| 参数 | 值 | 描述 |
+|-----------|-------|-------------|
+| frBTC 合约 | `{32, 0}` | 区块 32，交易 0 |
+| 包装操作码 | `77` | exchange() 函数 |
+| 解包操作码 | `78` | unwrap() 函数 |
+| 默认溢价 | `0.1%` | 解包时的协议费用 |
+| 粉尘阈值 | `546 sats` | 最低输出值 |
+
+## 另请参阅
+
+- [Alkanes 集成](./alkanes-integration) — Alkanes CLI 参考
+- [Alkanes 协议](../key-components/alkanes) — 协议概述

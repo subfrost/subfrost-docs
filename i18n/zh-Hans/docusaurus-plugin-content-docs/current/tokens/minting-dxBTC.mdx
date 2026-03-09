@@ -1,0 +1,31 @@
+---
+sidebar_label: dxBTC - 铸造/销毁
+---
+
+# 铸造与销毁 dxBTC
+## `subfrost-cli` 中的 `dxBTC`
+
+`subfrost-cli` 提供了一组用于铸造和销毁 `dxBTC` 的命令。这些命令允许您：
+
+*   **铸造 `dxBTC`：** `subfrost-cli mint-dx-btc` 命令允许您通过锁定 `frBTC` 来铸造 `dxBTC`。
+*   **销毁 `dxBTC`：** `subfrost-cli burn-dx-btc` 命令允许您销毁 `dxBTC` 并赎回 `frBTC`。
+
+### 铸造 `dxBTC`
+
+以下是如何使用 `subfrost-cli` 铸造 `dxBTC` 的示例：
+
+```bash
+subfrost-cli mint-dx-btc --amount 1.0
+```
+
+此命令将锁定 1.0 `frBTC` 并向您的 Bitcoin 地址铸造等量的 `dxBTC`。
+
+### 销毁 `dxBTC`
+
+以下是如何使用 `subfrost-cli` 销毁 `dxBTC` 的示例：
+
+```bash
+subfrost-cli burn-dx-btc --amount 1.0
+```
+
+此命令将销毁 1.0 `dxBTC` 并向您的 Bitcoin 地址解锁等量的 `frBTC`。

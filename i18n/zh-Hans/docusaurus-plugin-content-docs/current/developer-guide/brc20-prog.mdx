@@ -1,0 +1,271 @@
+---
+title: BRC2.0 (brc20-prog)
+sidebar_label: BRC2.0 集成
+sidebar_position: 3
+---
+
+# BRC2.0 (brc20-prog) 集成
+
+Alkanes 使用二进制协议进行代币操作，而 BRC2.0 使用标准 ord 铭文配合 JSON 有效载荷来实现通用计算。
+
+## 设置您的环境
+
+### 前提条件
+
+- 已安装 Rust 和 Cargo
+- Bitcoin Core 节点（或可访问的节点）
+- Foundry（用于 Solidity 编译）
+- alkanes-rs 工具包
+
+### 安装 Foundry
+
+```bash
+# 安装 Foundry
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# 验证安装
+forge --version
+```
+
+### 构建 alkanes-rs
+
+```bash
+git clone https://github.com/kungfuflex/alkanes-rs
+cd alkanes-rs
+cargo build --release
+```
+
+## 编写您的第一个合约
+
+### 1. 创建 Solidity 合约
+
+```solidity
+// src/MyToken.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+contract MyToken {
+    string public name = "My BRC2.0 Token";
+    string public symbol = "MBT";
+    uint8 public decimals = 18;
+    uint256 public totalSupply;
+
+    mapping(address => uint256) public balanceOf;
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    function mint(address to, uint256 amount) public {
+        balanceOf[to] += amount;
+        totalSupply += amount;
+        emit Transfer(address(0), to, amount);
+    }
+
+    function transfer(address to, uint256 amount) public returns (bool) {
+        require(balanceOf[msg.sender] >= amount, "Insufficient balance");
+        balanceOf[msg.sender] -= amount;
+        balanceOf[to] += amount;
+        emit Transfer(msg.sender, to, amount);
+        return true;
+    }
+}
+```
+
+### 2. 使用 Foundry 编译
+
+```bash
+# 初始化 Foundry 项目（如果尚未初始化）
+forge init --no-commit
+
+# 编译
+forge build
+
+# 输出位于 out/MyToken.sol/MyToken.json
+```
+
+### 3. 部署到 Bitcoin
+
+使用 alkanes CLI：
+
+```bash
+alkanes brc20-prog deploy \
+  --foundry-json out/MyToken.sol/MyToken.json \
+  --from bc1p... \
+  --change bc1p... \
+  --fee-rate 30 \
+  --use-activation
+```
+
+CLI 将输出：
+- **Commit txid**：资金交易
+- **Reveal txid**：铭文交易
+- **Activation txid**：激活交易（如果使用了 `--use-activation`）
+- **Contract address**：已部署合约的地址
+
+## 调用合约函数
+
+### ABI 编码
+
+BRC2.0 使用标准的以太坊 ABI 编码进行函数调用：
+
+```text
+// 函数签名：transfer(address,uint256)
+// 选择器：keccak256("transfer(address,uint256)")[:4] = 0xa9059cbb
+
+// 参数：
+// - to: 0x1234...
+// - amount: 1000000000000000000 (1 个代币，18 位小数)
+
+// 编码后的 calldata：
+// 0xa9059cbb
+// 0000000000000000000000001234567890abcdef1234567890abcdef12345678
+// 0000000000000000000000000000000000000000000000000de0b6b3a7640000
+```
+
+### 发起调用
+
+```bash
+alkanes brc20-prog call \
+  --contract 0x1234567890abcdef1234567890abcdef12345678 \
+  --function "transfer(address,uint256)" \
+  --args "0xrecipient...,1000000000000000000" \
+  --from bc1p... \
+  --fee-rate 30
+```
+
+## FR-BTC：参考实现
+
+FR-BTC 是 BRC2.0 的旗舰应用——一个无需信任的 BTC 包装器，可铸造 FR-BTC 代币：
+
+### 关键函数
+
+| 函数 | 描述 |
+|----------|-------------|
+| `wrap()` | 为发送到合约的 BTC 铸造 FR-BTC |
+| `unwrap(amount, vout)` | 销毁 FR-BTC 并排队 BTC 支付 |
+| `wrapAndExecute2(target, data)` | 原子性地包装 BTC 并调用另一个合约 |
+
+### 示例：包装 BTC
+
+```bash
+alkanes brc20-prog frbtc wrap \
+  --amount 0.01 \
+  --from bc1q... \
+  --fee-rate 30
+```
+
+## 跨协议互操作性
+
+### BRC2.0 与 Alkanes
+
+BRC2.0 合约可以与 Alkanes 代币交互：
+
+```
+用户发送 BTC
+      │
+      ▼
+┌─────────────────┐
+│  FR-BTC.wrap()  │  ← BRC2.0 合约
+│  铸造 FR-BTC    │
+└─────────────────┘
+      │
+      ▼
+┌─────────────────┐
+│  Alkanes Vault  │  ← Alkanes 合约
+│  持有 FR-BTC    │
+│  发放授权       │
+└─────────────────┘
+      │
+      ▼
+用户收到金库代币
+```
+
+### wrapAndExecute2 模式
+
+这个强大的模式可以原子性地包装 BTC 并调用另一个合约：
+
+```solidity
+function wrapAndExecute2(address target, bytes calldata data) public {
+    // 1. 将传入的 BTC 包装为 FR-BTC
+    uint256 wrapped = _wrap(msg.sender);
+
+    // 2. 授权目标合约
+    _approve(msg.sender, target, wrapped);
+
+    // 3. 使用提供的数据调用目标合约
+    (bool success, ) = target.call(data);
+    require(success, "Target call failed");
+}
+```
+
+## 须知事项
+
+### 铭文保护
+
+如果您的 UTXO 包含其他铭文，BRC2.0 会通过拆分交易自动保护它们：
+
+```
+包含铭文的 UTXO
+      │
+      ▼
+┌─────────────────┐
+│  拆分交易       │
+├─────────────────┤
+│ 输出 1：干净的  │ → 用于 commit
+│ 输出 2：原始的  │ → 保护铭文安全
+└─────────────────┘
+```
+
+### 手续费计算
+
+BRC2.0 通过"虚拟交易"技术实现精确的手续费计算：
+
+1. 使用真实脚本构建完整的 reveal 交易
+2. 计算精确的 vsize（非估算值）
+3. 设置 commit 输出 = inscription_output + reveal_fee
+4. 无找零输出（避免粉尘）
+
+### 内存池状态追踪
+
+执行器通过未确认交易追踪铭文状态，从而支持：
+- 从部分部署中恢复
+- 通过待处理的 UTXO 追踪铭文
+- 优雅地处理链重组
+
+## 故障排除
+
+### 常见问题
+
+**"Insufficient funds"（资金不足）**
+- 确保您的钱包有足够的 BTC 来支付手续费和铭文输出（546 聪）
+- 检查 UTXO 是否被锁定或已被花费
+
+**"Frontrun detected"（检测到抢跑）**
+- 使用原子广播时不应出现此问题
+- 如果出现，交易可以恢复
+
+**"Contract address mismatch"（合约地址不匹配）**
+- 验证地址推导中使用的 nonce
+- 检查发送者地址是否正确
+
+### 获取帮助
+
+- GitHub Issues：[kungfuflex/alkanes-rs](https://github.com/kungfuflex/alkanes-rs)
+- 在 X 上联系 @SUBFROSTio
+
+## 关键实现文件
+
+参考实现位于 `alkanes-rs` 中：
+
+| 文件 | 用途 |
+|------|---------|
+| `execute.rs` | 核心执行引擎（commit-reveal-activation） |
+| `envelope.rs` | Ord 铭文信封构建 |
+| `calldata.rs` | 以太坊 ABI 编码 |
+| `contract_address.rs` | 地址推导 |
+| `types.rs` | 参数和结果类型 |
+
+## 另请参阅
+
+- [FR-BTC - BRC2.0](./frBTC-brc20) — 使用 FR-BTC 构建脚本
+- [BRC2.0 协议](../key-components/brc20-prog) — 协议技术细节

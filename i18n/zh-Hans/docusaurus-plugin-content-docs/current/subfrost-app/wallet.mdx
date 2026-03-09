@@ -1,0 +1,169 @@
+---
+title: 钱包
+sidebar_position: 5
+---
+
+# 钱包
+
+*SUBFROST APP 目前正在开发中，其界面可能会发生变化。*
+
+钱包仪表板是您查看资产、管理 UTXO、跟踪交易以及发送和接收 BTC 的地方。
+
+**功能亮点：**
+- 连接 OKX、Xverse、Leather、Unisat 等钱包
+- 创建浏览器密钥库钱包（无需扩展程序），并备份到 Google Drive
+- 双地址支持（Taproot + SegWit）
+- 索引 Alkanes、Runes 和 BRC20s
+- UTXO 管理和冻结保护
+- 带有区块浏览器链接的交易历史
+
+![Wallet Dashboard](/img/app/WalletDashboard.png)
+
+## 浏览器密钥库（自托管）
+
+创建一个完全自托管的钱包，本地存储在您的浏览器中——无需扩展程序。
+
+![Connect Wallet Options](/img/app/KeystoreCreationFlow1.png)
+
+### 创建新钱包
+
+1. 从连接钱包菜单中点击 **"Create New Wallet"**
+2. 设置一个强密码（最少 8 个字符）
+3. 可选择为 Google Drive 备份添加密码提示
+
+![Create New Wallet](/img/app/KeystoreCreationFlow2.png)
+
+4. **写下您的 12 个助记词** — 将其安全地离线保存
+5. 可选择备份到 Google Drive 以便使用
+
+![Save Your Recovery Phrase](/img/app/KeystoreCreationFlow3.png)
+
+### 恢复已有钱包
+
+1. 从连接钱包菜单中点击 **"Restore Wallet"**
+2. 输入您的 12 个助记词、密钥库文件，或从 Google Drive 恢复
+3. 设置新密码
+4. 您的钱包及所有地址已恢复
+
+### 安全功能
+
+- **加密存储** — 您的钱包数据使用密码加密
+- **密码保护** — 每次会话都需要密码才能访问钱包
+- **备份选项**：
+  - 导出加密备份文件
+  - 显示助记词（需要密码）
+  - 备份到 Google Drive
+
+:::warning 请妥善保管您的助记词
+您的 12 个助记词是您钱包的主密钥。任何获取它的人都可以取走您的资金。切勿分享、切勿以数字形式存储、切勿在除 SUBFROST 以外的任何网站上输入。
+:::
+
+## 支持的钱包
+
+已有 Bitcoin 钱包？直接连接即可：
+
+![Wallet Connection Modal](/img/app/WalletConnectionModal.png)
+
+### 连接钱包
+
+1. 点击页面顶部的 **"Connect Wallet"**
+2. 选择您的钱包提供商
+3. 在您的钱包扩展中批准连接
+4. 您的地址将显示在页面顶部
+
+## 双地址支持
+
+SUBFROST 生成两种地址类型以确保完全兼容：
+
+| 地址类型 | 格式 | 用途 |
+|----------|------|------|
+| **Taproot** | `bc1p...` | Alkanes、BRC20s、Runes、Ordinals |
+| **Native SegWit** | `bc1q...` | 发送和接收 BTC |
+
+两种地址都显示在钱包顶部，附带复制按钮。某些应用和交易所偏好其中一种格式——同时拥有两种地址确保您始终能够接收资金。
+
+![Dual Address Display](/img/app/DualAddressDisplay.png)
+
+## 钱包选项卡
+
+### 余额
+
+查看您的完整资产持仓。余额选项卡显示：
+
+- **Bitcoin 余额** — 总 BTC 及美元价值
+- **可用 BTC** — 可用于交易的余额
+- **不可用（含资产）** — 与铭文或代币锁定的 BTC
+- **地址明细** — Native SegWit / Taproot / 待处理交易
+- **Protorune 资产** — Alkanes 及类似协议代币
+- **铭文资产** — BRC20 及其他基于铭文的代币
+
+### UTXO 管理
+
+对您的 Bitcoin 输出进行精细化控制：
+
+**什么是 UTXO？** Bitcoin 的运作方式与传统银行不同——您的余额由称为 UTXO（未花费交易输出）的独立"硬币"组成。管理它们可以让您精确控制花费哪些硬币。
+
+**筛选条件：**
+- 地址类型（Native SegWit / Taproot）
+- 资产类型（Runes / Tokens / Inscriptions）
+
+**操作：**
+
+| 操作 | 功能说明 |
+|------|----------|
+| **冻结** | 保护 UTXO 不被意外花费 |
+| **解冻** | 使其重新可用 |
+| **拆分** | 将铭文与其所附着的 BTC 分离 |
+
+:::tip 保护您的珍贵资产
+如果您专门使用 Taproot 地址，请冻结包含稀有铭文或收藏品的 UTXO，以免意外将它们作为交易费花费。
+:::
+
+### 交易历史
+
+查看所有钱包活动：
+
+- **状态** — 已确认（绿色）或待处理（黄色）
+- **交易 ID** — 点击在区块浏览器中查看
+- **日期/时间**及区块确认
+- **已支付费用**
+- **可展开详情** — 查看所有输入和输出
+
+### 设置
+
+配置您的钱包：
+
+![Settings Tab](/img/app/SettingsTab.png)
+
+- **网络配置** — 选择 Mainnet、Signet 或 Regtest
+- **HD 钱包派生** — 查看您的活跃地址和配置派生路径
+- **安全与备份** — 导出备份、管理您的助记词
+
+## 发送 Bitcoin
+
+![Send Modal](/img/app/SendModal.png)
+
+1. **输入收款地址** — 支持所有 Bitcoin 地址格式
+2. **输入金额** — 以 BTC 为单位
+3. **选择费率** — 慢速 / 中速 / 快速 / 自定义
+4. **审核并发送** — 确认前检查所有信息
+5. **签名并广播** — 您的钱包签署交易
+
+:::warning 费用安全提示
+如果您的费用异常偏高，应用会发出警告——在确认大额交易前请务必仔细检查。
+:::
+
+**高级功能：手动 UTXO 选择**
+
+SUBFROST 会自动选择您 Native SegWit 地址中的 UTXO。
+
+高级用户可以禁用自动选择，手动选择要花费的 UTXO（SegWit 或 Taproot）。这对隐私保护、UTXO 合并或避免使用特定硬币非常有用。
+
+## 接收 Bitcoin
+
+![Receive Modal with QR Code](/img/app/RecieveModalwithQRCode.png)
+
+- **二维码** — 使用任何手机钱包扫描
+- **您的 Bitcoin 地址** — 完整地址附带复制按钮
+- **重要提示** — 仅发送 Bitcoin、验证地址、地址可重复使用
+- **Bitcoin URL** — 用于在手机钱包中直接打开

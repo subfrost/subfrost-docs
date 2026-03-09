@@ -1,0 +1,129 @@
+---
+title: subfrost-cli 命令行工具
+sidebar_label: subfrost-cli
+sidebar_position: 2
+---
+
+# `subfrost-cli` 参考
+
+本页提供 `subfrost-cli` 命令行界面中所有命令、子命令和选项的完整参考。`subfrost-cli` 是与 SUBFROST 网络交互的主要工具。
+
+## 全局选项
+
+这些选项可与任何命令一起使用。
+
+-   `--keystore <PATH>`：指定自定义密钥库文件的路径。
+-   `--passphrase <PASSPHRASE>`：指定密钥库的口令。
+-   `--circuit <URL>`：指定用于电路中继的 `subrelay` 的 URL。
+-   `--help`：显示帮助信息。
+-   `--version`：显示版本信息。
+
+## 主要命令
+
+### `frost`
+
+用于管理 FROST 密钥库和参与签名仪式的命令。
+
+**用法：**
+```bash
+subfrost-cli frost <SUBCOMMAND>
+```
+
+**子命令：**
+
+-   `create`：创建一个新的 FROST 密钥库。
+-   `info`：查看 FROST 密钥库的内容。
+-   `dkg`：启动一个分布式密钥生成（DKG）仪式。
+-   `sign`：发起一个签名仪式。
+
+### `rail`
+
+用于与 `subp2p` 网络上运行的 JSON-RPC 服务交互的命令。
+
+**用法：**
+```bash
+subfrost-cli rail <service-uri> <method> [params...]
+```
+
+### `proxy`
+
+用于运行 `subproxy` 服务器的命令。
+
+**用法：**
+```bash
+subfrost-cli proxy <SUBCOMMAND>
+```
+
+**子命令：**
+
+-   `--bind-proxy <ADDRESS>`：运行一个 SOCKS5 代理服务器。
+-   `--reverse-proxy <ADDRESS>`：运行一个反向代理服务器。
+
+### `tun`
+
+用于通过 `subtun` 创建点对点 VPN 的命令。
+
+**用法：**
+```bash
+subfrost-cli tun <SUBCOMMAND>
+```
+
+**子命令：**
+
+-   `--gateway`：运行一个 `subtun` 网关。
+-   `--connect <ADDRESS>`：连接到一个 `subtun` 网关。
+
+### `wrap`
+
+用于包装和解包装 `frBTC` 的命令。
+
+**用法：**
+```bash
+subfrost-cli wrap <SUBCOMMAND>
+```
+
+**子命令：**
+
+-   `--amount <AMOUNT>`：包装 BTC 并铸造 `frBTC`。
+-   `--unwrap`：解包装 `frBTC` 并赎回 BTC。
+
+### `mint-dx-btc`
+
+用于铸造和销毁 `dxBTC` 的命令。
+
+**用法：**
+```bash
+subfrost-cli mint-dx-btc <SUBCOMMAND>
+```
+
+**子命令：**
+
+-   `--amount <AMOUNT>`：通过锁定 `frBTC` 来铸造 `dxBTC`。
+-   `--burn`：销毁 `dxBTC` 并赎回 `frBTC`。
+
+### `stake`
+
+用于质押 `dxFUEL` 代币的命令。
+
+**用法：**
+```bash
+subfrost-cli stake <SUBCOMMAND>
+```
+
+**子命令：**
+
+-   `--amount <AMOUNT>`：质押 `dxFUEL` 代币。
+-   `--unstake`：取消质押 `dxFUEL` 代币。
+
+### `governance`
+
+用于参与治理的命令。
+
+**用法：**
+```bash
+subfrost-cli governance <SUBCOMMAND>
+```
+
+**子命令：**
+
+-   `vote`：对治理提案进行投票。

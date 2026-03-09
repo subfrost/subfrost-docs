@@ -1,0 +1,70 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.docs.category.Introduction": {
+    "message": "简介",
+    "description": "The label for category 'Introduction' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.SUBFROST APP": {
+    "message": "SUBFROST 应用",
+    "description": "The label for category 'SUBFROST APP' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Tokens (frBTC, dxBTC, FUEL)": {
+    "message": "代币 (frBTC, dxBTC, FUEL)",
+    "description": "The label for category 'Tokens (frBTC, dxBTC, FUEL)' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Developer Guide": {
+    "message": "开发者指南",
+    "description": "The label for category 'Developer Guide' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Key Technical Components": {
+    "message": "核心技术组件",
+    "description": "The label for category 'Key Technical Components' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.SUBFROST Networking": {
+    "message": "SUBFROST 网络",
+    "description": "The label for category 'SUBFROST Networking' in sidebar 'docs'"
+  },
+  "sidebar.docs.category.Reference": {
+    "message": "参考文档",
+    "description": "The label for category 'Reference' in sidebar 'docs'"
+  },
+  "sidebar.docs.doc.Technical Overview": {
+    "message": "技术概览",
+    "description": "The label for the doc item 'Technical Overview' in sidebar 'docs', linking to the doc introduction/technical-overview"
+  },
+  "sidebar.docs.doc.SUBFROST API Docs": {
+    "message": "SUBFROST API 文档",
+    "description": "The label for the doc item 'SUBFROST API Docs' in sidebar 'docs', linking to the doc introduction/subfrost-api-docs"
+  },
+  "sidebar.docs.doc.frBTC - Defi-compatible BTC": {
+    "message": "frBTC - DeFi 兼容的 BTC",
+    "description": "The label for the doc item 'frBTC - Defi-compatible BTC' in sidebar 'docs', linking to the doc tokens/frBTC-overview"
+  },
+  "sidebar.docs.doc.dxBTC - Yield-bearing BTC": {
+    "message": "dxBTC - 生息 BTC",
+    "description": "The label for the doc item 'dxBTC - Yield-bearing BTC' in sidebar 'docs', linking to the doc tokens/dxBTC-overview"
+  },
+  "sidebar.docs.doc.FUEL - Protocol Token": {
+    "message": "FUEL - 协议代币",
+    "description": "The label for the doc item 'FUEL - Protocol Token' in sidebar 'docs', linking to the doc tokens/FUEL-token"
+  },
+  "sidebar.docs.doc.Alkanes Integration": {
+    "message": "Alkanes 集成",
+    "description": "The label for the doc item 'Alkanes Integration' in sidebar 'docs', linking to the doc developer-guide/alkanes-integration"
+  },
+  "sidebar.docs.doc.frBTC on Alkanes": {
+    "message": "Alkanes 上的 frBTC",
+    "description": "The label for the doc item 'frBTC on Alkanes' in sidebar 'docs', linking to the doc developer-guide/wrapping-frBTC"
+  },
+  "sidebar.docs.doc.BRC2.0 Integration": {
+    "message": "BRC2.0 集成",
+    "description": "The label for the doc item 'BRC2.0 Integration' in sidebar 'docs', linking to the doc developer-guide/brc20-prog"
+  },
+  "sidebar.docs.doc.FR-BTC on BRC2.0": {
+    "message": "BRC2.0 上的 FR-BTC",
+    "description": "The label for the doc item 'FR-BTC on BRC2.0' in sidebar 'docs', linking to the doc developer-guide/frBTC-brc20"
+  }
+}

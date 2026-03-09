@@ -1,0 +1,66 @@
+---
+sidebar_label: Gossipsub 与加密通信
+---
+
+# Gossipsub 与加密通信
+
+SUBFROST 使用 [`gossipsub`](https://github.com/libp2p/specs/tree/master/pubsub/gossipsub) 协议在节点之间进行高效且可扩展的实时消息传递。`gossipsub` 是一种发布/订阅协议，节点可以订阅主题并接收发布到这些主题的消息。
+
+这是 `subp2p` 网络层的核心组件，用于各种任务，例如广播交易和区块信息，以及协调多方计算（如 FROST 签名仪式）。
+
+## 主题
+
+`gossipsub` 主题是简单的字符串，用于标识特定的消息通道。节点可以订阅任何主题，并将接收其连接的节点发布到该主题的所有消息。
+
+在 SUBFROST 中，主题用于为不同目的创建逻辑通信通道。例如，可能有一个主题用于与特定 `frBTC` 合约相关的所有消息，或者有一个主题用于特定的 FROST 签名组。
+
+## 加密通信通道
+
+虽然 `subp2p` 网络上的所有通信在传输层都是加密的（使用 TLS），但 `gossipsub` 本身不提供消息的端到端加密。这意味着任何订阅了主题的节点都可以读取发布到该主题的所有消息。
+
+然而，可以在 `gossipsub` 之上构建端到端加密层，以创建私有的加密通信通道。这是一种强大的模式，可用于构建安全的群聊、私有数据共享以及其他需要保密性的应用程序。
+
+### 安全群组通信模式
+
+在 `gossipsub` 之上创建加密通信通道的常见模式如下：
+
+1.  **建立共享密钥：** 一组想要私密通信的节点必须首先商定一个共享密钥。这可以使用 Diffie-Hellman 等密钥交换协议来完成，或者通过从共同密钥（如 FROST 组公钥）派生密钥来完成。
+
+2.  **派生主题和加密密钥：** 然后可以使用共享密钥来派生唯一的 `gossipsub` 主题和对称加密密钥。例如，共享密钥的哈希值可以用作主题，密钥本身可以用作加密密钥。
+
+3.  **加密并发布：** 当节点想要向群组发送消息时，它首先使用共享加密密钥加密消息，然后将加密后的消息发布到派生的 `gossipsub` 主题。
+
+4.  **接收并解密：** 只有属于该群组并有权访问共享密钥的节点才能派生主题、订阅主题并解密消息。
+
+这种模式有效地在公共 `gossipsub` 网络上创建了一个私有的端到端加密通信通道。这是一个很好的例子，展示了 SUBFROST 的模块化组件如何组合在一起构建复杂且安全的去中心化应用程序。
+
+## SUBFROST 中的 `gossipsub`
+
+`subfrost-cli` 使用 `gossipsub` 向网络广播消息并参与 FROST 签名仪式。当您运行 `subfrost-cli` 时，它会订阅一组用于一般网络通信的默认主题。它还会订阅其所属的 FROST 签名组特定的主题。
+
+### 发布和订阅主题
+
+以下是使用 `gossipsub` 发布和订阅主题的示例：
+
+```rust
+use subp2p::Subp2p;
+use subp2p::gossipsub::{GossipsubEvent, IdentTopic as Topic};
+
+// Create a new subp2p node
+let mut subp2p = Subp2p::new().await?;
+
+// Subscribe to a topic
+let topic = Topic::new("my-topic");
+subp2p.subscribe(&topic)?;
+
+// Publish a message to the topic
+subp2p.publish(topic.clone(), "my-message".as_bytes())?;
+
+// Wait for a message to be received
+loop {
+    if let Subp2pEvent::Gossipsub(GossipsubEvent::Message { propagation_source, message_id, message }) = subp2p.next_event().await {
+        println!("Received message: {:?}", message.data);
+        break;
+    }
+}
+```

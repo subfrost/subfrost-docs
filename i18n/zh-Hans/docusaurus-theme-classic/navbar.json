@@ -1,0 +1,10 @@
+{
+  "title": {
+    "message": "SUBFROST",
+    "description": "The title in the navbar"
+  },
+  "logo.alt": {
+    "message": "SUBFROST Logo",
+    "description": "The alt text of navbar logo"
+  }
+}

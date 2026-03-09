@@ -1,0 +1,183 @@
+---
+title: BRC2.0 协议
+sidebar_position: 5
+---
+
+# BRC2.0 协议 (brc20-prog)
+
+BRC2.0（也称为 brc20-prog）是一种通过铭文在 Bitcoin 上直接部署和执行 EVM 兼容智能合约的协议。它使 Solidity 开发者无需学习新语言即可将其技能应用于 Bitcoin。
+
+## BRC2.0 的工作原理
+
+BRC2.0 将合约部署和函数调用作为 JSON 数据铭刻在 Bitcoin 交易中。索引器读取这些铭文并执行嵌入的 EVM 字节码，在交易之间维护状态。
+
+### 铭文格式
+
+BRC2.0 使用标准的 ord 铭文信封：
+
+```
+<pubkey> CHECKSIG
+OP_FALSE OP_IF
+  "ord"
+  <content-type-tag>
+  "text/plain;charset=utf-8"
+  <body-tag>
+  <json-payload>
+OP_ENDIF
+```
+
+关键的安全特性是开头的 `<pubkey> CHECKSIG`——这确保只有持有临时私钥的人才能创建有效的揭示交易，从而防止抢跑攻击。
+
+### 载荷类型
+
+**部署操作：**
+```json
+{
+  "p": "brc20-prog",
+  "op": "deploy",
+  "d": "0x608060405234801561001057600080fd5b50..."
+}
+```
+
+`d` 字段包含完整的 EVM 部署字节码（编译后的 Solidity）。
+
+**调用操作：**
+```json
+{
+  "p": "brc20-prog",
+  "op": "call",
+  "c": "0x1234567890abcdef1234567890abcdef12345678",
+  "d": "0xa9059cbb000000000000000000000000..."
+}
+```
+
+- `c`：目标合约地址
+- `d`：ABI 编码的函数调用数据
+
+## Commit-Reveal-Activation 模式
+
+BRC2.0 使用多交易模式来防止抢跑并确保原子执行：
+
+### 两笔交易模式（用于调用）
+
+```
+Transaction 1: COMMIT
+├─ Input: User's UTXO
+└─ Output: Exact sats to taproot address
+
+Transaction 2: REVEAL
+├─ Input: Commit output (requires valid signature)
+├─ Script: Pubkey+CHECKSIG + inscription envelope
+└─ Output: OP_RETURN (completes the call)
+```
+
+### 三笔交易模式（用于部署）
+
+```
+Transaction 1: COMMIT
+├─ Input: User's UTXO
+└─ Output: Exact sats to taproot address
+
+Transaction 2: REVEAL
+├─ Input: Commit output
+├─ Script: Inscription envelope with bytecode
+└─ Output: 546-sat inscription UTXO
+
+Transaction 3: ACTIVATION
+├─ Input: 546-sat inscription UTXO
+└─ Output: OP_RETURN (activates the contract)
+```
+
+三笔交易模式创建一个可追踪的持久铭文 UTXO，然后通过"激活"来部署合约。
+
+## 防抢跑机制
+
+### 抢跑问题
+
+如果没有保护措施，攻击者可以：
+1. 在内存池中看到 commit 交易
+2. 在原始创建者之前构建自己的 reveal
+3. 让自己的 reveal 先被打包，从而劫持铭文
+
+### 解决方案：预签名 + 原子广播
+
+BRC2.0 实现了一种混合防御机制：
+
+1. **在广播前预构建所有交易**
+2. **预签名所有交易**，启用 RBF 序列号
+3. **通过单个 RPC 批量调用原子广播**
+4. 当 commit 进入内存池时，reveal 已经签名完毕——攻击者没有可利用的时间窗口
+
+reveal 脚本中的 `Pubkey+CHECKSIG` 意味着只有 commit 创建者的签名是有效的，使得竞争性的 reveal 变得不可能。
+
+## 合约地址推导
+
+BRC2.0 使用以太坊的合约地址公式：
+
+```
+address = keccak256(rlp([sender, nonce]))[12:]
+```
+
+其中：
+- `sender`：部署者的以太坊风格地址（从 Bitcoin 公钥派生）
+- `nonce`：部署者的交易计数（首次部署为 0）
+
+这允许在部署前预测合约地址——这对于设置跨合约引用非常有用。
+
+## ABI 编码
+
+函数调用使用标准的以太坊 ABI 编码：
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Function Selector (4 bytes)                            │
+│  keccak256("functionName(type1,type2)")[:4]             │
+├─────────────────────────────────────────────────────────┤
+│  Argument 1 (32 bytes, left-padded)                     │
+├─────────────────────────────────────────────────────────┤
+│  Argument 2 (32 bytes, left-padded)                     │
+├─────────────────────────────────────────────────────────┤
+│  ...                                                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+**示例：** `transfer(address,uint256)` 参数为 `(0x1234..., 1000)`
+
+```
+Selector:  0xa9059cbb (keccak256("transfer(address,uint256)")[:4])
+Arg 1:     0x0000000000000000000000001234567890abcdef...
+Arg 2:     0x00000000000000000000000000000000000000000000000000000000000003e8
+```
+
+## 精确的手续费计算
+
+BRC2.0 使用"虚拟交易技术"进行精确的手续费计算：
+
+1. 使用真实脚本和控制块构建完整的 reveal 交易
+2. 从虚拟交易计算精确的虚拟大小（vsize）
+3. Commit 输出 = 铭文输出（546 聪）+（reveal 虚拟大小 × 费率）
+
+这种精确性至关重要——过少会导致 reveal 失败，过多则浪费聪。
+
+## 铭文保护
+
+在为 BRC2.0 操作提供资金时，必须保护 UTXO 上已有的铭文。协议会自动插入一笔**拆分交易**：
+
+```
+UTXO containing inscription
+          │
+          ▼
+┌─────────────────────┐
+│    SPLIT TX         │
+├─────────────────────┤
+│ Output 1: Clean     │ ──→ Used for commit funding
+│ Output 2: Protected │ ──→ Keeps inscription safe
+└─────────────────────┘
+```
+
+内存池索引器通过未确认交易追踪铭文状态，从而实现安全拆分。
+
+## 另请参阅
+
+- [BRC2.0 集成](../developer-guide/brc20-prog) — 如何部署和调用合约
+- [Alkanes 协议](./alkanes) — 面向代币的操作

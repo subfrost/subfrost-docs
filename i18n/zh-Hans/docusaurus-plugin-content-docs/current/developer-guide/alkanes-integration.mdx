@@ -1,0 +1,225 @@
+---
+sidebar_label: Alkanes 集成
+sidebar_position: 2
+---
+
+# Alkanes 集成
+
+Alkanes CLI (`alkanes`) 是与 Bitcoin 上 Alkanes 元协议交互的主要命令行工具。它提供了钱包管理、代币操作、合约部署和网络查询等命令。
+
+## 安装
+
+从 alkanes-rs 仓库安装：
+
+```bash
+git clone https://github.com/kungfuflex/alkanes-rs
+cd alkanes-rs
+cargo build --release
+```
+
+编译后的二进制文件位于 `target/release/alkanes`。
+
+## 全局选项
+
+所有命令均支持以下全局选项：
+
+| 选项 | 描述 |
+|--------|-------------|
+| `--wallet-file <PATH>` | 钱包文件路径 |
+| `--passphrase <PHRASE>` | 用于签名的钱包密码 |
+| `--wallet-address <ADDR>` | 只读模式（仅查看） |
+| `--jsonrpc-url <URL>` | 自定义 JSON-RPC 端点 |
+| `--provider <PROVIDER>` | 网络：`regtest`、`signet`、`mainnet` |
+| `--frbtc-address <ADDR>` | 覆盖 frBTC 合约地址 |
+
+## 钱包命令
+
+### 创建钱包
+
+```bash
+alkanes wallet create
+```
+
+创建一个新钱包并生成 12 个助记词。请妥善保管此助记词。
+
+### 列出地址
+
+```bash
+alkanes wallet addresses --range 0:5
+```
+
+显示钱包地址。使用范围表示法 `start:end` 指定要显示的地址。
+
+### 查询余额
+
+```bash
+alkanes wallet balance
+```
+
+显示钱包的 BTC 和代币余额。
+
+### 列出 UTXO
+
+```bash
+alkanes wallet utxos
+```
+
+列出钱包中所有未花费的交易输出。
+
+## Alkanes 操作
+
+### 将 BTC 包装为 frBTC
+
+```bash
+alkanes alkanes wrap-btc <AMOUNT> \
+  --to <RECIPIENT_ADDRESS> \
+  --from <YOUR_ADDRESS> \
+  --change <CHANGE_ADDRESS> \
+  --fee-rate <SAT_PER_VB> \
+  -y
+```
+
+将原生 BTC 包装为 frBTC 代币。`-y` 标志表示自动确认交易。
+
+**示例：**
+```bash
+alkanes alkanes wrap-btc 0.01 \
+  --to bc1p... \
+  --from bc1q... \
+  --change bc1q... \
+  --fee-rate 10 \
+  -y
+```
+
+### 查询代币余额
+
+```bash
+alkanes alkanes getbalance --address <ADDRESS>
+```
+
+### 查看待处理的解包请求
+
+```bash
+alkanes alkanes unwrap --block-tag latest
+```
+
+显示等待处理的 frBTC 解包请求。
+
+### 执行自定义交易
+
+```bash
+alkanes alkanes execute \
+  --inputs <REQUIREMENTS> \
+  --to <ADDRESSES> \
+  --protostones <SPECS> \
+  -y
+```
+
+供高级用户构建自定义 Alkanes 交易。
+
+**输入格式：**
+- `B:amount` — 以聪为单位的比特币数量
+- `BLOCK:TX:amount` — 指定代币数量
+
+### 检查合约
+
+```bash
+alkanes alkanes inspect <OUTPOINT> --disasm --meta
+```
+
+反汇编并检查合约字节码。
+
+### 模拟交易
+
+```bash
+alkanes alkanes simulate <TX_HEX>
+```
+
+模拟 Alkanes 交易而不广播。
+
+## Bitcoin RPC 命令
+
+直接访问 Bitcoin Core RPC：
+
+```bash
+# 获取区块数量
+alkanes bitcoind getblockcount
+
+# 获取原始交易
+alkanes bitcoind getrawtransaction <TXID>
+
+# 解码交易
+alkanes bitcoind decoderawtransaction <TX_HEX>
+
+# 发送交易
+alkanes bitcoind sendrawtransaction <TX_HEX>
+```
+
+## Esplora 命令
+
+查询 Esplora API：
+
+```bash
+# 获取地址信息
+alkanes esplora address <ADDRESS>
+
+# 获取地址 UTXO
+alkanes esplora address-utxo <ADDRESS>
+
+# 获取交易
+alkanes esplora tx <TXID>
+
+# 手续费估算
+alkanes esplora fee-estimates
+```
+
+## 交易选项
+
+### 手续费率
+
+设置自定义手续费率（单位：sat/vB）：
+
+```bash
+--fee-rate 15
+```
+
+### 广播方式
+
+| 选项 | 描述 |
+|--------|-------------|
+| 默认 | 标准内存池广播 |
+| `--use-slipstream` | MARA Slipstream（绕过内存池） |
+| `--use-rebar` | Rebar Shield（带 MEV 保护的私有中继） |
+| `--mine` | 立即挖矿（仅限 regtest） |
+
+### 自动确认
+
+跳过确认提示：
+
+```bash
+-y, --auto-confirm
+```
+
+## 关键常量
+
+| 常量 | 值 | 描述 |
+|----------|-------|-------------|
+| frBTC 合约 | `{32, 0}` | 区块 32，交易 0 |
+| 包装操作码 | `77` | frBTC exchange 函数 |
+| 解包操作码 | `78` | frBTC unwrap 函数 |
+| 获取签名者操作码 | `103` | 查询签名者地址 |
+| 创世区块 | `880000` | 主网创世区块 |
+
+## 获取帮助
+
+```bash
+alkanes --help
+alkanes <COMMAND> --help
+```
+
+如有问题或希望贡献代码：[kungfuflex/alkanes-rs](https://github.com/kungfuflex/alkanes-rs)
+
+## 另请参阅
+
+- [Alkanes 上的 frBTC](./wrapping-frBTC) — frBTC 的包装与解包
+- [Alkanes 协议](../key-components/alkanes) — 协议概述

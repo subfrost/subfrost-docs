@@ -1,0 +1,58 @@
+---
+sidebar_label: subrelay
+---
+
+# `subrelay`：SUBFROST 中继
+
+`subrelay` 是 SUBFROST 网络堆栈的关键组件。它充当会合点、流量中继和 `subp2p` 网络的名称注册器。通过提供这些基本服务，`subrelay` 使节点能够可靠地相互连接，即使它们位于严格的防火墙或 NAT 后面。
+
+## WebTransport 和抗审查性
+
+`subrelay` 被设计为高度可访问且具有抗审查能力。它通过使用 **WebTransport** 作为其主要传输协议来实现这一目标。WebTransport 是一种基于 QUIC 的现代协议，专为在 Web 浏览器中使用而设计，并且可以轻松被标准 Web 服务器和 CDN 代理。
+
+这有一个显著的优势：`subrelay` 服务器可以部署在 **Cloudflare** 等服务后面。这样做可以隐藏中继的 IP 地址，并将其流量与正常的 Web 流量混合，使审查者更难以阻止。
+
+要连接到 CDN 后面的 `subrelay`，节点只需知道其 DNS 地址。`subp2p` 网络层将自动解析 DNS 地址并与中继建立安全的 WebTransport 连接。
+
+例如，`subrelay` 可能具有以下多地址：
+
+```
+/dns4/p2p.subfrost.io/udp/8443/quic-v1/webtransport
+```
+
+在此地址中，`p2p.subfrost.io` 是一个 DNS 名称，可以指向 Cloudflare 端点，然后将流量转发到实际的 `subrelay` 服务器。
+
+## 电路中继
+
+当两个节点无法建立直接连接时（例如，因为它们都在 NAT 后面），它们可以使用 `subrelay` 进行通信。这称为**电路中继**。
+
+其工作原理如下：
+
+1.  希望通过中继可达的节点与 `subrelay` 建立**预留**。
+2.  `subrelay` 为该节点提供一个特殊的 `/p2p-circuit` 地址。
+3.  该节点随后可以与其他节点共享此电路地址。
+4.  当另一个节点想要连接时，它拨打电路地址。`subrelay` 将在两个节点之间转发流量。
+
+这种机制允许 `subp2p` 网络上的任意两个节点之间进行无缝通信，无论其网络条件如何。
+
+## 名称注册和发现
+
+除了中继功能外，`subrelay` 还提供简单的名称注册和发现服务。这允许节点注册人类可读的名称（例如 `my-service.rail`）并将其与 `PeerId` 关联。
+
+其他节点可以解析这些名称以获取 `PeerId` 并建立连接。这提供了一种用户友好的替代方案，避免共享冗长、难以辨认的 `PeerId`。
+
+名称注册服务构建在 `libp2p` 中的 `request_response` 协议之上。节点可以向 `subrelay` 发送 `RegisterName` 请求，中继会将映射存储在其本地内存中。当另一个节点发送 `ResolveName` 请求时，中继会查找名称并返回相应的 `PeerId`。
+
+## SUBFROST 中的 `subrelay`
+
+`subfrost-cli` 可用于运行 `subrelay` 服务器。这对于创建私有 SUBFROST 网络或为公共网络提供中继非常有用。
+
+### 运行 `subrelay` 服务器
+
+以下是运行 `subrelay` 服务器的示例：
+
+```bash
+subfrost-cli relay --listen /ip4/0.0.0.0/udp/8443/quic-v1/webtransport
+```
+
+此命令将启动一个 `subrelay` 服务器，在端口 8443 上监听 WebTransport 连接。然后您可以使用其多地址连接到此中继。
