@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Head from '@docusaurus/Head';
 import FrostBackdrop from '@site/src/components/FrostBackdrop';
 import SplashLoader from '@site/src/components/SplashLoader';
+import {LanguageProvider} from '@site/src/contexts/LanguageContext';
+import TranslationLayer from '@site/src/components/TranslationLayer';
 
 export default function Root({ children }) {
   const [loading, setLoading] = useState(true);
@@ -15,7 +17,7 @@ export default function Root({ children }) {
   }, []);
 
   return (
-    <>
+    <LanguageProvider>
       <Head>
         {/* Google tag (gtag.js) */}
         <script
@@ -37,6 +39,11 @@ export default function Root({ children }) {
       <div style={{ opacity: loading ? 0 : 1, transition: 'opacity 0.5s ease-in-out' }}>
         {children}
       </div>
-    </>
+      <TranslationLayer />
+      <div className="social-icons-fixed">
+        <a href="https://x.com/SUBFROSTio/" target="_blank" rel="noopener noreferrer" className="header-x-link" aria-label="X (Twitter)" />
+        <a href="https://github.com/subfrost/" target="_blank" rel="noopener noreferrer" className="header-github-link" aria-label="GitHub" />
+      </div>
+    </LanguageProvider>
   );
 }

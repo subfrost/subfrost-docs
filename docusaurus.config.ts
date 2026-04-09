@@ -96,16 +96,6 @@ const config: Config = {
           type: 'search',
           position: 'right',
         },
-        {
-          href: 'https://x.com/SUBFROSTio/',
-          position: 'right',
-          className: 'header-x-link',
-        },
-        {
-          href: 'https://github.com/subfrost/',
-          position: 'right',
-          className: 'header-github-link',
-        },
       ],
     },
     footer: {
