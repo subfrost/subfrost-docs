@@ -221,8 +221,11 @@ a:hover {
 }
 
 .navbar__title {
-  font-size: 1.25em;
-  font-weight: bold;
+  font-family: 'Satoshi', Arial, Helvetica, sans-serif;
+  font-size: 1.5em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #284372;
 }
 
 .navbar__link {
@@ -235,7 +238,11 @@ a:hover {
 }
 
 .navbar {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  height: 58px;
+  background-color: rgba(240, 247, 255, 0.82) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05) !important;
 }
 
 .footer {
@@ -341,7 +348,7 @@ a:hover {
   min-width: auto;
 }
 
-@media (max-width: 996px) {
+@media (max-width: 576px) {
   .navbar-sidebar__back {
     display: none;
   }
