@@ -41,7 +41,7 @@ export default function Root({ children }) {
       </div>
       <TranslationLayer />
       <div className="social-icons-fixed">
-        <a href="https://x.com/SUBFROSTio/" target="_blank" rel="noopener noreferrer" className="header-x-link" aria-label="X (Twitter)" />
+        <a href="https://x.com/gabe_subfrost/" target="_blank" rel="noopener noreferrer" className="header-x-link" aria-label="X (Twitter)" />
         <a href="https://github.com/subfrost/" target="_blank" rel="noopener noreferrer" className="header-github-link" aria-label="GitHub" />
       </div>
     </LanguageProvider>
