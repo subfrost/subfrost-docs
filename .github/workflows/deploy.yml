@@ -68,11 +68,12 @@ jobs:
           # [...]_cloudbuild" despite a successful gcloud storage cp probe
           # against the same bucket. See subfrost-admin/admin-web's
           # earlier deploy failures with the same cause.
+          # No --gcs-log-dir — cloudbuild.yaml sets options.logging:
+          # CLOUD_LOGGING_ONLY, which is incompatible with build.logs_bucket.
           gcloud builds submit \
             --config=cloudbuild.yaml \
             --substitutions=SHORT_SHA=${SHORT_SHA} \
             --region=us-central1 \
             --project=night-wolves-jogging \
             --gcs-source-staging-dir=gs://night-wolves-jogging_cloudbuild/source \
-            --gcs-log-dir=gs://night-wolves-jogging_cloudbuild/logs \
             .
