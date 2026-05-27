@@ -229,10 +229,10 @@ code, kbd, samp, pre,
 }
 
 .main-wrapper {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: transparent;
   padding: 1rem;
   border-radius: var(--radius);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: none;
 }
 
 .header-docs-link {
@@ -279,9 +279,15 @@ a:hover {
 }
 
 .navbar {
+  --ifm-navbar-background-color: #E9F0F7;
   height: 58px;
   background-color: #E9F0F7 !important;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  opacity: 1 !important;
+  border-bottom: 1px solid #d2e0ee;
+  box-shadow: none !important;
 }
 
 .footer {
@@ -371,6 +377,19 @@ a:hover {
   transform: none;
   text-shadow: none;
   color: #EC4521;
+}
+
+.DocSearch-Button {
+  background-color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.DocSearch-Button:hover,
+.DocSearch-Button:focus {
+  background-color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .DocSearch-Button,
@@ -586,5 +605,107 @@ html[data-theme='dark'] .theme-doc-sidebar-container::-webkit-scrollbar-thumb:ho
 html[data-theme='dark'] .theme-doc-sidebar-menu::-webkit-scrollbar-thumb:hover,
 html[data-theme='dark'] .menu::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.5);
+}
+
+/* SUBFROST dark theme — swap #E9F0F7 <-> #212121 */
+html[data-theme='dark'] body {
+  color: #E9F0F7;
+}
+
+html[data-theme='dark'] .gradient-background {
+  background: #212121;
+}
+
+html[data-theme='dark'] .navbar {
+  --ifm-navbar-background-color: #212121;
+  background-color: #212121 !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  opacity: 1 !important;
+  border-bottom: 1px solid #141414;
+  box-shadow: none !important;
+}
+
+html[data-theme='dark'] .header-docs-link {
+  color: #E9F0F7 !important;
+}
+
+html[data-theme='dark'] h1,
+html[data-theme='dark'] h2,
+html[data-theme='dark'] h3,
+html[data-theme='dark'] h4,
+html[data-theme='dark'] h5,
+html[data-theme='dark'] h6 {
+  color: #E9F0F7;
+}
+
+html[data-theme='dark'] a {
+  color: #E9F0F7;
+}
+
+html[data-theme='dark'] .footer {
+  color: #E9F0F7;
+}
+
+html[data-theme='dark'] .pagination-nav__link:hover {
+  border-color: #E9F0F7;
+}
+
+html[data-theme='dark'] .DocSearch-Button .DocSearch-Button-Key {
+  background: #212121;
+  color: #E9F0F7;
+}
+
+html[data-theme='dark'] .menu__link--active,
+html[data-theme='dark'] .menu__link--active:hover {
+  color: #EC4521;
+}
+
+html[data-theme='dark'] .table-of-contents__link--active,
+html[data-theme='dark'] .table-of-contents__link--active:hover {
+  color: #EC4521;
+}
+
+html[data-theme='dark'] .theme-admonition svg,
+html[data-theme='dark'] .alert svg {
+  fill: #212121 !important;
+  color: #212121 !important;
+}
+
+
+/* Section dividers, sidebar/breadcrumb carets, and table borders.
+   Light theme uses #d2e0ee; dark theme overrides to #141414. */
+:root {
+  --ifm-toc-border-color: #d2e0ee;
+  --ifm-table-border-color: #d2e0ee;
+  --ifm-breadcrumb-separator: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMidYMid meet' height='25' width='25' viewBox='0 0 40 40'><g><path d='m15 30 10-10L15 10' fill='none' stroke='%23c5d7e9' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/></g></svg>");
+  --ifm-breadcrumb-separator-filter: none;
+  --ifm-breadcrumb-separator-size-multiplier: 2;
+  --ifm-menu-link-sublist-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path fill='%23c5d7e9' d='M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z'/></svg>");
+  --ifm-menu-link-sublist-icon-filter: none;
+}
+
+.theme-doc-sidebar-container {
+  border-right-color: var(--ifm-toc-border-color) !important;
+}
+
+.theme-doc-toc-desktop,
+[class*='tableOfContents_'] {
+  border-left-color: var(--ifm-toc-border-color) !important;
+}
+
+table,
+table th,
+table td,
+table tr {
+  border-color: var(--ifm-table-border-color) !important;
+}
+
+html[data-theme='dark'] {
+  --ifm-toc-border-color: #141414;
+  --ifm-table-border-color: #141414;
+  --ifm-breadcrumb-separator: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='xMidYMid meet' height='25' width='25' viewBox='0 0 40 40'><g><path d='m15 30 10-10L15 10' fill='none' stroke='%230a0a0a' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/></g></svg>");
+  --ifm-menu-link-sublist-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path fill='%230a0a0a' d='M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z'/></svg>");
 }
 
