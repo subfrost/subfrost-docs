@@ -1,21 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Head from '@docusaurus/Head';
-import FrostBackdrop from '@site/src/components/FrostBackdrop';
-import SplashLoader from '@site/src/components/SplashLoader';
 import {LanguageProvider} from '@site/src/contexts/LanguageContext';
 import TranslationLayer from '@site/src/components/TranslationLayer';
 
 export default function Root({ children }) {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <LanguageProvider>
       <Head>
@@ -33,12 +21,8 @@ export default function Root({ children }) {
           `}
         </script>
       </Head>
-      <SplashLoader loading={loading} />
       <div className="gradient-background"></div>
-      <FrostBackdrop loading={loading} />
-      <div style={{ opacity: loading ? 0 : 1, transition: 'opacity 0.5s ease-in-out' }}>
-        {children}
-      </div>
+      {children}
       <TranslationLayer />
       <div className="social-icons-fixed">
         <a href="https://x.com/gabe_subfrost/" target="_blank" rel="noopener noreferrer" className="header-x-link" aria-label="X (Twitter)" />

@@ -84,7 +84,7 @@ const config: Config = {
       title: 'SUBFROST',
       logo: {
         alt: 'SUBFROST Logo',
-        src: 'img/logo.svg', // This will be replaced by the CanvasLogo component
+        src: 'img/logotype_dark.svg',
         href: 'https://subfrost.io',
       },
       items: [

@@ -13,87 +13,75 @@
  */
 
 @font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Regular.woff2') format('woff2');
+  font-family: 'Geist';
+  src: url('/fonts/Geist%20fonts/Geist/static/Geist-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Italic.woff2') format('woff2');
+  font-family: 'Geist';
+  src: url('/fonts/Geist%20fonts/Geist/static/Geist-Italic.ttf') format('truetype');
   font-weight: 400;
   font-style: italic;
+  font-display: swap;
 }
 
 @font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Light.woff2') format('woff2');
-  font-weight: 300;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-LightItalic.woff2') format('woff2');
-  font-weight: 300;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Medium.woff2') format('woff2');
+  font-family: 'Geist';
+  src: url('/fonts/Geist%20fonts/Geist/static/Geist-Medium.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-MediumItalic.woff2') format('woff2');
+  font-family: 'Geist';
+  src: url('/fonts/Geist%20fonts/Geist/static/Geist-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist%20fonts/Geist/static/Geist-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist%20fonts/Geist/static/Geist-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/Geist%20fonts/Geist_Mono/static/GeistMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/Geist%20fonts/Geist_Mono/static/GeistMono-Medium.ttf') format('truetype');
   font-weight: 500;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Bold.woff2') format('woff2');
-  font-weight: 700;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-BoldItalic.woff2') format('woff2');
-  font-weight: 700;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-Black.woff2') format('woff2');
-  font-weight: 900;
+  font-family: 'Geist Mono';
+  src: url('/fonts/Geist%20fonts/Geist_Mono/static/GeistMono-SemiBold.ttf') format('truetype');
+  font-weight: 600;
   font-style: normal;
-}
-
-@font-face {
-  font-family: 'Satoshi';
-  src: url('/fonts/Satoshi-BlackItalic.woff2') format('woff2');
-  font-weight: 900;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'Satoshi Variable';
-  src: url('/fonts/Satoshi-Variable.woff2') format('woff2-variations');
-  font-weight: 300 900;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Satoshi Variable';
-  src: url('/fonts/Satoshi-VariableItalic.woff2') format('woff2-variations');
-  font-weight: 300 900;
-  font-style: italic;
+  font-display: swap;
 }
 
 
@@ -102,7 +90,53 @@
 @tailwind utilities;
 
 body {
-  font-family: "Satoshi", sans-serif;
+  font-family: "Geist", sans-serif;
+  font-weight: 400;
+  font-size: 1rem; /* 16px paragraph */
+}
+
+/* Heading typography per design spec — Geist SemiBold at fixed sizes */
+h1, .h1 {
+  font-family: "Geist", sans-serif;
+  font-weight: 600;
+  font-size: 3rem; /* 48px */
+}
+
+h2, .h2 {
+  font-family: "Geist", sans-serif;
+  font-weight: 600;
+  font-size: 2.5rem; /* 40px */
+}
+
+h3, .h3 {
+  font-family: "Geist", sans-serif;
+  font-weight: 600;
+  font-size: 2.06rem; /* 33px */
+}
+
+h4, .h4 {
+  font-family: "Geist", sans-serif;
+  font-weight: 600;
+  font-size: 1.75rem; /* 28px */
+}
+
+h5, .h5 {
+  font-family: "Geist", sans-serif;
+  font-weight: 600;
+  font-size: 1.44rem; /* 23px */
+}
+
+h6, .h6 {
+  font-family: "Geist", sans-serif;
+  font-weight: 600;
+  font-size: 1.19rem; /* 19px */
+}
+
+/* Monospace — Geist Mono at 16px */
+code, kbd, samp, pre,
+.text-mono {
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1rem; /* 16px */
 }
 
 @layer utilities {
@@ -189,7 +223,7 @@ body {
   }
   body {
     @apply text-foreground;
-    color: #1E3A8A; /* A darker blue for better readability */
+    color: #212121; /* A darker blue for better readability */
     background: transparent;
   }
 }
@@ -202,34 +236,37 @@ body {
 }
 
 .header-docs-link {
-  color: #1E3A8A !important; /* Dark blue for readability */
+  color: #212121 !important; /* Dark blue for readability */
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color: #1E3A8A; /* Dark blue for headings */
+  color: #212121; /* Dark blue for headings */
 }
 a {
-  color: #1E3A8A; /* Dark blue for links */
+  color: #212121; /* Dark blue for links */
   text-decoration: none;
   transition: all 0.2s ease-in-out;
 }
 
 a:hover {
   transform: scale(1.125);
-  color: white;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  color: #EC4521;
+}
+
+.navbar__brand:hover {
+  transform: scale(1.05);
 }
 
 .navbar__title {
-  font-family: 'Satoshi', Arial, Helvetica, sans-serif;
+  font-family: 'Geist', Arial, Helvetica, sans-serif;
   font-size: 1.5em;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.05em;
-  color: #284372;
+  color: #EC4521;
 }
 
 .navbar__link {
-  color: #1E3A8A; /* Dark blue for navbar links */
+  color: #EC4521;
   text-decoration: none;
 }
 
@@ -237,17 +274,19 @@ a:hover {
   text-decoration: none;
 }
 
+.table-of-contents__link--active {
+  color: #EC4521;
+}
+
 .navbar {
   height: 58px;
-  background-color: rgba(240, 247, 255, 0.82) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background-color: #E9F0F7 !important;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05) !important;
 }
 
 .footer {
   background: transparent;
-  color: #1E3A8A; /* Dark blue for footer text */
+  color: #212121; /* Dark blue for footer text */
   height: 1rem;
   font-size: 0.5rem;
 }
@@ -261,6 +300,11 @@ a:hover {
   transform: none;
 }
 
+.menu__link:hover,
+.table-of-contents__link:hover {
+  color: #474747;
+}
+
 /*
  * Chadson: 2025-07-24
  *
@@ -268,12 +312,12 @@ a:hover {
  * Use the standard dark blue for consistency.
  */
 .pagination-nav__link:hover {
-  border-color: #1E3A8A; /* Dark blue */
+  border-color: #212121; /* Dark blue */
 }
 
 .menu__link--active,
 .menu__link--active:hover {
-  color: #1E3A8A; /* Dark blue */
+  color: #EC4521;
 }
 
 .header-x-link, .header-github-link {
@@ -286,12 +330,12 @@ a:hover {
 }
 
 .header-x-link {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1200 1227' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.137 519.284H714.163ZM569.165 687.828L521.697 619.934L144.011 79.6904H306.615L611.412 515.685L658.88 583.579L1055.08 1150.31H892.476L569.165 687.854V687.828Z' fill='%231E3A8A'/%3E%3C/svg%3E%0A");
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1200 1227' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.137 519.284H714.163ZM569.165 687.828L521.697 619.934L144.011 79.6904H306.615L611.412 515.685L658.88 583.579L1055.08 1150.31H892.476L569.165 687.854V687.828Z' fill='%23A7C6DC'/%3E%3C/svg%3E%0A");
   margin-right: 10px;
 }
 
 .header-github-link {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='%231E3A8A' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z'/%3E%3C/svg%3E%0A");
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='%23A7C6DC' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z'/%3E%3C/svg%3E%0A");
 }
 
 /* Social icons fixed to bottom right corner, below the sidebar */
@@ -310,7 +354,7 @@ a:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, #bfdbfe, #eff6ff);
+  background: #E9F0F7;
   z-index: -2;
 }
 
@@ -321,10 +365,26 @@ a:hover {
 /* Locale toggle button - no transform on hover */
 .navbar button[aria-label*="Switch to"] {
   transition: none;
+  color: #EC4521;
 }
 .navbar button[aria-label*="Switch to"]:hover {
   transform: none;
   text-shadow: none;
+  color: #EC4521;
+}
+
+.DocSearch-Button,
+.DocSearch-Button .DocSearch-Button-Placeholder,
+.DocSearch-Button .DocSearch-Search-Icon,
+.DocSearch-Button .DocSearch-Button-Keys,
+.DocSearch-Button .DocSearch-Button-Key {
+  color: #212121;
+}
+
+.DocSearch-Button .DocSearch-Button-Key {
+  border: none;
+  box-shadow: none;
+  background: #E9F0F7;
 }
 
 /* Ensure right-side navbar items never overlap */
@@ -348,22 +408,25 @@ a:hover {
   min-width: auto;
 }
 
+.navbar-sidebar__back {
+  display: none;
+}
+
+/* Override Docusaurus default that absolutely positions the search container
+   below the desktop breakpoint, which takes it out of flow and causes it to
+   overlap other right-aligned items (e.g. the locale toggle). Also zero out
+   its built-in horizontal padding/margin so the parent's flex `gap` is the
+   sole source of spacing between the locale toggle and the search button at
+   every breakpoint. */
+.navbar__items--right [class*='navbarSearchContainer'] {
+  position: static;
+  padding: 0;
+  margin: 0;
+}
+
 @media (max-width: 576px) {
-  .navbar-sidebar__back {
-    display: none;
-  }
   .theme-doc-toc-mobile, .theme-doc-toc-desktop {
     display: none;
-  }
-
-  .navbar__items--right {
-    gap: 4px;
-  }
-
-  /* Override Docusaurus default that absolutely positions the search container
-     on mobile, which takes it out of flow and causes it to overlap other items */
-  .navbar__items--right [class*='navbarSearchContainer'] {
-    position: static;
   }
 
   /* On smaller screens, collapse the search button to just the icon */
@@ -373,8 +436,9 @@ a:hover {
   }
 }
 
+.breadcrumbs__link,
 .breadcrumbs__item--active .breadcrumbs__link {
-  color: #1E3A8A !important;
+  color: #EC4521 !important;
 }
 
 /* Match Algolia logo color to the footer text (Navigate, Select, Close) */
@@ -387,25 +451,57 @@ html[data-theme='dark'] {
   --docsearch-logo-color: #7f8497;
 }
 
-/* Code block styling - dark blue semi-transparent background */
+/* Code block styling */
 pre, code {
-  background-color: rgba(30, 58, 138, 0.3) !important; /* Dark blue (#1E3A8A) with 30% transparency */
+  background-color: #ffffff !important;
+  color: #212121 !important;
 }
 
 div[class*="codeBlockContainer"] {
-  background-color: rgba(30, 58, 138, 0.3) !important;
+  background-color: #ffffff !important;
+  color: #212121 !important;
 }
 
 pre[class*="prism-code"] {
-  background-color: rgba(30, 58, 138, 0.3) !important;
+  background-color: #ffffff !important;
+  color: #212121 !important;
+}
+
+pre[class*="prism-code"] .token {
+  color: #212121 !important;
 }
 
 /* Inline code styling */
 :not(pre) > code {
-  background-color: rgba(30, 58, 138, 0.15) !important;
-  color: #1E3A8A;
+  background-color: #ffffff !important;
+  color: #212121 !important;
   padding: 0.1rem 0.3rem;
   border-radius: 4px;
+}
+
+/* Unified admonition styling — tip (green), note, info, warning (yellow),
+   danger, caution all share the same blue palette. */
+.theme-admonition,
+.alert {
+  background-color: #c5d9e8 !important;
+  border-left: 6px solid #A7C6DC !important;
+  color: #212121 !important;
+}
+
+.theme-admonition a,
+.theme-admonition strong,
+.theme-admonition code,
+.theme-admonition *,
+.alert a,
+.alert strong,
+.alert code,
+.alert * {
+  color: #212121 !important;
+}
+
+.theme-admonition :not(pre) > code,
+.alert :not(pre) > code {
+  background-color: #ffffff !important;
 }
 
 /* Screenshot placeholder styling */
@@ -418,7 +514,7 @@ pre[class*="prism-code"] {
   border-radius: 8px;
   padding: 3rem 2rem;
   margin: 1.5rem 0;
-  color: rgba(30, 58, 138, 0.5);
+  color: rgba(33, 33, 33, 0.5);
   font-size: 1rem;
   text-align: center;
 }

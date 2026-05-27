@@ -14,7 +14,7 @@ export default function LocaleDropdownNavbarItem(): ReactNode {
         justifyContent: 'center',
         fontSize: '1.1rem',
         fontWeight: 600,
-        color: isChinese ? '#1E3A8A' : '#9ca3af',
+        color: isChinese ? '#EC4521' : '#A7C6DC',
         background: 'none',
         border: 'none',
         cursor: 'pointer',

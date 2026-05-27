@@ -42,7 +42,14 @@ const sidebars: SidebarsConfig = {
       items: [
         'subfrost-app/overview',
         'subfrost-app/swap',
-        'subfrost-app/vaults',
+        {
+          type: 'category',
+          label: 'DeFi Vaults on Bitcoin',
+          link: { type: 'doc', id: 'subfrost-app/vaults' },
+          items: [
+            'subfrost-app/fire-vault',
+          ],
+        },
         'subfrost-app/futures',
         'subfrost-app/wallet',
       ]

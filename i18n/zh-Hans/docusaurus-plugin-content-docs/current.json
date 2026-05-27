@@ -11,6 +11,10 @@
     "message": "SUBFROST 应用",
     "description": "The label for category 'SUBFROST APP' in sidebar 'docs'"
   },
+  "sidebar.docs.category.DeFi Vaults on Bitcoin": {
+    "message": "Bitcoin 上的 DeFi 金库",
+    "description": "The label for category 'DeFi Vaults on Bitcoin' in sidebar 'docs'"
+  },
   "sidebar.docs.category.Tokens (frBTC, dxBTC, FUEL)": {
     "message": "代币 (frBTC, dxBTC, FUEL)",
     "description": "The label for category 'Tokens (frBTC, dxBTC, FUEL)' in sidebar 'docs'"

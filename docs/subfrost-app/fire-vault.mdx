@@ -1,0 +1,274 @@
+---
+title: FIRE Vault
+sidebar_label: FIRE Vault
+sidebar_position: 1
+---
+
+# FIRE Vault
+
+*The SUBFROST APP is currently in development and its interface is subject to change.*
+
+The **FIRE Vault** is the staking entry point for FIRE — a utility token built on [Alkanes](/key-components/alkanes) that rewards liquidity providers in the DIESEL/frBTC pool. Deposit LP, lock for a chosen duration, and earn FIRE emissions that halve in sync with Bitcoin.
+
+**Highlights:**
+- Stake DIESEL/frBTC LP tokens to earn FIRE
+- Lock multipliers from **1x** (no lock) up to **3x** (1 year)
+- 0% premine, 100% emission — halving every 105,000 blocks (~2 years)
+- Receive an NFT position that's optionally splittable into fungible wrapped LP (wLP)
+- Maximum supply: **2,100,000 FIRE**
+
+## What Is FIRE?
+
+FIRE is a utility token whose entire supply is distributed through two on-protocol mechanisms — staking and bonding — with no premine.
+
+| Metric | Value |
+|--------|-------|
+| **Maximum Supply** | 2,100,000 FIRE |
+| **Decimals** | 8 (like Bitcoin) |
+| **Premine** | 0% |
+| **Staking Pool** | 85% (1,785,000 FIRE) |
+| **Bonding Pool** | 15% (315,000 FIRE) |
+| **Halving Interval** | 105,000 blocks (~2 years) |
+| **Activation Block** | 950,420 |
+| **First Halving** | Block 1,050,000 (Bitcoin halving #5) |
+
+Because there is no premine, FIRE only enters circulation through staking rewards and bonding, and only leaves circulation through redemption against the treasury floor (redemption for DIESEL/frBTC LP).
+
+## How FIRE Vault Generates Yield
+
+The vault accepts **DIESEL/frBTC LP tokens** from the oyl-amm pool and pays out FIRE according to a Synthetix-style reward accumulator. Every block, a fixed amount of FIRE is divided pro-rata across all weighted stake.
+
+Per-block emission for Epoch 0:
+
+| Pool | Rate (base units/block) | Daily (FIRE) | Annual (FIRE) |
+|------|-------------------------|--------------|---------------|
+| Staking (85%) | 850,000,000 | ~1,224 | ~446,250 |
+| Bonding (15%) | 150,000,000 | ~216 | ~78,750 |
+| **Total** | **1,000,000,000** | **~1,440** | **~525,000** |
+
+### Emission by Epoch
+
+Every 105,000 blocks (~2 years) the per-block rate halves, synchronized with Bitcoin halvings. Epoch boundaries align to a global grid anchored at block 0, and every second FIRE halving coincides with a Bitcoin halving.
+
+| Epoch | Blocks | Staking/day | Bonding/day | Total/day | Cumulative supply |
+|-------|--------|-------------|-------------|-----------|-------------------|
+| 0 | 0 – 104,999 | ~1,224 FIRE | ~216 FIRE | ~1,440 FIRE | 1,050,000 |
+| 1 | 105,000 – 209,999 | ~576 FIRE | ~144 FIRE | ~720 FIRE | 1,575,000 |
+| 2 | 210,000 – 314,999 | ~216 FIRE | ~72 FIRE | ~360 FIRE | 1,837,500 |
+| 3 | 315,000 – 419,999 | ~144 FIRE | ~36 FIRE | ~180 FIRE | 1,968,750 |
+| … | … | … | … | … | 2,100,000 (cap) |
+
+### Geometric Convergence
+
+Each epoch emits half of the one before. The infinite geometric sum lands exactly on the supply cap:
+
+```
+total = epoch_0_emission × Σ(1/2^i) for i = 0..∞
+      = epoch_0_emission × 2
+      = 1,050,000 × 2
+      = 2,100,000 FIRE = MAX_SUPPLY
+```
+
+This is why no premine is needed — the schedule itself guarantees the cap.
+
+## Lock Multipliers
+
+Longer locks mean higher effective rates. Locks cannot exceed the current epoch's expiry.
+
+| Lock Duration | Blocks | Multiplier | Effective Rate |
+|---------------|--------|------------|----------------|
+| No lock | 0 | **1.0x** | base |
+| 1 week | 1,050 | **1.25x** | 1.25 × base |
+| 1 month | 4,375 | **1.5x** | 1.5 × base |
+| 3 months | 13,125 | **2.0x** | 2.0 × base |
+| 6 months | 26,250 | **2.5x** | 2.5 × base |
+| 1 year | 52,500 | **3.0x** | 3.0 × base |
+
+:::tip Only long locks influence pricing
+The FIRE bond price oracle counts **only LP staked with locks ≥ 6 months**. Short-term flippers earn FIRE but do not affect the oracle, so committed stakers shape what bonders pay.
+:::
+
+## How to Stake
+
+### Step 1: Acquire DIESEL/frBTC LP
+
+The vault accepts DIESEL/frBTC LP tokens from the oyl-amm pool. Provide liquidity to that pool first to receive LP tokens.
+
+### Step 2: Choose a Lock Duration
+
+Select between no-lock and one-year. Higher multipliers earn proportionally more FIRE for the same LP, but lock your position until expiry.
+
+### Step 3: Stake LP and Receive an NFT Position
+
+Stake LP into the vault. You receive an **NFT position** that represents both:
+- Your **FIRE yield rights** (claimable emissions)
+- Your **LP claim** (redeemable at expiry)
+
+```
+Stake(LP, lock, amount) → NFT position (FIRE yield + LP claim)
+```
+
+### Step 4: Earn FIRE Each Block
+
+Rewards accrue continuously per block. You can claim or compound at any time.
+
+## How to Unstake or Trade Your Position
+
+You have three exit paths depending on how flexible you want to be.
+
+### Simple Unstake
+
+Wait for the lock to expire, then unstake the NFT to receive your LP back plus all accrued FIRE.
+
+```
+Unstake(NFT) → LP + FIRE
+```
+
+### Split into wLP (Wrapped LP)
+
+Split your NFT position into two pieces:
+- The **NFT** keeps the FIRE yield rights
+- A fungible **wLP** token represents the LP claim and can be transferred or traded separately
+
+```
+Split(NFT)        → NFT (FIRE only) + wLP (fungible LP claim)
+Merge(NFT + wLP)  → NFT (full position restored)
+```
+
+This lets you transfer or sell the LP liquidity while keeping the FIRE yield stream.
+
+### Redeem Expired wLP Without the NFT
+
+After the epoch expires, anyone holding wLP can redeem it directly for LP — no NFT required.
+
+```
+RedeemExpired(wLP) → LP
+```
+
+## Bonding: Buying FIRE at a Discount
+
+Bonding is an alternative path for users who want FIRE **upfront** rather than earning it over time. You give the protocol LP tokens permanently, and in exchange you receive FIRE at a 10% discount to the staking-oracle price, vested over ~7 days (1,050 blocks).
+
+Formulas related to bonding are transparent:
+
+```
+                       LP staked with 6+ month lock × 10⁸
+oracle_price    =  ─────────────────────────────────────────────
+                     STAKING_EMISSION_RATE × YEAR × (½)^halving_epoch
+
+                =  LP_6mo_locked × 10⁸ / annual_FIRE_emission
+
+effective_price =  oracle_price × (10000 − discount_bps) / 10000
+
+bond_price      =  max(effective_price, floor_price)
+
+FIRE_out        =  LP_in × 10⁸ / bond_price
+```
+
+Bond LP flows directly into the treasury, which permanently backs the redemption floor.
+
+**In plain language, a bond is: *"I give the protocol LP forever, in exchange for FIRE at a 10% discount to the year-equivalent staking yield, vested over 7 days."***
+
+### Why the Floor Guard Exists
+
+Once treasury holds LP and FIRE has been minted, the floor price becomes meaningful. The guard `bond_price = max(effective, floor)` ensures bonding can never be cheaper than redemption, preventing a profitable round-trip:
+
+```
+Bond at floor_price    → mint X FIRE   (LP into treasury)
+Redeem X FIRE at floor → burn for LP   (LP out of treasury)
+                       = same LP back   (zero net change)
+```
+
+A bonder who immediately redeems gets a neutral outcome — the 7-day vest means they're effectively betting on price appreciation, not arbitraging the protocol.
+
+## Redemption: The Price Floor
+
+Any FIRE holder can burn FIRE for a proportional share of the treasury's LP backing. This creates a **hard price floor** that scales with treasury growth.
+
+```
+floor_price = total_treasury_LP / total_FIRE_supply
+```
+
+The fee discourages spam without imposing a lockout. Because bonding's floor guard ensures bond price ≥ floor price, bonders cannot profitably round-trip into immediate redemption.
+
+### Market Price Arbitrage
+
+Any off-platform price (AMM swaps, OTC trades, etc.) are bounded on both sides by protocol activity:
+
+```
+If off-platform price < year-equivalent staking yield:
+    → Cheaper to buy than to earn → staking activity falls
+    → Less dilution → off-platform price rises
+
+If off-platform price > year-equivalent staking yield:
+    → Profitable to stake LP and sell FIRE → emission absorbed
+    → Off-platform price falls toward equilibrium
+
+If off-platform price < floor:
+    → Buy FIRE, redeem for treasury LP at floor → instant profit
+    → Off-platform price rises to at least the floor
+```
+
+The floor sets a hard lower bound; the staking yield sets a soft upper bound.
+
+## Reference Prices
+
+Two distinct "prices" exist outside of market quotes:
+
+| Price | Formula | Meaning |
+|-------|---------|---------|
+| **Oracle** | `locked_LP / annual_emission` | What a 6-month staker earns per year |
+| **Floor** | `treasury_LP / total_supply` | What a redeemer gets when burning FIRE |
+
+A UI showing a "discount" must specify which reference price it uses. We encourage against using AMM market price for this purpose.
+
+**More long-term stakers → higher oracle → bonders pay more LP per FIRE → treasury accumulates faster.**
+
+## Economic Flywheel
+
+The three mechanisms — staking, bonding, and redemption — feed each other in a closed loop:
+
+```
+                    +------------------+
+                    |  LP Providers    |
+                    | (DIESEL/frBTC)   |
+                    +--------+---------+
+                             |
+                    Stake LP | Earn FIRE
+                             v
++---------------+     +----------------+     +---------------+
+|   Bonding     |---->|  FIRE Supply   |<----|  Staking      |
+|  (Discount)   |     | (85/15 split)  |     |  Emission     |
++-------+-------+     +-------+--------+     +---------------+
+        |                     |
+        | LP                  | FIRE held by users
+        v                     v
++---------------+      +----------------+
+|   Treasury    |<-----+   Redemption   |
+|     (POL)     |----->| (Price Floor)  |
++---------------+      +----------------+
+```
+
+- **LP providers** earn FIRE by staking, with longer locks earning more.
+- **Bonders** trade LP for discounted FIRE; that LP becomes permanent protocol-owned liquidity in the treasury.
+- **Redeemers** can always burn FIRE for a proportional slice of treasury LP, which sets the floor price.
+- The more LP that flows in through bonding, the stronger the floor — and the harder it becomes to bond cheaply, because the floor guard kicks in.
+
+**The result is a self-reinforcing system where committed liquidity raises the floor, the floor protects FIRE holders, and emission is metered by genuine long-term staking commitment.**
+
+## Risk Considerations
+
+| Risk | Description |
+|------|-------------|
+| **Bootstrap** | Low locked LP early on means very cheap FIRE until long-term commitment grows |
+| **Empty Treasury Start** | The floor price begins at 0 and rises only as bonders deposit LP |
+| **Lock Illiquidity** | Locked LP cannot be withdrawn until expiry; use Split/wLP for partial flexibility |
+| **Block Time Variance** | Emission durations assume Bitcoin's ~10-minute average; actual time can drift |
+
+## Tips
+
+- **Match your lock to your conviction** — longer locks earn proportionally more FIRE, but you can't unwind early
+- **Use Split if you need LP liquidity** — keep the FIRE yield while trading the wLP separately
+- **Bonding ≠ staking** — bonding gives FIRE upfront with permanent LP loss; staking returns your LP plus rewards
+- **Watch the halving** — emissions halve every 105,000 blocks, so early epochs are the most rewarding
+- **Treasury growth = floor growth** — the more LP that flows in via bonding, the stronger the redemption floor
