@@ -55,17 +55,24 @@ jobs:
       - name: submit Cloud Build
         env:
           # Federated (WIF) credentials don't carry a quota/billing project
-          # for API calls. Setting it explicitly here so the GCS upload step
-          # inside `builds submit` knows which project to bill — without it,
-          # GCS returns 403 "forbidden from accessing bucket" even with
-          # bucket-level IAM in place.
+          # for API calls — required for the `serviceusage.services.use`
+          # pre-check that recent gcloud versions run before `builds submit`.
           CLOUDSDK_BILLING_QUOTA_PROJECT: night-wolves-jogging
         run: |
           SHORT_SHA=$(git rev-parse --short=7 HEAD)
           echo "Submitting build for ${SHORT_SHA}"
+          # Explicit --gcs-source-staging-dir / --gcs-log-dir skip the
+          # implicit storage.buckets.get autodetection that fails for WIF
+          # principals even with bucket-level storage.admin granted —
+          # symptom: "user is forbidden from accessing the bucket
+          # [...]_cloudbuild" despite a successful gcloud storage cp probe
+          # against the same bucket. See subfrost-admin/admin-web's
+          # earlier deploy failures with the same cause.
           gcloud builds submit \
             --config=cloudbuild.yaml \
             --substitutions=SHORT_SHA=${SHORT_SHA} \
             --region=us-central1 \
             --project=night-wolves-jogging \
+            --gcs-source-staging-dir=gs://night-wolves-jogging_cloudbuild/source \
+            --gcs-log-dir=gs://night-wolves-jogging_cloudbuild/logs \
             .
