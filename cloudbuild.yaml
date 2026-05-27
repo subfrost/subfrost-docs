@@ -1,0 +1,54 @@
+# Triggered by .github/workflows/deploy.yml on push to `master`.
+# Builds the Docusaurus image and pushes it to GAR with three tags:
+#   - <SHORT_SHA>                   stable, audit-friendly
+#   - <TS>-<SHORT_SHA>              sortable, used by Flux ImagePolicy in
+#                                   subfrost-admin to pick newest-wins
+#   - latest                        convenience for manual / quick deploys
+#
+# Mirrors subfrost-admin/cloudbuild/admin-web.yaml so the two services share
+# build conventions.
+
+substitutions:
+  _REGION: us-central1
+  _AR_PROJECT: night-wolves-jogging
+  _AR_REPO: subfrost-docker
+  _IMAGE_PATH: docs/subfrost-docs
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_MEDIUM
+
+steps:
+  - id: compute-tag
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        # Shell vars escaped with $$ so Cloud Build's substitution parser
+        # leaves them for bash. Only $${SHORT_SHA} is a real substitution.
+        TS=$$(date -u +'%Y%m%d%H%M%S')
+        echo "$${TS}-${SHORT_SHA}" > /workspace/.image-tag
+        echo "computed tag: $$(cat /workspace/.image-tag)"
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        TS_TAG=$$(cat /workspace/.image-tag)
+        IMG=${_REGION}-docker.pkg.dev/${_AR_PROJECT}/${_AR_REPO}/${_IMAGE_PATH}
+        docker build -t $${IMG}:${SHORT_SHA} -t $${IMG}:$${TS_TAG} -t $${IMG}:latest .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        TS_TAG=$$(cat /workspace/.image-tag)
+        IMG=${_REGION}-docker.pkg.dev/${_AR_PROJECT}/${_AR_REPO}/${_IMAGE_PATH}
+        docker push $${IMG}:${SHORT_SHA}
+        docker push $${IMG}:$${TS_TAG}
+        docker push $${IMG}:latest
