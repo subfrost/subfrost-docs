@@ -1,0 +1,132 @@
+---
+title: Lending & Borrowing
+sidebar_label: Lending & Borrowing
+sidebar_position: 6
+---
+
+# Lending & Borrowing
+
+*The SUBFROST APP is currently in development and its interface is subject to change.*
+
+The Lending feature lets you **lend out your tokens to earn interest** or **borrow tokens against
+collateral** — directly on Bitcoin L1. It's peer-to-peer: you set your own terms and match with
+another user. There are no pools, no middlemen, and you keep control of your funds until a match
+happens.
+
+**Highlights:**
+- Lend or borrow any supported token pair, on **your** terms (interest rate, duration, collateral)
+- **Posting an offer is free and instant** — you just sign it; nothing goes on-chain and no fee is charged until someone takes it
+- Settled on Bitcoin L1 in a **single transaction** the moment your offer is matched
+- Fixed-rate, fixed-term loans — you know the exact repayment up front
+- You hold your own funds the whole time; there's no custodian
+
+## How it works
+
+Lending has two sides, and you can be either one:
+
+- **Lenders** post a **loan offer**: "I'll lend X token at this rate, if you put up Y collateral."
+- **Borrowers** post a **loan request**: "I want to borrow X token and I'll put up Y collateral."
+
+When someone takes the other side of your offer, the loan is created on-chain in one transaction and
+becomes active immediately.
+
+### Posting an offer is free and instant
+
+When you post an offer, your wallet **signs it, but nothing is sent to the Bitcoin network** — so:
+
+- **No network fee** to post.
+- **No on-chain footprint** and **no waiting for a block** — your offer shows up in the order book
+  instantly.
+- **Your funds stay in your wallet.** A posted offer is a pre-signed instruction that, by design,
+  **cannot be broadcast on its own** — it only becomes a real transaction once a taker accepts and
+  adds their side.
+
+This means **only the taker pays a network fee** (the fee to settle the loan on-chain). As a maker,
+posting and cancelling offers costs nothing.
+
+### Matching settles the loan on-chain
+
+When a taker accepts your offer, a single Bitcoin transaction is broadcast that:
+
+1. Hands the borrowed token to the borrower,
+2. Locks the borrower's collateral, and
+3. Creates the loan.
+
+Once that transaction confirms, the loan is **active** and the clock starts on its term.
+
+## How to lend
+
+1. Open the **Lend / Borrow** page and pick the token you want to **lend** and the token you'll accept
+   as **collateral**.
+2. Switch the form to **Lend**.
+3. Enter the amount to lend, the collateral you require, the **APR**, and the **duration** (in blocks).
+4. Click **Lend** and approve the signature in your wallet. Your offer is now live in the order book —
+   no fee, no broadcast.
+
+## How to borrow
+
+1. Pick the token you want to **borrow** and the token you'll post as **collateral**.
+2. Browse the order book for an offer you like (sorted by APY), **or** switch the form to **Borrow** and
+   post your own loan request.
+3. To take an existing offer, click **Borrow** — you'll see a summary (what you provide, what you
+   receive, the APY, the total repayment, and the deadline). Confirm and pay the network fee to settle.
+
+## The life of a loan
+
+Once a loan is active, here's what can happen:
+
+### It gets repaid (the normal path)
+
+- The borrower repays the **principal plus interest** before the deadline. In one click ("**Repay &
+  reclaim**") they repay the loan and get their collateral back.
+- The lender then **claims the repayment** (principal + interest).
+- The loan is fully closed. Both sides got what they expected.
+
+### It defaults (borrower doesn't repay in time)
+
+- If the deadline passes without repayment, the loan is **defaulted**.
+- The lender can **claim the collateral** (one click does the default + claim together).
+- The borrower keeps the tokens they borrowed but **forfeits the collateral**.
+
+You can always see your loans and their status — **Active Loans**, **Closed Loans**, and your open
+**My Offers** — at the bottom of the Lending page.
+
+## Choosing your collateral — read this
+
+Collateral terms are **fixed when the loan is created** and **enforced exactly as agreed**. There are
+**no margin calls and no automatic liquidations** beyond claiming the agreed collateral on default.
+That has an important consequence:
+
+> **If you're lending, you must be comfortable receiving *exactly* the agreed collateral — even if its
+> price moves so much that it's worth less than the loan you made.** If a borrower defaults and the
+> collateral has dropped in value, claiming it is your only recourse; the protocol won't top you up.
+
+So **set your collateral requirement based on your own risk tolerance.** Common sense:
+
+- **Higher collateral** protects you better if prices move against you — but it makes your offer **less
+  attractive**, and a borrower may never take it (they have to lock up more).
+- **Lower collateral** is easier to fill and friendlier to borrowers — but leaves you **more exposed**
+  if the collateral's value falls.
+- Pick the level where you'd be **genuinely fine** ending up with that collateral instead of being
+  repaid.
+
+Borrowers face the mirror image: the more collateral you post, the more you have at risk if you can't
+repay, but offers asking for less collateral may be scarce.
+
+## Managing your offers
+
+Your open offers appear under **My Offers**. From there you can:
+
+- **Edit** an offer — change the terms (this re-signs a fresh offer and cancels the old one).
+- **Delete** an offer — remove it from the order book.
+
+Both are free and off-chain, just like posting.
+
+## Tips
+
+- **Start small** to get a feel for the flow before posting larger offers.
+- **Think about default before you lend.** Price the collateral and rate for the scenario where you're
+  repaid in collateral, not cash.
+- **Right-size your collateral ask.** Too high and nobody takes it; too low and you carry more risk.
+- A loan can't be repaid after it defaults — once the deadline passes, the lender's path is to claim
+  the collateral.
