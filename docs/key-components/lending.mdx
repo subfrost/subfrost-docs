@@ -6,6 +6,12 @@ sidebar_position: 8
 
 # Lending Protocol
 
+:::note Audience
+This is the **technical / developer deep-dive**: the on-chain contract, the PSBT structure, the
+SIGHASH scheme, and the settlement mechanics. If you just want to lend or borrow in the app, see
+[**Lending & Borrowing**](../subfrost-app/lending.mdx) for the user guide.
+:::
+
 SUBFROST lending is a **peer-to-peer, fixed-term, over-collateralized loan market** for Alkanes
 tokens, settled in a **single Bitcoin transaction** via a pre-signed PSBT escrow. There is no pooled
 liquidity and no custodian: a lender and a borrower agree on terms off-chain, and one transaction
