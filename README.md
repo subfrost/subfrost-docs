@@ -30,18 +30,24 @@ yarn build
 
 This command generates static content into the `build` directory and can be served using any static contents hosting service.
 
+## Adding a page to the navigation
+
+The sidebar is defined manually in [`sidebars.ts`](./sidebars.ts) (autogeneration is
+disabled). Creating a new `.mdx` file under `docs/` is **not** enough — it will be
+reachable by direct URL but won't appear in the sidebar until you add its doc ID
+(the path under `docs/` without the `.mdx` extension, e.g. `subfrost-app/lending`)
+to the appropriate category in `sidebars.ts`.
+
 ## Deployment
 
-Using SSH:
+Deployment is **automatic**. Do **not** run `yarn deploy` — that command targets a
+`gh-pages` branch this project doesn't use, and will fail.
 
-```bash
-USE_SSH=true yarn deploy
-```
+Pushing to `master` (for changes under `docs/`, `src/`, `static/`, `sidebars.ts`,
+`docusaurus.config.ts`, and related paths) triggers the `deploy` GitHub Actions
+workflow, which submits a Cloud Build that builds the Docker image and pushes it to
+Google Artifact Registry. Flux's ImagePolicy in the `subfrost-admin` repo then picks
+up the new image on its next scan (~5 min) and rolls it out to Cloud Run.
 
-Not using SSH:
-
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+- Pipeline config: [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) and [`cloudbuild.yaml`](./cloudbuild.yaml)
+- Expect up to ~5 minutes of lag after the build succeeds before the live site updates.
