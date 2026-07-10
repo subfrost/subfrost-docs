@@ -51,6 +51,7 @@ const sidebars: SidebarsConfig = {
           ],
         },
         'subfrost-app/futures',
+        'subfrost-app/lending',
         'subfrost-app/wallet',
       ]
     },
@@ -112,6 +113,7 @@ const sidebars: SidebarsConfig = {
         'key-components/schnorr-signatures',
         'key-components/keystore-management',
         'key-components/proof-of-stake',
+        'key-components/lending',
       ]
     },
     {
