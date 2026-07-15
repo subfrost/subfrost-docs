@@ -15,7 +15,7 @@ happens.
 
 **Highlights:**
 - Lend or borrow any supported token pair, on **your** terms (interest rate, duration, collateral)
-- **Posting an offer is free and instant** — you just sign it; nothing goes on-chain and no fee is charged until someone takes it
+- **Posting an offer just takes a signature** — it shows up in the order book instantly, ready for someone to take
 - Settled on Bitcoin L1 in a **single transaction** the moment your offer is matched
 - Fixed-rate, fixed-term loans — you know the exact repayment up front
 - You hold your own funds the whole time; there's no custodian
@@ -30,19 +30,16 @@ Lending has two sides, and you can be either one:
 When someone takes the other side of your offer, the loan is created on-chain in one transaction and
 becomes active immediately.
 
-### Posting an offer is free and instant
+### Posting an offer
 
-When you post an offer, your wallet **signs it, but nothing is sent to the Bitcoin network** — so:
+When you post an offer, your wallet **signs it** and it appears in the order book, ready for someone
+to take. A posted offer:
 
-- **No network fee** to post.
-- **No on-chain footprint** and **no waiting for a block** — your offer shows up in the order book
-  instantly.
-- **Your funds stay in your wallet.** A posted offer is a pre-signed instruction that, by design,
-  **cannot be broadcast on its own** — it only becomes a real transaction once a taker accepts and
-  adds their side.
+- Shows up in the order book **instantly**, ready to be matched.
+- **Keeps your funds in your wallet.** A posted offer is a pre-signed instruction that only becomes a
+  real transaction once a taker accepts and adds their side.
 
-This means **only the taker pays a network fee** (the fee to settle the loan on-chain). As a maker,
-posting and cancelling offers costs nothing.
+The loan settles on-chain the moment a taker accepts your offer.
 
 ### Matching settles the loan on-chain
 
@@ -60,8 +57,8 @@ Once that transaction confirms, the loan is **active** and the clock starts on i
    as **collateral**.
 2. Switch the form to **Lend**.
 3. Enter the amount to lend, the collateral you require, the **APR**, and the **duration** (in blocks).
-4. Click **Lend** and approve the signature in your wallet. Your offer is now live in the order book —
-   no fee, no broadcast.
+4. Click **Lend** and approve the signature in your wallet. Your offer is now live in the order book,
+   ready for a borrower to take.
 
 ## How to borrow
 
@@ -120,7 +117,7 @@ Your open offers appear under **My Offers**. From there you can:
 - **Edit** an offer — change the terms (this re-signs a fresh offer and cancels the old one).
 - **Delete** an offer — remove it from the order book.
 
-Both are free and off-chain, just like posting.
+Both just update the pre-signed instruction in the order book.
 
 ## Tips
 
