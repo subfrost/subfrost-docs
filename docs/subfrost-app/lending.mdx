@@ -14,8 +14,10 @@ another user. There are no pools, no middlemen, and you keep control of your fun
 happens.
 
 **Highlights:**
-- Lend or borrow any supported token pair, on **your** terms (interest rate, duration, collateral)
+- Lend or borrow any supported token pair, on **your** terms (interest rate, duration)
+- Loan-to-value (LTV) is set at 80% for frBTC as collateral, 50% for Diesel as collateral, and 30% for all other tokens
 - **Posting an offer is free and instant** — you just sign it; nothing goes on-chain and no fee is charged until someone takes it
+- Your offer stays on the book as long as the UTXO doesn't get spent, and the offer terms are still overcollateralized
 - Settled on Bitcoin L1 in a **single transaction** the moment your offer is matched
 - Fixed-rate, fixed-term loans — you know the exact repayment up front
 - You hold your own funds the whole time; there's no custodian
@@ -43,6 +45,23 @@ When you post an offer, your wallet **signs it, but nothing is sent to the Bitco
 
 This means **only the taker pays a network fee** (the fee to settle the loan on-chain). As a maker,
 posting and cancelling offers costs nothing.
+
+### The order book attempts to only show safe offers
+
+The order book will prune offers posted under the following circumstances
+
+1. The UTXO that the offerer locked was spent in another tx
+2. The loan is undercollateralized under current market prices
+
+Note that creating a loan offer just stores a signature to spend a UTXO and isn't broadcast to the mempool, 
+so it's possible for someone to spend that same UTXO and broadcast it. In that circumstance, we remove 
+that offer from the order book so takers don't have to worry about accepting a stale offer.
+
+Also, note that the app has default LTVs for various tokens as collateral. These numbers are adjusted 
+to ensure there's enough breathing space, given the usual volatility of the asset, such that loans have 
+a higher chance of remaining overcollateralized through the duration of the loan. Since this protocol 
+does not natively depend on an oracle, there's no guarantee that the loan remains overcollateralized. It 
+is up to the lender to choose terms that they are comfortable with and accept in case of a default.
 
 ### Matching settles the loan on-chain
 
