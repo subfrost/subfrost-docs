@@ -16,8 +16,9 @@ happens.
 **Highlights:**
 - Lend or borrow any supported token pair, on **your** terms (interest rate, duration)
 - Loan-to-value (LTV) is set at 80% for frBTC as collateral, 50% for Diesel as collateral, and 30% for all other tokens
-- **Posting an offer is free and instant** — you just sign it; nothing goes on-chain and no fee is charged until someone takes it
-- Your offer stays on the book as long as the UTXO doesn't get spent, and the offer terms are still overcollateralized
+- **Posting an offer is instant** — you sign it and broadcast one small prep transaction; the offer shows up right away, and the larger settlement fee is only paid by whoever takes it
+- **Posting doesn't tie up the rest of your balance** — the prep sets aside exactly the loan/collateral amount and hands the remainder back to you as spendable change
+- Your offer stays on the book as long as the prepared UTXO doesn't get spent, and the offer terms are still overcollateralized
 - Settled on Bitcoin L1 in a **single transaction** the moment your offer is matched
 - Fixed-rate, fixed-term loans — you know the exact repayment up front
 - You hold your own funds the whole time; there's no custodian
@@ -32,30 +33,36 @@ Lending has two sides, and you can be either one:
 When someone takes the other side of your offer, the loan is created on-chain in one transaction and
 becomes active immediately.
 
-### Posting an offer is free and instant
+### Posting an offer is instant
 
-When you post an offer, your wallet **signs it, but nothing is sent to the Bitcoin network** — so:
+When you post an offer, your wallet **signs it and broadcasts one small "prep" transaction** that
+splits your funding into exact-amount pieces. The offer itself — the settlement that actually creates
+the loan — is signed but **not** broadcast; it only goes on-chain when a taker accepts. So:
 
-- **No network fee** to post.
-- **No on-chain footprint** and **no waiting for a block** — your offer shows up in the order book
-  instantly.
-- **Your funds stay in your wallet.** A posted offer is a pre-signed instruction that, by design,
-  **cannot be broadcast on its own** — it only becomes a real transaction once a taker accepts and
-  adds their side.
-
-This means **only the taker pays a network fee** (the fee to settle the loan on-chain). As a maker,
-posting and cancelling offers costs nothing.
+- **Instant.** Your offer shows up in the order book right away — you don't wait for the prep to
+  confirm.
+- **Only a tiny prep fee to post.** You pay the small network fee for the prep transaction; the
+  larger settlement fee is still paid by the **taker** when they fill your offer.
+- **It doesn't tie up the rest of your balance.** The prep sets aside *exactly* the loan/collateral
+  amount and sends the remainder back to you as normal change. So even if all your tokens sat on a
+  single UTXO, posting an offer **won't block you from spending what's left over** — the leftover is
+  immediately spendable.
+- **Your offer still can't be filled without you being paid.** The settlement is a pre-signed
+  instruction that, by design, **cannot be broadcast on its own** — it only becomes a real loan once a
+  taker accepts and adds their side.
 
 ### The order book attempts to only show safe offers
 
 The order book will prune offers posted under the following circumstances
 
-1. The UTXO that the offerer locked was spent in another tx
+1. The prepared UTXO that the offer spends was spent in another tx
 2. The loan is undercollateralized under current market prices
 
-Note that creating a loan offer just stores a signature to spend a UTXO and isn't broadcast to the mempool, 
-so it's possible for someone to spend that same UTXO and broadcast it. In that circumstance, we remove 
-that offer from the order book so takers don't have to worry about accepting a stale offer.
+Note that creating a loan offer broadcasts a prep tx that sets aside a UTXO and stores a signature to 
+spend that UTXO into the loan — but the settlement itself isn't broadcast until a taker accepts. So it's 
+still possible for the offerer to spend that prepared UTXO in another tx, which would leave the offer 
+unfillable. In that circumstance, we remove that offer from the order book so takers don't have to worry 
+about accepting a stale offer.
 
 Also, note that the app has default LTVs for various tokens as collateral. These numbers are adjusted 
 to ensure there's enough breathing space, given the usual volatility of the asset, such that loans have 
@@ -79,8 +86,8 @@ Once that transaction confirms, the loan is **active** and the clock starts on i
    as **collateral**.
 2. Switch the form to **Lend**.
 3. Enter the amount to lend, the collateral you require, the **APR**, and the **duration** (in blocks).
-4. Click **Lend** and approve the signature in your wallet. Your offer is now live in the order book —
-   no fee, no broadcast.
+4. Click **Lend** and approve the signature in your wallet. A small prep transaction broadcasts and your
+   offer is live in the order book right away — no waiting for it to confirm.
 
 ## How to borrow
 
@@ -136,10 +143,12 @@ repay, but offers asking for less collateral may be scarce.
 
 Your open offers appear under **My Offers**. From there you can:
 
-- **Edit** an offer — change the terms (this re-signs a fresh offer and cancels the old one).
+- **Edit** an offer — change the terms (this re-signs a fresh offer, broadcasting a new prep tx, and
+  cancels the old one).
 - **Delete** an offer — remove it from the order book.
 
-Both are free and off-chain, just like posting.
+Editing re-preps (a small prep-tx fee, just like posting); deleting simply removes the offer from the
+order book, off-chain and free.
 
 ## Tips
 
