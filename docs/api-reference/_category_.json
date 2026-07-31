@@ -1,0 +1,9 @@
+{
+  "label": "API & SDK Docs",
+  "position": 7,
+  "link": {
+    "type": "generated-index",
+    "title": "API & SDK Docs",
+    "description": "The developer reference for the SUBFROST API: JSON-RPC, REST, Lua scripting, and the CLI & SDK. Unified access to Bitcoin Core, Esplora, Ordinals, BRC-20, and Alkanes data. Migrated from api.subfrost.io/docs."
+  }
+}

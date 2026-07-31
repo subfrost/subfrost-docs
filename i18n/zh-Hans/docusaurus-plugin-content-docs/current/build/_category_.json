@@ -1,0 +1,9 @@
+{
+  "label": "在 SUBFROST 上构建",
+  "position": 5,
+  "link": {
+    "type": "generated-index",
+    "title": "在 SUBFROST 上构建",
+    "description": "在 SUBFROST 和 Alkanes 上构建的开发者指南。搭建环境、部署合约、以编程方式包装 frBTC、连接钱包，并对链进行索引。"
+  }
+}

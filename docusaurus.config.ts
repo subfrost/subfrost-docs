@@ -28,6 +28,7 @@ const config: Config = {
   onBrokenLinks: 'throw',
 
   markdown: {
+    format: 'detect',
     hooks: {
       onBrokenMarkdownLinks: 'throw',
     },
@@ -73,11 +74,11 @@ const config: Config = {
     image: '/Logo.png',
     metadata: [
       {name: 'keywords', content: 'bitcoin, staking, yield, defi, alkanes, metaprotocol, amm, frost, subfrost'},
-      {name: 'description', content: 'SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1. SUBFROST is a Layer 0 system, building fraud proofs as ZK circuits to ensure the integrity of its operations.'},
+      {name: 'description', content: 'SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1.'},
     ],
     og: {
       title: 'SUBFROST | Bitcoin Staking & Yield',
-      description: 'SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1. SUBFROST is a Layer 0 system, building fraud proofs as ZK circuits to ensure the integrity of its operations.',
+      description: 'SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1.',
       image: '/Logo.png',
     },
     navbar: {
@@ -109,8 +110,11 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
     },
     colorMode: {
+      // Gabe asked for dark-mode colours (#000000 background, #f5f5f5 text) on
+      // 2026-07-28. Those are only meaningful if a reader can reach dark mode,
+      // so the toggle is enabled. Light stays the default.
       defaultMode: 'light',
-      disableSwitch: true,
+      disableSwitch: false,
       respectPrefersColorScheme: false,
     },
     algolia: {
@@ -127,7 +131,71 @@ const config: Config = {
     },
   } satisfies Preset.ThemeConfig,
 
-  plugins: [],
+  plugins: [
+    // The docs root used to be introduction/subfrost-overview, which carried
+    // `slug: /`. Gabe asked for that page to be killed on 2026-07-28, which
+    // left `/` with nothing to serve. Redirecting instead of moving the slug
+    // onto What is SUBFROST keeps every existing relative link working: a slug
+    // change moves the page's route, and the links around the site are
+    // URL-relative, not file-relative.
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        redirects: [
+          {from: '/', to: '/start-here/what-is-subfrost'},
+          // The SUBFROST Networking section was removed on 2026-07-29 at
+          // flex's request. All six pages were live and served 200, so they
+          // are redirected rather than left to 404. There is no equivalent
+          // page to land on, so they point at the docs root.
+          {from: '/subfrost-networking/introduction-to-subp2p', to: '/start-here/what-is-subfrost'},
+          {from: '/subfrost-networking/subrelay', to: '/start-here/what-is-subfrost'},
+          {from: '/subfrost-networking/subproxy', to: '/start-here/what-is-subfrost'},
+          {from: '/subfrost-networking/subtun', to: '/start-here/what-is-subfrost'},
+          {from: '/subfrost-networking/gossipsub-and-encrypted-communication', to: '/start-here/what-is-subfrost'},
+          {from: '/subfrost-networking/building-microservices-on-subp2p', to: '/start-here/what-is-subfrost'},
+          // The frBTC roadmap page was merged INTO the frBTC overview on
+          // 2026-07-29 at Gabe's request. Its content now lives under the
+          // "frBTC is live on Alkanes and BRC2.0" paragraph there.
+          {from: '/tokens/frBTC-roadmap', to: '/tokens/frBTC-overview'},
+
+          // Everything below is the retirement of the legacy tree. Each of
+          // these fourteen routes serves 200 on docs.subfrost.io TODAY
+          // (measured 2026-07-31, following the nginx trailing-slash 301), and
+          // none of them survives the restructure, so without these entries
+          // shipping this branch converts fourteen live pages into 404s. They
+          // are the pages linked from X posts and picked up by search, which is
+          // exactly the traffic that never comes back from a 404.
+
+          // The app section moved wholesale: subfrost-app/* -> using-subfrost/*.
+          {from: '/subfrost-app/fire-vault', to: '/using-subfrost/fire-vault'},
+          {from: '/subfrost-app/futures', to: '/using-subfrost/futures'},
+          {from: '/subfrost-app/lending', to: '/using-subfrost/lending'},
+          {from: '/subfrost-app/swap', to: '/using-subfrost/swap'},
+          {from: '/subfrost-app/wallet', to: '/using-subfrost/wallets'},
+          // "DeFi Vaults on Bitcoin" was the automated-yield page; the FIRE
+          // Vault is the only vault that actually exists, so it lands there
+          // rather than on a section index.
+          {from: '/subfrost-app/vaults', to: '/using-subfrost/fire-vault'},
+          // Both overview pages were feature tours of an app that was "in
+          // development". Get Started is the page that now does that job.
+          {from: '/subfrost-app/overview', to: '/start-here/get-started'},
+          {from: '/introduction/subfrost-app-overview', to: '/start-here/get-started'},
+          // Technical Overview was the conceptual tour of FROST, Alkanes and
+          // the p2p layer. Key Concepts replaced it.
+          {from: '/introduction/technical-overview', to: '/start-here/key-concepts'},
+          // This one was a stub that pointed at api.subfrost.io/docs. The API
+          // reference is now a first-class section in this site.
+          {from: '/introduction/subfrost-api-docs', to: '/api-reference/getting-started/overview'},
+          // PoS described signers staking FUEL and frBTC to sign for the peg.
+          {from: '/key-components/proof-of-stake', to: '/protocol/signing-and-keys'},
+          // The three CLI reference pages collapsed into the CLI/SDK section.
+          {from: '/reference/subfrost-cli-reference', to: '/api-reference/cli-sdk/overview'},
+          {from: '/reference/subfrost-node-cli-reference', to: '/api-reference/cli-sdk/overview'},
+          {from: '/reference/subrail-cli-reference', to: '/api-reference/cli-sdk/overview'},
+        ],
+      },
+    ],
+  ],
   
 };
 

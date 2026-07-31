@@ -1,0 +1,9 @@
+{
+  "label": "协议",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "title": "协议",
+    "description": "SUBFROST 在底层是如何运作的，去中心化托管模型、底层的 Alkanes 智能合约协议、frBTC 锚定、门限签名、预言机，以及借贷等各个产品背后的合约。"
+  }
+}

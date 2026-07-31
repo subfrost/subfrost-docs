@@ -709,3 +709,194 @@ html[data-theme='dark'] {
   --ifm-menu-link-sublist-icon: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path fill='%230a0a0a' d='M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z'/></svg>");
 }
 
+
+/* ---------------------------------------------------------------------------
+ * Gabe, 2026-07-27: "increase the brightness of the background by 4%".
+ *
+ * THE LIGHT THEME IS THE ONE THAT MATTERS HERE. docusaurus.config.ts sets
+ * `defaultMode: 'light'`, `disableSwitch: true` and
+ * `respectPrefersColorScheme: false`, so the dark theme is currently
+ * unreachable: there is no toggle and the OS preference is ignored. Whatever
+ * Gabe was looking at was the light background, #E9F0F7. A dark-only change
+ * would have been invisible to him and to every reader.
+ *
+ * Applied as +4 PERCENTAGE POINTS of HSL lightness, not a 4% relative bump,
+ * preserving hue and saturation:
+ *   light  #E9F0F7  H=210 S=0.47 L=94.1%  ->  #F8FAFC  L=98.1%
+ *   dark   #212121  H=0   S=0    L=12.9%  ->  #2B2B2B  L=16.9%
+ * The dark values are kept only so the two themes stay consistent if the
+ * toggle is ever re-enabled. They change nothing today.
+ *
+ * Scoped to BACKGROUNDS ONLY, deliberately. Both #E9F0F7 and #212121 are also
+ * TEXT colours elsewhere in this file (they are swapped between the themes),
+ * so a global find-and-replace would wash out text in one theme or the other.
+ *
+ * Kept as an append-only override rather than edits in place so it reverts by
+ * deleting this block.
+ * ------------------------------------------------------------------------- */
+.gradient-background,
+body {
+  background: #F8FAFC;
+}
+
+.navbar {
+  --ifm-navbar-background-color: #F8FAFC;
+  background-color: #F8FAFC !important;
+}
+
+.DocSearch-Button .DocSearch-Button-Key {
+  background: #F8FAFC;
+}
+
+html[data-theme='dark'] .gradient-background,
+html[data-theme='dark'] body {
+  background: #2B2B2B;
+}
+
+html[data-theme='dark'] .navbar {
+  --ifm-navbar-background-color: #2B2B2B;
+  background-color: #2B2B2B !important;
+}
+
+html[data-theme='dark'] .DocSearch-Button .DocSearch-Button-Key {
+  background: #2B2B2B;
+}
+
+/* ---------------------------------------------------------------------------
+ * LINK COLOUR: deliberately NOT changed. Do not "fix" this.
+ *
+ * Gabe asked for cross-references to be "underlined, NOT bolded", citing the
+ * Safety link on the Wallets page. I read that as a colour problem, since
+ * `a { color: #212121 }` paints links in exactly the body text colour, and
+ * shipped a blue. That was wrong. His follow-up: "No the link should be the
+ * same color as other links, which is the same color as the text I believe."
+ *
+ * So same-colour-as-text plus underline IS the intended treatment, and it is
+ * what `.markdown a { text-decoration: underline }` already gives. The blue is
+ * reverted. What he was actually reacting to was prose that used **bold** for
+ * a cross-reference instead of a real link; the fix for that is in the
+ * markdown, not here.
+ *
+ * Links inside admonitions are already correct for the same reason:
+ * `.theme-admonition *` forces #212121, which is the text colour there too.
+ * ------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+ * Gabe, 2026-07-28. Four colour requests in one pass:
+ *   "Lighten the background by another 4%"
+ *   "Change the dark mode background to #000000"
+ *   "In Darkmode, text should be #f5f5f5"
+ *   "In Lightmode, text should be #091628"
+ *
+ * The dark-mode half is why `disableSwitch` is now false in
+ * docusaurus.config.ts. Asking for dark-mode colours only makes sense if dark
+ * mode is reachable at all, and until today it was not.
+ *
+ * THE BACKGROUND IS NOW AT ITS CEILING. #F8FAFC is HSL L=98.1%. Another
+ * +4 percentage points is 102.1%, which clamps to white, so this is #FFFFFF.
+ * A further "another 4%" has nowhere to go.
+ *
+ * Two surfaces are deliberately NOT flipped in dark mode: code blocks
+ * (`background-color: #ffffff !important`) and admonitions (`#c5d9e8`) are
+ * light panels in BOTH themes, so their text stays dark in both. They move to
+ * #091628 with the rest of the dark-on-light text, not to #f5f5f5.
+ * ------------------------------------------------------------------------- */
+
+/* Light: background to white, the last 1.9 points of headroom. */
+.gradient-background,
+body {
+  background: #FFFFFF;
+}
+
+.navbar {
+  --ifm-navbar-background-color: #FFFFFF;
+  background-color: #FFFFFF !important;
+}
+
+.DocSearch-Button .DocSearch-Button-Key {
+  background: #FFFFFF;
+}
+
+/* Light: body text #091628. */
+body,
+.footer,
+.DocSearch-Button .DocSearch-Button-Key {
+  color: #091628;
+}
+
+.header-docs-link {
+  color: #091628 !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+a {
+  color: #091628;
+}
+
+/* Dark-on-light panels, same in both themes. */
+pre, code,
+div[class*="codeBlockContainer"],
+pre[class*="prism-code"],
+pre[class*="prism-code"] .token,
+:not(pre) > code {
+  color: #091628 !important;
+}
+
+.theme-admonition,
+.alert,
+.theme-admonition a,
+.theme-admonition strong,
+.theme-admonition code,
+.theme-admonition *,
+.alert a,
+.alert strong,
+.alert code,
+.alert * {
+  color: #091628 !important;
+}
+
+html[data-theme='dark'] .theme-admonition svg,
+html[data-theme='dark'] .alert svg {
+  fill: #091628 !important;
+  color: #091628 !important;
+}
+
+/* Dark: background #000000. */
+html[data-theme='dark'] .gradient-background,
+html[data-theme='dark'] body {
+  background: #000000;
+}
+
+html[data-theme='dark'] .navbar {
+  --ifm-navbar-background-color: #000000;
+  background-color: #000000 !important;
+}
+
+html[data-theme='dark'] .DocSearch-Button .DocSearch-Button-Key {
+  background: #000000;
+}
+
+/* Dark: text #f5f5f5. */
+html[data-theme='dark'] body,
+html[data-theme='dark'] .footer,
+html[data-theme='dark'] .DocSearch-Button .DocSearch-Button-Key {
+  color: #f5f5f5;
+}
+
+html[data-theme='dark'] .header-docs-link {
+  color: #f5f5f5 !important;
+}
+
+html[data-theme='dark'] h1,
+html[data-theme='dark'] h2,
+html[data-theme='dark'] h3,
+html[data-theme='dark'] h4,
+html[data-theme='dark'] h5,
+html[data-theme='dark'] h6,
+html[data-theme='dark'] a {
+  color: #f5f5f5;
+}
+
+html[data-theme='dark'] .pagination-nav__link:hover {
+  border-color: #f5f5f5;
+}

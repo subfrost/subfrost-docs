@@ -2,60 +2,54 @@
 title: Glossary
 sidebar_label: Glossary
 sidebar_position: 4
+description: Short definitions for the terms used across the SUBFROST documentation.
 ---
 
 # Glossary
 
-*   **FROST:** Flexible Round-Optimized Schnorr Threshold. A threshold signature scheme that allows a large, dynamic set of signers to collectively create a single Schnorr signature without any single signer ever possessing the full private key.
-*   **ROAST:** Robust Asynchronous Schnorr Threshold. An optimization of FROST that allows for a non-interactive signing session, assuming a single round of pre-computation has already been performed.
-*   **`subp2p`:** The foundational peer-to-peer networking layer of the SUBFROST ecosystem.
-*   **`subrelay`:** A critical component of the SUBFROST networking stack that acts as a rendezvous point, a traffic relay, and a name registrar for the `subp2p` network.
-*   **`subproxy`:** A versatile tool that acts as a bridge between the `subp2p` network and the traditional internet.
-*   **`subtun`:** A powerful component that creates a secure, peer-to-peer VPN over the `subp2p` network.
-*   **`frBTC`:** The Bitcoin DeFi-compatible asset pegged 1:1 to BTC and interoperable across every DeFi ecosystem on Bitcoin L1.
-*   **`dxBTC`:** A yield-generating synthetic Bitcoin asset.
-*   **`FUEL` Token:** The governance and utility token of the SUBFROST protocol
-*   **`subfrost-core`:** The core logic of the SUBFROST protocol.
-*   **`subfrost-runtime`:** The core of the SUBFROST node. It is a WASM program that contains the consensus logic for the SUBFROST protocol.
-*   **`subrail`:** The high-performance WebAssembly (WASM) runtime at the heart of the SUBFROST ecosystem.
-*   **`subswap`:** A suite of commands for interacting with the Automated Market Maker (AMM) functionality of the Alkanes metaprotocol.
-*   **Keystore:** A file that securely stores all the sensitive cryptographic material for a user.
-*   **Schnorr Signature:** A type of digital signature scheme that is known for its simplicity, provable security, and linearity.
-*   **Gossipsub:** A pub/sub (publish/subscribe) protocol where peers can subscribe to topics and receive messages that are published to those topics.
-*   **Microservices:** A set of small, independent services that communicate with each other over a secure and resilient network.
-*   **AMM:** Automated Market Maker. A type of decentralized exchange that relies on a mathematical formula to price assets.
-*   **Metaprotocol:** A protocol that is built on top of another protocol.
-*   **Runestone:** A message that is embedded in an `OP_RETURN` output of a Bitcoin transaction.
-*   **Alkanes:** A metaprotocol that is built on top of the Bitcoin blockchain.
-*   **`OP_RETURN`:** An opcode in the Bitcoin scripting language that allows you to embed a small amount of data in a transaction.
-*   **WASM:** WebAssembly. A binary instruction format for a stack-based virtual machine.
-*   **`wasip2`:** A standardized interface for running WebAssembly modules on a variety of systems.
-*   **TUN Device:** A virtual network interface that, instead of receiving packets from a physical medium, receives them from a user-space program.
-*   **SOCKS5:** A proxy protocol that allows you to route your traffic through a proxy server.
-*   **Reverse Proxy:** A proxy server that retrieves resources on behalf of a client from one or more servers.
-*   **DKG:** Distributed Key Generation. A ceremony where a group of participants collaboratively generate a single group public key, while each participant only holds a secret share of the corresponding private key.
-*   **ASCII Armoring:** The process of encoding binary data into a human-readable text format.
-*   **PBKDF2:** Password-Based Key Derivation Function 2. A computationally intensive algorithm that makes it very difficult for an attacker to guess a passphrase.
-*   **AES-GCM:** Advanced Encryption Standard in Galois/Counter Mode. A modern, authenticated encryption cipher that provides both confidentiality and integrity.
-*   **Multi-Transport Support:** The ability to operate in a variety of network environments.
-*   **mDNS:** Multicast DNS. A protocol that allows peers to discover each other on a local network without the need for a central server.
-*   **Kademlia DHT:** A distributed hash table (DHT) that is used for discovering peers on the public internet.
-*   **NAT Traversal:** The process of allowing peers behind firewalls and NATs to connect to each other.
-*   **AutoNAT:** A protocol that allows a peer to discover its own public IP address.
-*   **Hole Punching (DCUtR):** A technique that allows two peers behind NATs to establish a direct connection with the help of a relay.
-*   **Circuit Relay:** A technique that allows two peers to communicate with each other through a relay when a direct connection cannot be established.
-*   **`SUBFROSTNetworkBehaviour`:** A composite `libp2p` `NetworkBehaviour` that combines all the different protocols and behaviors used by SUBFROST.
-*   **`gossipsub`:** A pub/sub (publish/subscribe) protocol where peers can subscribe to topics and receive messages that are published to those topics.
-*   **`mdns`:** A protocol that allows peers to discover each other on a local network without the need for a central server.
-*   **`kademlia`:** A distributed hash table (DHT) that is used for discovering peers on the public internet.
-*   **`relay_client` and `relay_server`:** The client and server components of the circuit relay protocol.
-*   **`dcutr`:** A protocol for direct connection upgrade through NATs.
-*   **`identify`:** A protocol for discovering the public address of a peer.
-*   **`autonat`:** A protocol for determining if a peer is behind a NAT.
-*   **`ping`:** A protocol for checking the liveness of a peer.
-*   **`request_response`:** A protocol for simple request-response interactions.
-*   **`proxy_stream`:** A custom protocol for creating generic, proxied duplex streams between peers.
-*   **`MetashrewProvider`:** A trait that abstracts the connection to a "metashrew" index.
-*   **`SUBFROSTWasmRunner`:** A trait that defines the interface for running the core consensus logic, which is compiled to WASM.
-*   **`SUBFROSTApiProvider`:** A trait that exposes the `subfrost_getbundle` API, which is likely the main entry point for users or other services to interact with the SUBFROST node.
-*   **`SUBFROSTEngine`:** The main orchestrator that ties everything together.
+## Protocol and tokens
+
+*   **SUBFROST:** A decentralized custodian for Bitcoin. It moves BTC into a programmable on-chain form and back, without a single company holding the coins.
+*   **Alkanes:** A smart-contract metaprotocol built on the Bitcoin blockchain. SUBFROST is built on it.
+*   **Metaprotocol:** A protocol built on top of another protocol. Alkanes is a metaprotocol on Bitcoin.
+*   **Protorunes:** The standard Alkanes is compatible with. Alkanes is a protorunes-compatible protocol, not a fork of Runes.
+*   **Protostone:** The unit of Alkanes execution encoded in a Bitcoin transaction. A transaction can carry several protostones (for example transfer, then mint, then call).
+*   **Cellpack:** The message an Alkanes call carries, a list beginning with the target contract and an opcode, followed by inputs.
+*   **Alkane ID:** A contract's address, a `[block, tx]` pair identifying where it was deployed.
+*   **View function:** A read-only call that runs against indexer state and costs nothing, used to query balances, simulate calls, or read a contract's ABI.
+*   **Opcode:** A numbered method on a contract. A call names the target Alkane ID and an opcode.
+*   **Runestone:** A message embedded in an `OP_RETURN` output of a Bitcoin transaction.
+*   **`OP_RETURN`:** A Bitcoin script opcode that embeds a small amount of data in a transaction.
+*   **BRC2.0:** An EVM-compatible smart-contract layer on Bitcoin (also called brc20-prog) that runs Solidity contracts whose state is derived from Bitcoin transactions.
+*   **`frBTC`:** Bitcoin-backed value inside Alkanes, pegged 1:1 to BTC and usable across Bitcoin DeFi.
+*   **DIESEL:** The protocol's fair-launch native token. Every Bitcoin block emits the same amount of DIESEL as it emits new bitcoin, halving alongside Bitcoin.
+*   **FIRE:** The token behind the FIRE vault, tied to bond mechanics priced against the protocol treasury through the oracle.
+*   **`dxBTC`:** A yield-bearing synthetic Bitcoin asset (planned).
+*   **`FUEL`:** A protocol token.
+*   **AMM:** Automated Market Maker. A decentralized exchange that prices assets with a formula rather than an order book.
+*   **Wrap / Unwrap:** Wrapping locks BTC and mints frBTC 1:1; unwrapping burns frBTC and releases the underlying BTC through the signer group.
+*   **Oracle:** A decentralized group that brings outside data (mainly prices) on-chain by agreement, so no single party dictates the value.
+*   **Signer set:** The group of participants that collectively custodies the BTC backing frBTC through threshold signing.
+*   **PSBT:** Partially Signed Bitcoin Transaction. The format a wallet signs when authorizing a transaction.
+
+## Cryptography
+
+*   **Schnorr signature:** The signature scheme Bitcoin adopted in Taproot (BIP-340), over the secp256k1 curve. Its linearity lets partial signatures combine into one.
+*   **FROST:** Flexible Round-Optimized Schnorr Threshold. A threshold scheme letting a dynamic set of signers produce one Schnorr signature without any signer holding the full private key.
+*   **ROAST:** Robust Asynchronous Schnorr Threshold. A robust, asynchronous optimization of FROST that keeps signing moving when some participants are slow or offline.
+*   **DKG:** Distributed Key Generation. A ceremony where participants jointly produce one group public key while each holds only a secret share of the private key.
+*   **Keystore:** An encrypted file (or hardware-backed store) that holds a user's sensitive cryptographic material.
+*   **AES-256-GCM:** A modern authenticated encryption cipher providing both confidentiality and integrity.
+*   **PBKDF2:** A key-derivation function that stretches a passphrase so guessing it offline is expensive.
+*   **ASCII armoring:** Encoding binary data as human-readable text so it is easy to store and move.
+
+## Indexing
+
+*   **metashrew:** The base indexer that runs the Alkanes WASM against Bitcoin block data and answers view functions. It is the source of truth for on-chain state.
+*   **subshrew:** The v10 indexer that runs the metashrew runtime against TiKV, decoupling the view layer from indexing.
+*   **rockshrew-mono:** A single-binary way to run the metashrew runtime with a local database.
+*   **TiKV:** A distributed key-value store used as the shared state backend for the v10 indexer.
+*   **ESPO:** A secondary data indexer for bulk history and aggregates (trade counts, holder lists) that the base indexer does not compute.
+*   **WASM:** WebAssembly. A binary instruction format for a stack-based virtual machine, used for both contracts and the indexer.
+*   **`wasip2`:** A standardized interface for running WebAssembly modules across systems.
+
