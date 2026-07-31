@@ -15,23 +15,22 @@ const config: Config = {
   },
  
   // Set the production url of your site here
-  url: 'https://vdto88.github.io',
+  url: 'https://docs.subfrost.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/subfrost-docs-preview/',
-  noIndex: true,
+  baseUrl: '/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'Vdto88', // Usually your GitHub org/user name.
-  projectName: 'subfrost-docs-preview', // Usually your repo name.
+  organizationName: 'subfrost', // Usually your GitHub org/user name.
+  projectName: 'subfrost-docs', // Usually your repo name.
 
-  onBrokenLinks: 'warn',
+  onBrokenLinks: 'throw',
 
   markdown: {
     format: 'detect',
     hooks: {
-      onBrokenMarkdownLinks: 'warn',
+      onBrokenMarkdownLinks: 'throw',
     },
   },
 
