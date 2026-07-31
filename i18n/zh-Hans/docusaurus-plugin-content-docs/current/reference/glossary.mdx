@@ -1,61 +1,55 @@
 ---
 title: 术语表
-sidebar_label: Glossary
+sidebar_label: 术语表
 sidebar_position: 4
+description: SUBFROST 文档中所用术语的简明定义。
 ---
 
 # 术语表
 
-*   **FROST：** Flexible Round-Optimized Schnorr Threshold（灵活的轮优化 Schnorr 门限签名）。一种门限签名方案，允许大量动态签名者共同创建一个 Schnorr 签名，而无需任何单个签名者持有完整的私钥。
-*   **ROAST：** Robust Asynchronous Schnorr Threshold（鲁棒异步 Schnorr 门限签名）。FROST 的一种优化方案，在假设已完成一轮预计算的情况下，允许非交互式的签名会话。
-*   **`subp2p`：** SUBFROST 生态系统的基础点对点网络层。
-*   **`subrelay`：** SUBFROST 网络栈的关键组件，充当 `subp2p` 网络的会合点、流量中继和名称注册器。
-*   **`subproxy`：** 一个多功能工具，充当 `subp2p` 网络与传统互联网之间的桥梁。
-*   **`subtun`：** 一个强大的组件，可在 `subp2p` 网络上创建安全的点对点 VPN。
-*   **`frBTC`：** 与 BTC 1:1 锚定的 Bitcoin DeFi 兼容资产，可在 Bitcoin L1 上的所有 DeFi 生态系统中互操作。
-*   **`dxBTC`：** 一种可产生收益的合成 Bitcoin 资产。
-*   **`FUEL` 代币：** SUBFROST 协议的治理和实用代币。
-*   **`subfrost-core`：** SUBFROST 协议的核心逻辑。
-*   **`subfrost-runtime`：** SUBFROST 节点的核心。它是一个包含 SUBFROST 协议共识逻辑的 WASM 程序。
-*   **`subrail`：** SUBFROST 生态系统核心的高性能 WebAssembly（WASM）运行时。
-*   **`subswap`：** 一套用于与 Alkanes 元协议的自动做市商（AMM）功能交互的命令。
-*   **密钥库（Keystore）：** 安全存储用户所有敏感加密材料的文件。
-*   **Schnorr 签名：** 一种以简洁性、可证明安全性和线性性著称的数字签名方案。
-*   **Gossipsub：** 一种发布/订阅协议，节点可以订阅主题并接收发布到这些主题的消息。
-*   **微服务（Microservices）：** 一组通过安全且弹性的网络相互通信的小型独立服务。
-*   **AMM：** 自动做市商（Automated Market Maker）。一种依赖数学公式进行资产定价的去中心化交易所类型。
-*   **元协议（Metaprotocol）：** 构建在另一个协议之上的协议。
-*   **Runestone：** 嵌入在 Bitcoin 交易 `OP_RETURN` 输出中的消息。
-*   **Alkanes：** 构建在 Bitcoin 区块链之上的元协议。
-*   **`OP_RETURN`：** Bitcoin 脚本语言中的一个操作码，允许在交易中嵌入少量数据。
-*   **WASM：** WebAssembly。一种面向基于堆栈的虚拟机的二进制指令格式。
-*   **`wasip2`：** 一种标准化接口，用于在各种系统上运行 WebAssembly 模块。
-*   **TUN 设备：** 一种虚拟网络接口，不从物理介质接收数据包，而是从用户空间程序接收数据包。
-*   **SOCKS5：** 一种代理协议，允许您通过代理服务器路由流量。
-*   **反向代理（Reverse Proxy）：** 一种代理服务器，代表客户端从一个或多个服务器获取资源。
-*   **DKG：** 分布式密钥生成（Distributed Key Generation）。一种仪式，其中一组参与者协作生成一个组公钥，而每个参与者仅持有相应私钥的一个秘密份额。
-*   **ASCII 铠装（ASCII Armoring）：** 将二进制数据编码为人类可读文本格式的过程。
-*   **PBKDF2：** 基于密码的密钥派生函数 2（Password-Based Key Derivation Function 2）。一种计算密集型算法，使攻击者很难猜测口令。
-*   **AES-GCM：** 伽罗瓦/计数器模式的高级加密标准（Advanced Encryption Standard in Galois/Counter Mode）。一种现代的认证加密密码，同时提供机密性和完整性。
-*   **多传输支持（Multi-Transport Support）：** 在各种网络环境中运行的能力。
-*   **mDNS：** 多播 DNS（Multicast DNS）。一种协议，允许节点在本地网络上无需中央服务器即可相互发现。
-*   **Kademlia DHT：** 一种分布式哈希表（DHT），用于在公共互联网上发现节点。
-*   **NAT 穿透（NAT Traversal）：** 允许位于防火墙和 NAT 后面的节点相互连接的过程。
-*   **AutoNAT：** 一种协议，允许节点发现自己的公共 IP 地址。
-*   **打洞（DCUtR）：** 一种技术，允许两个位于 NAT 后面的节点在中继的帮助下建立直接连接。
-*   **电路中继（Circuit Relay）：** 一种技术，当无法建立直接连接时，允许两个节点通过中继进行通信。
-*   **`SUBFROSTNetworkBehaviour`：** 一个复合的 `libp2p` `NetworkBehaviour`，组合了 SUBFROST 使用的所有不同协议和行为。
-*   **`gossipsub`：** 一种发布/订阅协议，节点可以订阅主题并接收发布到这些主题的消息。
-*   **`mdns`：** 一种协议，允许节点在本地网络上无需中央服务器即可相互发现。
-*   **`kademlia`：** 一种分布式哈希表（DHT），用于在公共互联网上发现节点。
-*   **`relay_client` 和 `relay_server`：** 电路中继协议的客户端和服务器组件。
-*   **`dcutr`：** 一种通过 NAT 进行直接连接升级的协议。
-*   **`identify`：** 一种用于发现节点公共地址的协议。
-*   **`autonat`：** 一种用于确定节点是否位于 NAT 后面的协议。
-*   **`ping`：** 一种用于检查节点活跃状态的协议。
-*   **`request_response`：** 一种用于简单请求-响应交互的协议。
-*   **`proxy_stream`：** 一种自定义协议，用于在节点之间创建通用的代理双工流。
-*   **`MetashrewProvider`：** 一个 trait，抽象了与"metashrew"索引的连接。
-*   **`SUBFROSTWasmRunner`：** 一个 trait，定义了运行编译为 WASM 的核心共识逻辑的接口。
-*   **`SUBFROSTApiProvider`：** 一个 trait，暴露 `subfrost_getbundle` API，这可能是用户或其他服务与 SUBFROST 节点交互的主要入口点。
-*   **`SUBFROSTEngine`：** 将所有组件整合在一起的主协调器。
+## 协议与代币
+
+*   **SUBFROST：** 比特币的去中心化托管方。它将 BTC 转换为可编程的链上形式，并可换回，全程无需任何单一公司持有这些币。
+*   **Alkanes：** 构建在比特币区块链之上的智能合约元协议。SUBFROST 即构建于其上。
+*   **元协议（Metaprotocol）：** 构建在另一个协议之上的协议。Alkanes 就是比特币之上的一个元协议。
+*   **Protorunes：** Alkanes 所兼容的标准。Alkanes 是与 protorunes 兼容的协议，而非 Runes 的分叉。
+*   **Protostone：** 编码在比特币交易中的 Alkanes 执行单元。一笔交易可以携带多个 protostone（例如先转账，再铸造，然后调用）。
+*   **Cellpack：** Alkanes 调用所携带的消息，是一个以目标合约和操作码开头、后跟输入参数的列表。
+*   **Alkane ID：** 合约的地址，是标识其部署位置的 `[block, tx]` 数对。
+*   **View function（视图函数）：** 一种针对索引器状态运行、不产生费用的只读调用，用于查询余额、模拟调用或读取合约的 ABI。
+*   **Opcode（操作码）：** 合约上一个带编号的方法。调用会指定目标 Alkane ID 和一个操作码。
+*   **Runestone：** 嵌入在比特币交易 `OP_RETURN` 输出中的消息。
+*   **`OP_RETURN`：** 比特币脚本中的一个操作码，可在交易中嵌入少量数据。
+*   **BRC2.0：** 比特币上一个兼容 EVM 的智能合约层（也称为 brc20-prog），运行状态源自比特币交易的 Solidity 合约。
+*   **`frBTC`：** Alkanes 内部由比特币支撑的价值单位，与 BTC 保持 1:1 锚定，可在整个比特币 DeFi 中使用。
+*   **DIESEL：** 协议的公平发行原生代币。每个 Bitcoin 区块发行的 DIESEL 数量，与该区块新发行的比特币数量相同，并与 Bitcoin 同步减半。
+*   **FIRE：** FIRE 金库背后的代币，与通过预言机对协议国库定价的债券机制相绑定。
+*   **`dxBTC`：** 一种生息的合成比特币资产（规划中）。
+*   **`FUEL`：** 协议代币。
+*   **AMM：** 自动做市商（Automated Market Maker）。一种依靠公式而非订单簿为资产定价的去中心化交易所。
+*   **Wrap / Unwrap（包装 / 解包）：** 包装会锁定 BTC 并按 1:1 铸造 frBTC；解包则会销毁 frBTC，并由签名者组释放对应的底层 BTC。
+*   **Oracle（预言机）：** 一个通过共识将链外数据（主要是价格）带上链的去中心化群体，确保没有任何单一方能左右数值。
+*   **Signer set（签名者组）：** 通过门限签名共同托管支撑 frBTC 的 BTC 的一组参与者。
+*   **PSBT：** 部分签名比特币交易（Partially Signed Bitcoin Transaction）。钱包在授权交易时签署的格式。
+
+## 密码学
+
+*   **Schnorr signature（Schnorr 签名）：** 比特币在 Taproot（BIP-340）中采用的签名方案，基于 secp256k1 曲线。其线性特性使得多个部分签名可以合并为一个签名。
+*   **FROST：** Flexible Round-Optimized Schnorr Threshold（灵活轮次优化 Schnorr 门限签名）。一种门限签名方案，允许一组动态签名者共同生成一个 Schnorr 签名，而无需任何一方持有完整的私钥。
+*   **ROAST：** Robust Asynchronous Schnorr Threshold（鲁棒异步 Schnorr 门限签名）。对 FROST 的一种稳健、异步优化，即使部分参与者迟缓或离线，签名过程仍能继续进行。
+*   **DKG：** 分布式密钥生成（Distributed Key Generation）。一种仪式，参与者共同生成一个群组公钥，而每个人仅持有私钥的一个秘密份额。
+*   **Keystore（密钥库）：** 保存用户敏感加密材料的加密文件（或硬件支持的存储）。
+*   **AES-256-GCM：** 一种现代认证加密算法，同时提供机密性和完整性保障。
+*   **PBKDF2：** 一种密钥派生函数，通过拉伸口令使离线暴力猜测的成本变得高昂。
+*   **ASCII armoring（ASCII 铠装）：** 将二进制数据编码为人类可读文本，以便于存储和传输。
+
+## 索引
+
+*   **metashrew：** 基础索引器，针对比特币区块数据运行 Alkanes 的 WASM，并响应视图函数调用。它是链上状态的真实来源。
+*   **subshrew：** v10 索引器，在 TiKV 之上运行 metashrew 运行时，将视图层与索引过程解耦。
+*   **rockshrew-mono：** 一种以单一二进制文件搭配本地数据库运行 metashrew 运行时的方式。
+*   **TiKV：** 用作 v10 索引器共享状态后端的分布式键值存储。
+*   **ESPO：** 一种次级数据索引器，用于提供基础索引器不计算的批量历史数据和聚合数据（如交易笔数、持有者列表）。
+*   **WASM：** WebAssembly。一种面向基于堆栈的虚拟机的二进制指令格式，合约和索引器均使用它。
+*   **`wasip2`：** 一种标准化接口，用于在不同系统间运行 WebAssembly 模块。
+

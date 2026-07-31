@@ -3,7 +3,10 @@ title: frBTC（DeFi 兼容的 BTC）
 sidebar_position: 2
 ---
 
-# `frBTC` 概述
+import useBaseUrl from '@docusaurus/useBaseUrl';
+import Admonition from '@theme/Admonition';
+
+# frBTC 概述
 ## Bitcoin L1 上可互操作的封装 BTC
 
 `frBTC` 是与 BTC 1:1 锚定的 Bitcoin DeFi 兼容资产，可在 Bitcoin L1 上的所有 DeFi 生态系统中互操作。
@@ -18,10 +21,161 @@ SUBFROST 于 2025 年第四季度在 Bitcoin 主网上线。Alkanes（10 月）�
 用户可以通过**一次**签名操作，使用原生 BTC 进入 Bitcoin L1 上的高级 DeFi 应用，完全无需预先封装 BTC。
 :::
 
-下面的示例展示了用户以去中心化、无需许可的方式，将原生 **BTC** 原子性地兑换为 USD 稳定币（或其他代币）。
+下面的示例展示了用户以去中心化、无需许可的方式，将原生 **BTC** 原子性地兑换为 `DIESEL`（或任意其他 Alkanes 代币）。
 
-![frBTC Example](../Diagrams/frBTC_example.png)
+<figure className="frbtc-flow">
+<svg viewBox="0 0 840 200" role="img" aria-labelledby="frbtc-flow-title-zh frbtc-flow-desc-zh" style={{width: '100%', height: 'auto', maxWidth: '840px', display: 'block', margin: '0 auto'}}>
+  <title id="frbtc-flow-title-zh">通过一次签名将原生 BTC 兑换为 DIESEL</title>
+  <desc id="frbtc-flow-desc-zh">用户签名一次。其 BTC 被原子性地封装为 frBTC，通过 AMM 兑换，所得 DIESEL 返回给用户，全程都在 Bitcoin L1 上完成。</desc>
+
+  <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+
+    {/* user, left */}
+    <g transform="translate(24,58)">
+      <circle cx="20" cy="14" r="12" fill="currentColor" stroke="none" opacity="0.85"/>
+      <path d="M2 52 a18 20 0 0 1 36 0 z" fill="currentColor" stroke="none" opacity="0.85"/>
+    </g>
+
+    {/* BTC coin */}
+    <g transform="translate(126,44)">
+      <image href={useBaseUrl('/img/tokens/btc.svg')} x="0" y="0" width="36" height="36"/>
+      <text x="18" y="-8" textAnchor="middle" fill="currentColor" stroke="none" fontSize="13" fontWeight="500">BTC</text>
+    </g>
+
+    {/* snowflake, atomic wrap */}
+    <g transform="translate(248,42)">
+      <g stroke="#5B9BD5" strokeWidth="2">
+        <path d="M20 0 V40 M2.7 10 L37.3 30 M2.7 30 L37.3 10"/>
+        <path d="M20 8 l-5 -5 M20 8 l5 -5 M20 32 l-5 5 M20 32 l5 5"/>
+        <path d="M9.6 14 l-6.8 -1 M9.6 14 l1 -6.8 M30.4 26 l6.8 1 M30.4 26 l-1 6.8"/>
+        <path d="M9.6 26 l-6.8 1 M9.6 26 l1 6.8 M30.4 14 l6.8 -1 M30.4 14 l-1 -6.8"/>
+      </g>
+    </g>
+
+    {/* frBTC coin */}
+    <g transform="translate(392,44)">
+      <image href={useBaseUrl('/img/tokens/frbtc.svg')} x="0" y="0" width="36" height="36"/>
+      <text x="18" y="-8" textAnchor="middle" fill="currentColor" stroke="none" fontSize="13" fontWeight="500">frBTC</text>
+    </g>
+
+    {/* AMM swap */}
+    <g transform="translate(524,50)">
+      <g stroke="#2E5E8C" strokeWidth="2.5">
+        <path d="M4 10 H40 l-9 -8 M40 26 H4 l9 8"/>
+      </g>
+    </g>
+
+    {/* resulting token */}
+    <g transform="translate(660,44)">
+      <image href={useBaseUrl('/img/tokens/diesel.png')} x="0" y="0" width="36" height="36"/>
+      <text x="18" y="-8" textAnchor="middle" fill="currentColor" stroke="none" fontSize="13" fontWeight="500">DIESEL</text>
+    </g>
+
+    {/* user, right */}
+    <g transform="translate(772,58)">
+      <circle cx="20" cy="14" r="12" fill="currentColor" stroke="none" opacity="0.85"/>
+      <path d="M2 52 a18 20 0 0 1 36 0 z" fill="currentColor" stroke="none" opacity="0.85"/>
+    </g>
+
+    {/* connectors */}
+    <g opacity="0.5" strokeWidth="1.4">
+      <path d="M72 62 H118"/>
+      <path d="M172 62 H240"/>
+      <path d="M296 62 H384"/>
+      <path d="M436 62 H518"/>
+      <path d="M576 62 H652"/>
+      <path d="M706 62 H766"/>
+    </g>
+    <g fill="currentColor" stroke="none" opacity="0.65">
+      <path d="M118 62 l-7 -4 v8 z"/>
+      <path d="M240 62 l-7 -4 v8 z"/>
+      <path d="M384 62 l-7 -4 v8 z"/>
+      <path d="M518 62 l-7 -4 v8 z"/>
+      <path d="M652 62 l-7 -4 v8 z"/>
+      <path d="M766 62 l-7 -4 v8 z"/>
+    </g>
+
+    {/* captions */}
+    <g fill="currentColor" stroke="none" textAnchor="middle">
+      <text x="44" y="150" fontSize="13" opacity="0.9">1 次用户签名</text>
+      <text x="268" y="150" fontSize="13" opacity="0.9">原子封装</text>
+      <text x="546" y="150" fontSize="13" opacity="0.9">AMM 兑换</text>
+      <text x="546" y="167" fontSize="11" opacity="0.6">frBTC 兑换为 DIESEL 或任意 Alkanes 代币</text>
+    </g>
+  </g>
+</svg>
+</figure>
 
 `frBTC` 已在 Alkanes 和 BRC2.0 上线，我们已经开始在 Arch 和 MIDL 上的部署开发工作。
 
-在[**此处**](./frBTC-roadmap)了解更多关于我们 frBTC 路线图的信息。
+## frBTC 路线图
+
+### 渐进式去中心化
+
+`frBTC` 在 [Alkanes](/key-components/alkanes) 上的发布以及 `FR-BTC` 在 BRC2.0 上的发布，标志着 Bitcoin DeFi 的一个关键时刻。用户首次可以在不离开 Bitcoin L1 生态系统的情况下，使用真正原生的、去中心化的 BTC 合成资产。
+
+本路线图概述了我们的"渐进式去中心化"策略——一种透明的两阶段方法，旨在确保我们从具有人为问责元素的系统过渡到纯粹基于数学和经济保障的系统时，实现最大程度的安全性。
+
+<Admonition type="info" title="安全性说明">
+`frBTC` 已经过我们团队和合作伙伴的广泛 ALPHA 测试。虽然我们对 SUBFROST 协议的安全性充满信心，但这项技术在 Bitcoin L1 上尚属首创。我们的分阶段方法旨在在逐步扩展系统无信任性的过程中保护用户。
+</Admonition>
+
+#### 核心技术组件
+
+底层技术在所有阶段保持一致且稳健，为 `frBTC` 提供稳定且安全的基础。
+- **Libp2p** 用于点对点网络。
+- **wasm32-wasip2** 用于确定性的沙盒计算。
+- **WebTransport (HTTP/3)** 用于高效且安全的通信。
+- **[FROST & ROAST](/key-components/frost-and-roast)** 用于前沿的门限签名。
+
+因此，各阶段之间的主要演进**仅仅**是签名者集合的组成。
+
+---
+
+### 路线图
+
+#### ALPHA
+
+ALPHA 阶段在 Alkanes 和 BRC2.0 上建立了 `frBTC`（和 `FR-BTC`）的核心功能，采用由 SUBFROST 团队和一组受信任签名者管理的高级多签协议。
+
+- **9 个密钥份额**由对 `frBTC` 长期成功具有重大利益关系的参与者持有。
+- **6 个签名者**从该组中随机选出，以授权解封装交易。
+- **审计与透明度：** 正式安全审计将尽快开始。我们鼓励用户查阅我们的资料，并充分了解虽然其许多组件已经过审计，但端到端的 SUBFROST 协议尚未审计，**仅在此前提下参与此阶段**。**风险自担。**
+- **持续时间：** 预计持续 6 个月到 1 年。
+
+**Arch Network** 上的建设已通过 Saturn 的 Titan Indexer 启动。
+
+#### 阶段 1：改进的实名多签
+
+此阶段将密钥份额分配给**公开知名**且**受信任的**实体和个人。
+
+- 初始 **9 个密钥份额**，但随着总锁仓价值（TVL）的增长，密钥份额数量也将增加。
+- 任何操作都需要 **9 个签名者中的 6 个**达成法定人数，确保**公开可问责**参与者之间的广泛共识。
+- 预计 SUBFROST 将在此阶段**开源**。
+- **持续时间：** 预计持续 1-2 年，同时 Bitcoin DeFi 在 frBTC 的推动下不断扩展。
+
+#### 阶段 2：无信任经济安全
+
+最终阶段将 `frBTC` 过渡到由强大经济激励保障的完全无信任和去中心化模型。
+
+- 阶段 1 的签名者将被多达 **255 个无需许可的质押者**取代，他们必须达到一定的经济门槛。该门槛将随着 TVL 的增长而动态提高。
+- 在多达 255 个签名者中，**255 个中的 170 个**将被随机选出签署解封装交易。
+- **质押：** 质押预计将是 frBTC 形式的 BTC 和 [FUEL 代币](/tokens/FUEL-token) 的组合，为诚实参与创造强大激励。
+
+---
+
+#### 为什么采用分阶段方法？
+
+此策略是在 Bitcoin 上构建关键去中心化基础设施的最负责任的方式。它使我们能够：
+1. 以无与伦比的安全级别在主网上发布 `frBTC`，立即解锁 Bitcoin DeFi 的增长和创新（阶段 1）。
+2. 利用 `frBTC` 的增长来构建通过大规模去中心化质押网络保护 SUBFROST 协议所需的强大经济激励（阶段 2）。
+
+#### SUBFROST 的未来一片光明
+
+SUBFROST 协议旨在从其推动的增长中捕获价值。
+
+目前，封装和解封装交易的 0.1% 费用提供了充足的收入来源，同时直接有利于整个 Bitcoin DeFi 生态。我们才刚刚开始。
+
+此外，未来的产品如产生收益的 `dxBTC` 代币建立在 `frBTC` 的成功和使用之上，为质押者和用户创造价值飞轮。
+
+SUBFROST 团队已投入超过七年的研究来解决将 Bitcoin 用于生产性用途的安全挑战。我们为实现这一愿景感到自豪，并比以往任何时候都更加致力于构建 Bitcoin DeFi 的未来。

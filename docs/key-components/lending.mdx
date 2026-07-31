@@ -9,7 +9,7 @@ sidebar_position: 8
 :::note Audience
 This is the **technical / developer deep-dive**: the on-chain contract, the PSBT structure, the
 SIGHASH scheme, and the settlement mechanics. If you just want to lend or borrow in the app, see
-[**Lending & Borrowing**](../subfrost-app/lending.mdx) for the user guide.
+[**Lending & Borrowing**](../using-subfrost/lending) for the user guide.
 :::
 
 SUBFROST lending is a **peer-to-peer, fixed-term, over-collateralized loan market** for Alkanes
@@ -66,11 +66,12 @@ distinction is purely about who published the offer.
 ## Lifecycle at a glance
 
 ```
- maker builds offer + broadcasts prep           taker accepts (one tx)
+ maker builds + signs offer                    taker accepts (one tx)
  ────────────────────────────────────────►  ─────────────────────────►  LOAN_ACTIVE
-   • broadcast "prep" (exact-amount split)        • taker prep (token+fee)
-   • partial settlement PSBT (not broadcast)      • append taker input + sign
-   • POST to offer book DB                        • broadcast taker prep + settlement (clone+init)
+   • prep tx, broadcast at create                • taker prep (token+fee)
+   • partial settlement PSBT                     • append taker input + sign
+   • POST to offer book DB                       • broadcast taker prep
+                                                 • broadcast settlement (clone+init)
 
  LOAN_ACTIVE ──repay──► REPAID ──claims──► FULLY_CLOSED
             └─past deadline─► DEFAULTED ──claim collateral──► DEFAULTED_CLAIMED
@@ -194,14 +195,11 @@ settlement.
 
 ## PSBT lifecycle in detail
 
-### 1. Exact-amount UTXOs ("prep")
+### 1. Exact-amount UTXOs (the "prep")
 
 The contract requires the **incoming alkanes to equal the agreed amounts exactly** — there is no
 edict-shifter in the settlement OP_RETURN to peel off excess. So before signing, each party splits
-their token UTXO into exact-amount pieces with a small **prep transaction**. Splitting into a
-dedicated exact-amount output has a second benefit: because the maker prep is broadcast at offer time,
-the leftover (change) is a normal spendable UTXO — posting an offer never ties up the maker's whole
-balance, even if it all sat on a single UTXO.
+their token UTXO into exact-amount pieces with a small **prep transaction**:
 
 ```
  maker prep → v0 token-only dust (EXACT loan/collateral) · v1 dust · v2 dust · v3 change · v4 OP_RETURN
@@ -217,36 +215,48 @@ leftover (excess token + BTC) to change.
 
 When a maker publishes an offer, the client:
 
-1. Builds, signs, and **broadcasts the prep** transaction. The prep carves out the exact-amount
-   inputs the settlement will spend and returns the rest as change, so the maker's remaining balance
-   stays spendable. Broadcasting is **instant** from the maker's perspective — the offer is posted
-   immediately, without waiting for the prep to confirm.
+1. Builds and signs the **prep**, and **broadcasts it right away** — immediately after the
+   settlement-signature gate. Both signatures come under a single wallet approval, and the prep
+   only goes out once that gate has passed, so a refused signature leaves nothing on chain.
 2. Builds the **partial settlement PSBT** (3 maker inputs `0x83`, the 3 committed outputs, the
-   OP_RETURN) and signs the maker's inputs. This PSBT is **not** broadcast — it can't be (see the
-   protocol-fee output above) and only settles when a taker completes it.
-3. POSTs the prep txid + the partial PSBT + the terms to the offer-book database.
+   OP_RETURN) and signs the maker's inputs.
+3. POSTs the signed prep hex + the partial PSBT + the terms to the offer-book database. The stored
+   hex is no longer what puts the prep on chain — it is the taker's idempotent re-broadcast
+   fallback for mempool eviction.
 
-The maker can then go offline. Only the small prep tx has touched the chain; the settlement stays
-inert until a taker fills it.
+The maker can then go offline. The prep spends the maker's UTXOs into the maker's own outputs, so
+**the funds stay in the maker's wallet** — but the prep is a real transaction, and the maker pays
+its miner fee at post time whether or not the offer is ever taken.
+
+:::info[Offers created before 2026-07-12]
+The prep used to be **deferred**: signed at post time, held off chain, and broadcast by the taker at
+settlement. Offers from that era still sit in the offer book, which is why the taker path keeps the
+re-broadcast fallback below.
+:::
 
 ### 3. Taker side — accepting (one broadcast)
 
 When a taker accepts:
 
-1. Builds + signs their own **prep** (their token + a BTC fee budget).
+1. Builds + signs their own **prep** (their token + a BTC fee budget) and broadcasts it.
 2. **Appends** their input (input 3, `SIGHASH_ALL`) and receive output (vout 3) to the maker's
    partial PSBT, then signs input 3. The maker's `0x83` signatures survive untouched.
-3. **Broadcasts their own prep and the settlement.** The maker prep was already broadcast at offer
-   time, so it's typically confirmed by now; if it's still unconfirmed, the settlement remains its
-   child and rides along in the same package.
+3. Broadcasts the **settlement** — a child of their own just-broadcast prep. The maker's prep has
+   been on chain since the offer was posted, so it is a settled parent, not a package member.
 
-### 4. Dynamic fee (CPFP)
+Before broadcasting, the taker probes whether the maker's prep is visible on chain. It normally is,
+and the step is skipped. Only if it has been evicted from the mempool, or the offer predates
+broadcast-at-create, does the taker re-broadcast the stored hex.
 
-The settlement spends the taker's freshly-broadcast prep (and, if the maker prep hasn't confirmed yet,
-that too). The taker sizes the settlement's fee to **carry the whole package** at the chosen fee rate
-(Child-Pays-For-Parent). `computePackageSettlementFee` computes `max(ceil(feeRate × packageVsize) −
-prepsAlreadyPaid, ceil(feeRate × settlementVsize))`, so any still-unconfirmed parent clears together
-even though it paid only a minimal prep fee.
+### 4. Dynamic fee (carrying the taker's prep)
+
+The settlement spends **one unconfirmed parent** — the taker's own prep — so the taker sizes the
+settlement's fee to carry that pair at the chosen fee rate (Child-Pays-For-Parent).
+`computePackageSettlementFee` computes `max(ceil(feeRate × packageVsize) − prepsAlreadyPaid,
+ceil(feeRate × settlementVsize))`. `packageVsize` covers the taker prep plus the settlement; the
+maker prep enters it only on a legacy deferred offer, where it becomes a second unconfirmed parent
+and the package widens to match. The floor on the right keeps the child paying its own way when the
+deficit is already covered.
 
 ---
 
@@ -323,9 +333,10 @@ offers table, so a devnet test loan can never appear on mainnet. (Identity/auth 
 shared default database; those are global, not per-network.)
 
 Each open offer row holds only the **off-chain matching data**: the terms, the maker's role +
-address, the signed **partial PSBT**, the **prep txid** (the prep itself is already broadcast to the
-chain), and a status (`open → taken | cancelled`). Once a loan settles, **nothing about it is read
-from the DB** — the live loan lives entirely on-chain.
+address, the signed **partial PSBT**, the signed **prep tx hex** kept as a re-broadcast fallback,
+and a status
+(`open → taken | cancelled`). Once a loan settles, **nothing about it is read from the DB** — the
+live loan lives entirely on-chain.
 
 ### Ownership of edits / deletes
 
@@ -335,10 +346,13 @@ request must carry the connected wallet's address and it must equal the offer's 
 
 ### Dead-offer pruning
 
-An offer is only valid while the prep's exact-amount output is unspent. The maker prep is already on
-the chain, but nothing stops the maker from spending that prepared UTXO in another transaction before
-a taker fills the offer — if they do, the settlement can never confirm. The list endpoint prunes such
-offers: on networks the server can reach it **deletes** them; where the chain is only reachable in the
+An offer is only valid while the three settlement outputs of its prep, `prepTxid:0..2`, are unspent.
+Those are the maker's `SIGHASH_SINGLE` inputs, so spending one elsewhere invalidates the signed
+partial and the offer can never settle — which is why the wallet treats them as locked for as long
+as the offer is open, while the prep's change outputs return to the normal spendable set. On a
+legacy deferred offer the same reasoning applies one step earlier, to the prep's own inputs, since
+spending those double-spends a prep that has not been broadcast yet. The list endpoint prunes
+offers that fail this check: on networks the server can reach it **deletes** them; where the chain is only reachable in the
 browser (devnet) the client **hides** them. If the UTXO check is unavailable it does **not** prune —
 it surfaces a loading state rather than risk deleting a live offer.
 

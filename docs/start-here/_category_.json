@@ -1,0 +1,9 @@
+{
+  "label": "Start Here",
+  "position": 1,
+  "link": {
+    "type": "generated-index",
+    "title": "Start Here",
+    "description": "New to SUBFROST? Start here: what SUBFROST is and the problem it solves, how to make your first swap in a few minutes, and a quick glossary of the key concepts."
+  }
+}

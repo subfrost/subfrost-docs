@@ -1,0 +1,9 @@
+{
+  "label": "Build on SUBFROST",
+  "position": 5,
+  "link": {
+    "type": "generated-index",
+    "title": "Build on SUBFROST",
+    "description": "Developer guides for building on SUBFROST and Alkanes. Set up your environment, deploy a contract, wrap frBTC programmatically, connect a wallet, and index the chain."
+  }
+}

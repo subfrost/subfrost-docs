@@ -3,7 +3,10 @@ title: frBTC (DeFi-compatible BTC)
 sidebar_position: 2
 ---
 
-# `frBTC` Overview
+import useBaseUrl from '@docusaurus/useBaseUrl';
+import Admonition from '@theme/Admonition';
+
+# frBTC Overview
 ## Interoperable Wrapped BTC of Bitcoin L1
 
 `frBTC` is the Bitcoin DeFi-compatible asset pegged 1:1 to BTC and interoperable across every DeFi ecosystem on Bitcoin L1.
@@ -18,10 +21,156 @@ SUBFROST launched on Bitcoin mainnet in Q4 2025. Alkanes (October) & BRC2.0 (Dec
 Users can perform a **single** signing process to enter advanced DeFi apps on Bitcoin L1 with native BTC, completely abstracting-away the need to wrap their BTC first.
 :::
 
-The example below illustrates a user swapping native **BTC** to a USD stablecoin (or other token), atomically, in a decentralized, permissionless manner.
+The example below illustrates a user swapping native **BTC** into `DIESEL` (or any other Alkanes token), atomically, in a decentralized, permissionless manner.
 
-![frBTC Example](../Diagrams/frBTC_example.png)
+<figure className="frbtc-flow">
+<svg viewBox="0 0 840 200" role="img" aria-labelledby="frbtc-flow-title frbtc-flow-desc" style={{width: '100%', height: 'auto', maxWidth: '840px', display: 'block', margin: '0 auto'}}>
+  <title id="frbtc-flow-title">Swapping native BTC into DIESEL with one signature</title>
+  <desc id="frbtc-flow-desc">A user signs once. Their BTC is atomically wrapped into frBTC, swapped through an AMM, and DIESEL is returned to the user, all on Bitcoin L1.</desc>
 
-`frBTC` is live on Alkanes and BRC2.0, and we have already begun development to implement it on Arch & MIDL. 
+  <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
 
-Learn more about our frBTC roadmap [**here.**](./frBTC-roadmap)
+    {/* user, left */}
+    <g transform="translate(24,58)">
+      <circle cx="20" cy="14" r="12" fill="currentColor" stroke="none" opacity="0.85"/>
+      <path d="M2 52 a18 20 0 0 1 36 0 z" fill="currentColor" stroke="none" opacity="0.85"/>
+    </g>
+
+    {/* BTC */}
+    <g transform="translate(126,44)">
+      <image href={useBaseUrl('/img/tokens/btc.svg')} x="0" y="0" width="36" height="36"/>
+      <text x="18" y="-8" textAnchor="middle" fill="currentColor" stroke="none" fontSize="13" fontWeight="500">BTC</text>
+    </g>
+
+    {/* SUBFROST logomark, the atomic wrap */}
+    <g transform="translate(244,38)">
+      <image href={useBaseUrl('/img/tokens/subfrost-logomark.svg')} x="0" y="0" width="48" height="48"/>
+    </g>
+
+    {/* frBTC */}
+    <g transform="translate(392,44)">
+      <image href={useBaseUrl('/img/tokens/frbtc.svg')} x="0" y="0" width="36" height="36"/>
+      <text x="18" y="-8" textAnchor="middle" fill="currentColor" stroke="none" fontSize="13" fontWeight="500">frBTC</text>
+    </g>
+
+    {/* AMM swap */}
+    <g transform="translate(524,50)">
+      <g stroke="#2E5E8C" strokeWidth="2.5">
+        <path d="M4 10 H40 l-9 -8 M40 26 H4 l9 8"/>
+      </g>
+    </g>
+
+    {/* DIESEL */}
+    <g transform="translate(660,44)">
+      <image href={useBaseUrl('/img/tokens/diesel.png')} x="0" y="0" width="36" height="36"/>
+      <text x="18" y="-8" textAnchor="middle" fill="currentColor" stroke="none" fontSize="13" fontWeight="500">DIESEL</text>
+    </g>
+
+    {/* user, right */}
+    <g transform="translate(772,58)">
+      <circle cx="20" cy="14" r="12" fill="currentColor" stroke="none" opacity="0.85"/>
+      <path d="M2 52 a18 20 0 0 1 36 0 z" fill="currentColor" stroke="none" opacity="0.85"/>
+    </g>
+
+    {/* connectors */}
+    <g opacity="0.5" strokeWidth="1.4">
+      <path d="M72 62 H118"/>
+      <path d="M172 62 H240"/>
+      <path d="M296 62 H384"/>
+      <path d="M436 62 H518"/>
+      <path d="M576 62 H652"/>
+      <path d="M706 62 H766"/>
+    </g>
+    <g fill="currentColor" stroke="none" opacity="0.65">
+      <path d="M118 62 l-7 -4 v8 z"/>
+      <path d="M240 62 l-7 -4 v8 z"/>
+      <path d="M384 62 l-7 -4 v8 z"/>
+      <path d="M518 62 l-7 -4 v8 z"/>
+      <path d="M652 62 l-7 -4 v8 z"/>
+      <path d="M766 62 l-7 -4 v8 z"/>
+    </g>
+
+    {/* captions */}
+    <g fill="currentColor" stroke="none" textAnchor="middle">
+      <text x="44" y="150" fontSize="13" opacity="0.9">1 User Signature</text>
+      <text x="268" y="150" fontSize="13" opacity="0.9">Atomic Wrap</text>
+      <text x="546" y="150" fontSize="13" opacity="0.9">AMM Swap</text>
+      <text x="546" y="167" fontSize="11" opacity="0.6">frBTC to DIESEL, or any Alkanes token</text>
+    </g>
+  </g>
+</svg>
+</figure>
+
+`frBTC` is live on Alkanes and BRC2.0, and we have already begun development to implement it on Arch & MIDL.
+
+## frBTC Roadmap
+
+### Progressive Decentralization
+
+The launch of `frBTC` on [Alkanes](/key-components/alkanes) and `FR-BTC` on BRC2.0 marks a pivotal moment for Bitcoin DeFi. For the first time, users can access a truly native, decentralized BTC synthetic without leaving the Bitcoin L1 ecosystem.
+
+This roadmap outlines our "Progressive Decentralization" strategy — a transparent, two-phased approach designed to ensure maximum security as we transition from a system with elements of human-accountability to one based purely on mathematical and economic guarantees.
+
+<Admonition type="info" title="A Note on Security">
+`frBTC` has undergone extensive ALPHA testing by our team and partners. While we have the utmost confidence in the security of the SUBFROST protocol, this technology is the first of its kind on Bitcoin L1. Our phased approach is designed to protect users as we progressively scale the system's trustlessness.
+</Admonition>
+
+#### Core Technical Components
+
+The underlying technology remains consistent and robust across all phases, providing a stable and secure foundation for `frBTC`.
+- **Libp2p** for peer-to-peer networking.
+- **wasm32-wasip2** for deterministic, sandboxed computation.
+- **WebTransport (HTTP/3)** for efficient and secure communication.
+- **[FROST & ROAST](/key-components/frost-and-roast)** for cutting-edge threshold signatures.
+
+The primary evolution across phases, therefore, is **only** the composition of the signer set.
+
+---
+
+### ROADMAP
+
+#### ALPHA
+
+The ALPHA phase on Alkanes & BRC2.0 establishes the core functionality of `frBTC` (and `FR-BTC`) with an advanced multisig protocol managed by the SUBFROST team and a trusted group of signers.
+
+- **9 key shares** are held by participants with a significant vested interest in the long-term success of `frBTC`.
+- **6 signers** are randomly selected from this group to authorize unwrap transactions.
+- **Audits & Transparency:** Formal security audits will begin as soon as possible. We encourage users to review our materials and **only participate in this phase** with a full understanding that although many of its components have been audited, the end-to-end SUBFROST protocol has not. **Use at your own risk.**
+- **Length:** Expected to last 6 months to 1 year.
+
+Building is already underway on the **Arch Network** via Saturn's Titan Indexer.
+
+#### Phase 1: Improved Doxxed Multisig
+
+This phase distributes the key shares among **publicly known** and **trusted** entities and individuals.
+
+- **9 initial key shares** but as Total Value Locked (TVL) grows, the number of key shares will grow as well.
+- A quorum of **6 out of 9 signers** will be required for any action, ensuring broad consensus among **publicly accountable** participants.
+- SUBFROST is expected to become **open source** during this phase.
+- **Length:** Expected to last 1-2 years while Bitcoin DeFi expands - fueled by frBTC.
+
+#### Phase 2: Trustless Economic Security
+
+The final phase transitions `frBTC` to a fully trustless and decentralized model secured by robust economic incentives.
+
+- The signers from Phase 1 will be replaced by up to **255 permissionless stakers** who must meet a significant economic threshold. This threshold will dynamically increase as TVL grows.
+- With up to 255 signers, **170 of the 255** will be randomly selected to sign unwrap transactions.
+- **Staking:** The stake is expected to be a combination of BTC in the form of frBTC, and the [FUEL token](/tokens/FUEL-token), creating a powerful incentive for honest participation.
+
+---
+
+#### Why a Phased Approach?
+
+This strategy is the most responsible way to build critical, decentralized, infrastructure on Bitcoin. It allows us to:
+1.  Launch `frBTC` on mainnet with an unparalleled level of security, immediately unlocking growth and innovation in Bitcoin DeFi (Phase 1).
+2.  Leverage the growth of `frBTC` to build the powerful economic incentives required to secure the SUBFROST protocol via a massive, decentralized staking network (Phase 2).
+
+#### The Future is Bright for SUBFROST
+
+The SUBFROST protocol is designed to capture value from the growth it enables.
+
+Currently, a fee of 0.1% across wrap and unwrap transactions provide a sufficient revenue stream with a direct benefit to Bitcoin DeFi at large. We are only getting started.
+
+Furthermore, future offerings like the yield-bearing `dxBTC` token are built upon the success and utilization of `frBTC`, creating a flywheel of value for stakers and users alike.
+
+The SUBFROST team has dedicated over seven years of research to solving the challenge of securing Bitcoin for productive use. We are proud to deliver on this vision and are more committed than ever to building the future of Bitcoin DeFi.
