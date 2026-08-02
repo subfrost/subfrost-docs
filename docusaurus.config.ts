@@ -70,8 +70,10 @@ const config: Config = {
   ],
 
   themeConfig: {
-    // Replace with your project's social card
-    image: '/Logo.png',
+    // Social card. 1200x630 is what X renders for summary_large_image; anything
+    // squarer gets letterboxed. The filename is versioned because X caches one card
+    // per image URL, so a new path is the only way to invalidate an old card.
+    image: '/og/subfrost-docs-1200x630-v1.png',
     metadata: [
       {name: 'keywords', content: 'bitcoin, staking, yield, defi, alkanes, metaprotocol, amm, frost, subfrost'},
       {name: 'description', content: 'SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1.'},
@@ -79,7 +81,7 @@ const config: Config = {
     og: {
       title: 'SUBFROST | Bitcoin Staking & Yield',
       description: 'SUBFROST is the issuer of frBTC & dxBTC. The SUBFROST protocol operates as a decentralized custodian that enables a trustless DeFi ecosystem on Bitcoin L1.',
-      image: '/Logo.png',
+      image: '/og/subfrost-docs-1200x630-v1.png',
     },
     navbar: {
       title: 'SUBFROST',
