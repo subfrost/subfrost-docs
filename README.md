@@ -43,11 +43,12 @@ to the appropriate category in `sidebars.ts`.
 Deployment is **automatic**. Do **not** run `yarn deploy` — that command targets a
 `gh-pages` branch this project doesn't use, and will fail.
 
-Pushing to `master` (for changes under `docs/`, `src/`, `static/`, `sidebars.ts`,
-`docusaurus.config.ts`, and related paths) triggers the `deploy` GitHub Actions
-workflow, which submits a Cloud Build that builds the Docker image and pushes it to
-Google Artifact Registry. Flux's ImagePolicy in the `subfrost-admin` repo then picks
-up the new image on its next scan (~5 min) and rolls it out to Cloud Run.
+Pushing to `master` triggers the `deploy` GitHub Actions workflow, which builds the
+static site (`npm run build`) and publishes it to **Cloudflare Pages** (project
+`subfrost-docs`, custom domain `docs.subfrost.io`). The site is served directly from
+Cloudflare's edge — there is no container, no cluster, and no origin server.
 
-- Pipeline config: [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) and [`cloudbuild.yaml`](./cloudbuild.yaml)
-- Expect up to ~5 minutes of lag after the build succeeds before the live site updates.
+- Pipeline config: [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml)
+- The build+publish takes ~1–2 minutes; the edge updates globally as soon as it completes.
+- Auth is via two repo secrets: `CLOUDFLARE_API_TOKEN` (scoped to Cloudflare Pages: Edit)
+  and `CLOUDFLARE_ACCOUNT_ID`.

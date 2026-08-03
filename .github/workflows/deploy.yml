@@ -1,79 +1,46 @@
 name: deploy
 
-# Push to master → auth to GCP via Workload Identity Federation → run
-# `gcloud builds submit` against ./cloudbuild.yaml. The build tags & pushes
-# the image to Artifact Registry; Flux's ImagePolicy in subfrost-admin
-# picks it up on its 5-min scan and commits the values.yaml bump.
+# Push to master → build the Docusaurus static site → publish to Cloudflare
+# Pages (project `subfrost-docs`, custom domain docs.subfrost.io). This replaced
+# the old chain (Cloud Build → Artifact Registry image → Flux/GKE); the docs are
+# now static files served straight from Cloudflare's edge — no container, no
+# cluster, no Cloud Run.
 #
-# The WIF provider + CI service account are provisioned in
-# subfrost-admin/cloudbuild/triggers.tf (the `github_docs` provider and
-# `subfrost-docs-ci` SA). attribute_condition pins this WIF binding to
-# subfrost/subfrost-docs only.
+# Secrets (repo settings):
+#   CLOUDFLARE_API_TOKEN   token scoped to Account > Cloudflare Pages > Edit
+#   CLOUDFLARE_ACCOUNT_ID  d1a33b867f4cb065139e5172a65f6c51 (Subzeroresearchltd)
 
 on:
   push:
     branches: [master]
-    paths:
-      - "docs/**"
-      - "src/**"
-      - "static/**"
-      - "i18n/**"
-      - "reference/**"
-      - "sidebars.ts"
-      - "docusaurus.config.ts"
-      - "package.json"
-      - "package-lock.json"
-      - "Dockerfile"
-      - "nginx.conf"
-      - ".dockerignore"
-      - "cloudbuild.yaml"
-      - ".github/workflows/deploy.yml"
   workflow_dispatch: {}
 
 permissions:
   contents: read
-  id-token: write
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
-      - id: auth
-        name: GCP auth (WIF)
-        uses: google-github-actions/auth@v2
+      - uses: actions/setup-node@v4
         with:
-          workload_identity_provider: projects/560256025842/locations/global/workloadIdentityPools/github-actions/providers/github-docs
-          service_account: subfrost-docs-ci@night-wolves-jogging.iam.gserviceaccount.com
+          node-version: 20
+          cache: npm
 
-      - uses: google-github-actions/setup-gcloud@v2
+      - run: npm ci --no-audit --no-fund
+
+      - run: npm run build
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          project_id: night-wolves-jogging
-
-      - name: submit Cloud Build
-        env:
-          # Federated (WIF) credentials don't carry a quota/billing project
-          # for API calls — required for the `serviceusage.services.use`
-          # pre-check that recent gcloud versions run before `builds submit`.
-          CLOUDSDK_BILLING_QUOTA_PROJECT: night-wolves-jogging
-        run: |
-          SHORT_SHA=$(git rev-parse --short=7 HEAD)
-          echo "Submitting build for ${SHORT_SHA}"
-          # Explicit --gcs-source-staging-dir / --gcs-log-dir skip the
-          # implicit storage.buckets.get autodetection that fails for WIF
-          # principals even with bucket-level storage.admin granted —
-          # symptom: "user is forbidden from accessing the bucket
-          # [...]_cloudbuild" despite a successful gcloud storage cp probe
-          # against the same bucket. See subfrost-admin/admin-web's
-          # earlier deploy failures with the same cause.
-          # No --gcs-log-dir — cloudbuild.yaml sets options.logging:
-          # CLOUD_LOGGING_ONLY, which is incompatible with build.logs_bucket.
-          gcloud builds submit \
-            --config=cloudbuild.yaml \
-            --substitutions=SHORT_SHA=${SHORT_SHA} \
-            --region=us-central1 \
-            --project=night-wolves-jogging \
-            --gcs-source-staging-dir=gs://night-wolves-jogging_cloudbuild/source \
-            .
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy build --project-name subfrost-docs --branch master --commit-dirty=true
