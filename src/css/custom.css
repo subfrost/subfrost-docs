@@ -368,12 +368,18 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Locale toggle button - no transform on hover */
-.navbar button[aria-label*="Switch to"] {
+/* Theme and locale toggles - no transform on hover.
+   Selected by class, not by aria-label. The previous selector was
+   `.navbar button[aria-label*="Switch to"]`, and it missed the 文 toggle twice
+   over: 文 is an anchor rather than a button, and on the English build its
+   label is 切换到中文, which does not contain "Switch to". So 文 fell through to
+   the global `a:hover { transform: scale(1.125) }` above and grew on hover,
+   which is what this rule was written to prevent. */
+.navbar .navbarIconToggle {
   transition: none;
   color: #EC4521;
 }
-.navbar button[aria-label*="Switch to"]:hover {
+.navbar .navbarIconToggle:hover {
   transform: none;
   text-shadow: none;
   color: #EC4521;

@@ -97,6 +97,7 @@ export default function LocaleDropdownNavbarItem(): ReactNode {
       <button
         onClick={() => setColorMode(isDark ? 'light' : 'dark')}
         type="button"
+        className="navbarIconToggle"
         style={buttonStyle(isDark ? INACTIVE_COLOR : ACTIVE_COLOR)}
         aria-label={`Switch to ${isDark ? 'light' : 'dark'} theme`}
       >
@@ -108,6 +109,7 @@ export default function LocaleDropdownNavbarItem(): ReactNode {
           open the translation in a new tab. */}
       <a
         href={href}
+        className="navbarIconToggle"
         style={buttonStyle(isChinese ? ACTIVE_COLOR : INACTIVE_COLOR)}
         aria-label={isChinese ? 'Switch to English' : '切换到中文'}
         lang={isChinese ? 'en' : ZH}
