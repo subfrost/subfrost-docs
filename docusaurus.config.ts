@@ -20,6 +20,11 @@ const config: Config = {
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
 
+  // Docusaurus reads `favicon` HERE, at the top level of the config. There was
+  // a `favicon` key inside `themeConfig` instead, which is not a thing it looks
+  // at, so the site shipped with no <link rel="icon"> at all.
+  favicon: 'favicon-96x96.png',
+
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'subfrost', // Usually your GitHub org/user name.
@@ -106,7 +111,6 @@ const config: Config = {
       links: [],
       copyright: `Copyright © ${new Date().getFullYear()} Subzero Research Inc.`,
     },
-    favicon: 'Logo.png',
     prism: {
       theme: prismThemes.dracula,
       darkTheme: prismThemes.dracula,
