@@ -18,14 +18,24 @@ Every swap on SUBFROST trades against a **liquidity pool**: a shared reserve of 
 
 ## The swap fee, and what you earn
 
-A swap pays **1% by default**, split two ways:
+On a standard AMM pool a swap pays **1% by default**, split two ways:
 
 | Share | Rate | Goes to |
 | --- | --- | --- |
 | Liquidity providers | 0.8% | the pool, so it accrues to your position |
 | Protocol | 0.2% | permanently to the AMM protocol |
 
-So **as a liquidity provider you earn 0.8% of the volume that trades through your pool**, in proportion to your share of it.
+So on those pools, **as a liquidity provider you earn 0.8% of the volume that trades through your pool**, in proportion to your share of it.
+
+:::warning The BTCUSD pool charges differently
+
+The frUSD/frBTC pool is a CryptoSwap pool, not a standard AMM pool, and the numbers above do not describe it.
+
+Its fee is **dynamic between 0.2% and 0.8%**, depending on how unbalanced a trade leaves the pool: balanced trades pay the low end, unbalancing trades pay the high end. It also carries an **admin fee of 50%**, so a material share of what the pool charges accrues to the protocol rather than to your position.
+
+Neither figure can be read from the pool contract today: the views that would expose the fee parameters are not deployed yet. Quote before you trade, and treat "0.8% to liquidity providers" as a fact about standard pools only.
+
+:::
 
 ## Providing liquidity
 

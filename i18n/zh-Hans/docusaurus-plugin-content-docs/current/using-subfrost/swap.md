@@ -30,7 +30,9 @@ description: 在 SUBFROST 上交易 Bitcoin 资产，原生结算于 Bitcoin。
 
 目前你可以在 **BTC 与 Bitcoin 原生 Alkanes 资产**之间进行交换。
 
-Bitcoin 原生交换已经上线，而 Bitcoin 原生稳定币（frUSD）即将推出，届时将支持与 USDT、USDC 之间的跨链双向交换。在此基础上，SUBFROST 还将考虑加入对其他高交易量跨链资产的支持，例如 ETH、SOL 和 ADA。
+Bitcoin 原生交换已经上线，Bitcoin 原生稳定币（frUSD）也已上线。BTC 与 USD 之间的交易通过 frUSD/frBTC 资金池成交，该资金池已在主网上线。在跨链方面，通过你的 Ethereum 钱包，你可以**从 USDT 或 USDC 跨链存入**，并**以 USDC 或 ETH 跨链取出**。在此基础上，SUBFROST 还将考虑加入对其他高交易量跨链资产的支持，例如 SOL 和 ADA。
+
+frUSD/frBTC 资金池上线不久，深度仍然较浅，因此**即使是在其他交易对上微不足道的交易规模，在这个交易对上也会产生明显的价格影响**。请以实际报价为准，而不是以显示的兑换汇率为准；如果你想在交易前自行测量该资金池，请参阅 [BTC/USD Commands（BTC/USD 命令）](../api-reference/cli-sdk/btcusd)。
 
 ## 下一步
 

@@ -29,8 +29,8 @@ Because DIESEL's issuance is anchored to Bitcoin's own block production (see [DI
 
 ## Live vs. planned
 
-- **Live:** frBTC (wrap/unwrap, swaps), DIESEL (on-chain emission), FIRE (staking and bonds).
-- **Planned:** dxBTC (yield vaults), FUEL (governance token), a Bitcoin-native stablecoin (frUSD).
+- **Live:** frBTC (wrap/unwrap, swaps), DIESEL (on-chain emission), FIRE (staking and bonds), frUSD (the Bitcoin-native stablecoin, trading against frBTC).
+- **Planned:** dxBTC (yield vaults), FUEL (governance token).
 
 ## Where to go next
 

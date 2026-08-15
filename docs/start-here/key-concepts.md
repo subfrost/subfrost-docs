@@ -19,9 +19,9 @@ A short glossary to get you oriented. Each item links to a deeper page where one
 
 - **FIRE.** The Alkanes governance token, rewarding people who provide liquidity to the DIESEL/frBTC pool, and powered by staking and bonding. It is how active participants earn a share of the protocol and, over time, help govern it.
 
-### Planned
+- **frUSD.** The ultimate Bitcoin-native stablecoin: a stable US-dollar coin that settles on Bitcoin with no ability for any entity to shut it off or censor it. It trades against frBTC in a pool on mainnet, and can be minted by bridging USDC or USDT in from Ethereum.
 
-- **frUSD.** The ultimate Bitcoin-native stablecoin: a stable US-dollar coin that settles on Bitcoin with no ability for any entity to shut it off or censor it.
+### Planned
 
 - **dxBTC.** Yield-bearing Bitcoin. You stake BTC and receive dxBTC; behind the scenes your Bitcoin is put to work in market-neutral yield strategies without ever leaving the Bitcoin blockchain.
 
@@ -42,6 +42,8 @@ The two fees worth knowing, both current rates rather than permanent guarantees:
 | Swapping | 1% by default | 0.8% to liquidity providers, 0.2% permanently to the AMM protocol |
 | Wrapping or unwrapping BTC | 0.1% | SUBFROST protocol |
 
+The swap row describes a standard AMM pool. The frUSD/frBTC pool charges differently, and its liquidity providers earn differently; see [Pools & Liquidity](../using-subfrost/pools-liquidity).
+
 See [Swap](../using-subfrost/swap), [Pools & Liquidity](../using-subfrost/pools-liquidity) and [Wrap & Unwrap](../using-subfrost/wrap-unwrap-frbtc).
 
 - **PSBT marketplaces (partially signed Bitcoin transactions).** Across Alkanes there are several PSBT marketplaces where buyers and sellers choose to fill each other's orders. SUBFROST does not currently host one of these.
@@ -61,7 +63,7 @@ This section keeps things simple on purpose. Terms like protostone, cellpack, an
 Being honest about status matters. A quick snapshot:
 
 - **Live:** Atomic wrapping of frBTC and unwrapping back to BTC, swapping in AMM pools between Bitcoin assets and BTC, providing liquidity to these AMM pools to earn a yield, and staking and bonding within the advanced DeFi "FIRE" vault.
-- **Planned:** a Bitcoin-native stablecoin (frUSD), a yield-bearing Bitcoin vault token (dxBTC), the FUEL governance token, and the fully permissionless signer network.
+- **Planned:** a yield-bearing Bitcoin vault token (dxBTC), the FUEL governance token, and the fully permissionless signer network.
 
 ## Where to go next
 
