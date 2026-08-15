@@ -19,16 +19,18 @@ description: SUBFROST 的速查表，涵盖 frBTC、DIESEL、FIRE、FUEL、dxBTC
 
 - **FIRE。** Alkanes 治理代币，奖励为 DIESEL/frBTC 资金池提供流动性的人，并由质押（staking）与债券（bonding）机制驱动。这是活跃参与者获得协议份额、并随时间推移参与治理的方式。
 
-### 规划中
+- **frUSD。** 终极的 Bitcoin 原生稳定币：一种稳定的美元代币，结算在 Bitcoin 上，没有任何实体能够将其关闭或审查。它已在主网上与 frBTC 组成资金池进行交易，也可以通过从 Ethereum 跨链存入 USDC 或 USDT 来铸造。
 
-- **frUSD。** 终极的 Bitcoin 原生稳定币：一种稳定的美元代币，结算在 Bitcoin 上，没有任何实体能够将其关闭或审查。
+### 规划中
 
 - **dxBTC。** 生息 Bitcoin。你质押 BTC 并收到 dxBTC；在后台，你的 Bitcoin 会被投入市场中性的收益策略中运作，且始终不会离开 Bitcoin 区块链。
 
 - **FUEL。** subfrost 协议国库与参数（例如铸造/赎回费用和协议升级）的治理代币。其代币经济学尚未公开。
 
 :::note[说明]
-大小写区分了你会在这些文档中遇到的两个"fuel"：大写的 **FUEL** 始终指这个代币，而小写的 **fuel** 指一次 Alkanes 合约调用被允许消耗的计算预算，相当于其他链上的 gas。后者详见 [Alkanes](../protocol/alkanes)。
+大小写区分了你会在这些文档中遇到的两个"fuel"：大写的 **FUEL** 始终指这个代币，而小写的 **fuel** 指一次 Alkanes 合约调用被允许消耗的计算预算，相当于其他链上的 gas。
+
+与 gas 的相似之处仅止于"计算预算"这一点。与 gas 不同，**fuel 是免费的**：你无需购买，无法充值，也不会有任何费用从中扣除。每个区块的固定 fuel 预算，只在真正调用合约的交易之间按大小分配。交易时你支付的唯一费用，是普通的 Bitcoin 矿工费，以**原生 BTC** 支付，与一笔完全不运行合约的交易完全相同。详见 [Alkanes](../protocol/alkanes)。
 :::
 
 ## 如何交易资产
@@ -41,6 +43,8 @@ description: SUBFROST 的速查表，涵盖 frBTC、DIESEL、FIRE、FUEL、dxBTC
 | --- | --- | --- |
 | 交换 | 默认 1% | 0.8% 给流动性提供者，0.2% 永久归 AMM 协议所有 |
 | 包装或解包 BTC | 0.1% | 归 SUBFROST 协议所有 |
+
+表中的「交换」一行描述的是标准 AMM 资金池。frUSD/frBTC 资金池的收费方式不同，其流动性提供者的收益方式也不同，详见 [Pools & Liquidity（资金池与流动性）](../using-subfrost/pools-liquidity)。
 
 参见 [Swap（交换）](../using-subfrost/swap)、[Pools & Liquidity（资金池与流动性）](../using-subfrost/pools-liquidity) 和 [Wrap & Unwrap（包装与解包）](../using-subfrost/wrap-unwrap-frbtc)。
 
@@ -61,7 +65,7 @@ description: SUBFROST 的速查表，涵盖 frBTC、DIESEL、FIRE、FUEL、dxBTC
 诚实面对现状很重要。快速一览：
 
 - **已上线：** frBTC 的原子化包装与解包回 BTC、Bitcoin 资产与 BTC 之间在 AMM 资金池中的兑换、向这些 AMM 资金池提供流动性以赚取收益，以及在进阶 DeFi "FIRE" vault 中的质押与债券。
-- **规划中：** Bitcoin 原生稳定币（frUSD）、生息 Bitcoin 金库代币（dxBTC）、FUEL 治理代币，以及完全无许可的签名者网络。
+- **规划中：** 生息 Bitcoin 金库代币（dxBTC）、FUEL 治理代币，以及完全无许可的签名者网络。
 
 ## 接下来去哪里
 

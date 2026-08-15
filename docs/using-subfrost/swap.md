@@ -30,7 +30,9 @@ Swapping lets you trade between Bitcoin assets (BTC, frBTC, and other Alkanes to
 
 Today you can swap **between BTC and Bitcoin-native Alkanes assets**.
 
-Bitcoin-native swaps are live, while the Bitcoin-native stablecoin (frUSD) is nearing launch with cross-chain swaps from-and-to USDT and USDC. From there, SUBFROST will consider adding support to other high-volume cross-chain assets such as ETH, SOL, and ADA.
+Bitcoin-native swaps are live, and so is the Bitcoin-native stablecoin (frUSD). BTC against USD trades against the frUSD/frBTC pool, which is live on mainnet. Cross-chain, through your Ethereum wallet, you can bring **USDT or USDC in**, and take the value back **out as USDC or ETH**. From there, SUBFROST will consider adding support to other high-volume cross-chain assets such as SOL and ADA.
+
+The frUSD/frBTC pool is young and therefore shallow, so **a trade size that would be unremarkable on another pair can move the price noticeably on this one**. Read the quote you are actually given rather than the displayed exchange rate, and see [BTC/USD Commands](../api-reference/cli-sdk/btcusd) if you want to measure the pool yourself before trading.
 
 ## Next steps
 

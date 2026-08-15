@@ -71,7 +71,21 @@ These are documented in the [JSON-RPC reference](../api-reference/json-rpc/alkan
 
 ## Fuel
 
-Contract execution has a compute budget called **fuel**, similar to gas on Ethereum. An operation that runs out of fuel fails. View functions run with a high fuel ceiling, so read-only queries rarely hit the limit.
+Contract execution has a compute budget called **fuel**. It is similar to gas on Ethereum in what it measures, and unlike gas in the way that matters most: **fuel is free**.
+
+There is no fuel price, no fuel market, and no balance to top up. Each block carries a fixed fuel budget, and it is shared **only among the transactions that actually invoke a contract**: an ordinary payment neither receives a slice nor dilutes anyone else's. Among the transactions that do invoke one, the budget is split in proportion to size in bytes, with a floor so that even a small one can do useful work. So a lone contract call in a block has the entire budget available to it, not a sliver of it. Fuel a transaction does not spend goes back to the block for the next one. Nothing is charged, in any asset, at any point.
+
+What you pay to get a transaction into a block is the ordinary Bitcoin miner fee: **denominated in native BTC and priced per byte**, exactly as it would be for a transaction that ran no contract at all. Network fees on Alkanes are always BTC, because they are simply Bitcoin transaction fees. There is no separate gas token to acquire before you can transact.
+
+So the lever on your compute budget is your transaction's size, which you are already paying for in sats. Making a call more computationally expensive does not make it more expensive to send.
+
+One caveat, for honesty: if a call ever needs more fuel than its slice allows, it fails, and the remedy is a larger transaction, which does cost more in miner fees. In that corner, bytes buy compute. It is a corner rather than a rule, because the budget is shared only among contract transactions and is therefore generous at present density.
+
+Today on mainnet the budget is 1,000,000,000 fuel per block, with a per-transaction floor of 3,500,000. Both are consensus constants and can change at a protocol upgrade.
+
+An operation that runs out of fuel fails; it does not silently cost more. View functions run with a high fuel ceiling, so read-only queries rarely hit the limit.
+
+Protocol fees are a separate matter from network fees: wrapping and unwrapping BTC charges 0.1% today, and swapping charges a pool fee. Those are charged in the assets involved, and they have nothing to do with fuel.
 
 ## Where to go next
 
