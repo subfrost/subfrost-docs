@@ -30,7 +30,7 @@ A short glossary to get you oriented. Each item links to a deeper page where one
 :::note[Note]
 Capitalization is what separates the two "fuels" you will meet in these docs: **FUEL** in uppercase is always this token, while lowercase **fuel** is the compute budget an Alkanes contract call is allowed to spend, the equivalent of gas elsewhere.
 
-The comparison to gas stops at "budget for computation". Unlike gas, **fuel is free**: you do not buy it, you cannot top it up, and no fee is charged against it. Each block shares a fixed fuel budget among its transactions by size. The only thing you pay to transact is the ordinary Bitcoin miner fee, in **native BTC**, exactly as you would for a transaction that ran no contract at all. See [Alkanes](../protocol/alkanes) for the detail.
+The comparison to gas stops at "budget for computation". Unlike gas, **fuel is free**: you do not buy it, you cannot top it up, and no fee is charged against it. Each block's fixed fuel budget is shared, by size, among the transactions that actually run contracts. The only thing you pay to transact is the ordinary Bitcoin miner fee, in **native BTC**, exactly as you would for a transaction that ran no contract at all. See [Alkanes](../protocol/alkanes) for the detail.
 :::
 
 ## How you trade assets
