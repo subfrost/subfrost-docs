@@ -28,7 +28,9 @@ A short glossary to get you oriented. Each item links to a deeper page where one
 - **FUEL.** The governance token for the subfrost protocol's treasury and parameters (for example, mint/redeem fees and protocol upgrades). Its tokenomics are not yet public.
 
 :::note[Note]
-Capitalization is what separates the two "fuels" you will meet in these docs: **FUEL** in uppercase is always this token, while lowercase **fuel** is the compute budget an Alkanes contract call is allowed to spend, the equivalent of gas elsewhere. See [Alkanes](../protocol/alkanes) for that one.
+Capitalization is what separates the two "fuels" you will meet in these docs: **FUEL** in uppercase is always this token, while lowercase **fuel** is the compute budget an Alkanes contract call is allowed to spend, the equivalent of gas elsewhere.
+
+The comparison to gas stops at "budget for computation". Unlike gas, **fuel is free**: you do not buy it, you cannot top it up, and no fee is charged against it. Each block shares a fixed fuel budget among its transactions by size. The only thing you pay to transact is the ordinary Bitcoin miner fee, in **native BTC**, exactly as you would for a transaction that ran no contract at all. See [Alkanes](../protocol/alkanes) for the detail.
 :::
 
 ## How you trade assets
