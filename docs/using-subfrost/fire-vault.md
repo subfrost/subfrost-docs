@@ -135,11 +135,11 @@ RedeemExpired(FIRE-PT) -> LP
 
 ## Bonding
 
-Bonding is for people who want FIRE **now** instead of earning it over time. You hand the protocol LP tokens permanently, and you get FIRE at a **10% discount from market price**, vested over about **7 days** (1,050 blocks). The discount is a setting the protocol can adjust, so treat 10% as the current rate rather than a fixed rule.
+Bonding is for people who want FIRE **now** instead of earning it over time. You hand the protocol LP tokens permanently, and you get FIRE at a **10% discount from market price**, vested over about **14 days** (2,100 blocks). The discount is a setting the protocol can adjust, so treat 10% as the current rate rather than a fixed rule.
 
 Bond LP goes directly to the treasury and stays there. It is not returned, and it permanently backs the redemption floor.
 
-In plain language, a bond is this trade: you give the protocol LP forever, and in exchange you get FIRE at a 10% discount from market price, vested over 7 days.
+In plain language, a bond is this trade: you give the protocol LP forever, and in exchange you get FIRE at a 10% discount from market price, vested over 14 days.
 
 ### The floor guard
 
@@ -153,7 +153,7 @@ Redeem X FIRE at floor -> burn for LP  (LP comes out of treasury)
                        = same LP back  (zero net change)
 ```
 
-A bonder who redeems immediately nets zero. The 7-day vest means a bonder is betting on price appreciation, not extracting value from the protocol.
+A bonder who redeems immediately nets zero. The 14-day vest means a bonder is betting on price appreciation, not extracting value from the protocol.
 
 ### Bonding capacity builds up over time
 
