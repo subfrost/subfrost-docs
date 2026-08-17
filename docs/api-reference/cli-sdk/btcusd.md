@@ -39,7 +39,7 @@ Without a key the CLI uses the shared `/v4/jsonrpc` endpoint and prints a warnin
 
 ## Command surface
 
-What each subcommand does today. "Reads" and "prepares" are usable now; "not wired" refuses on purpose rather than emitting a transaction that looks right and is not.
+What you can use today. Commands that are not built yet are listed separately at the end, under "Not built yet" — they exist in `--help` and refuse on purpose rather than emitting a transaction that looks right and is not.
 
 | Command | Status | What it does |
 | --- | --- | --- |
@@ -51,12 +51,6 @@ What each subcommand does today. "Reads" and "prepares" are usable now; "not wir
 | `btcusd mempool` | reads | `info`, `template` and `entry`. The `watch` subcommand refuses: the websocket stream needs its reconnect state machine |
 | `btcusd deposit` | prepares | Prints the approve and `depositAndBridge` calls for USDC/USDT in. Local signing is not built |
 | `btcusd burn` | prepares | Builds the `burnData` payload for frUSD out to USDC/ETH. Broadcast is not built |
-| `btcusd swap` | not wired | Needs Bitcoin transaction construction (UTXO selection, protostone assembly, signing) |
-| `btcusd add-liquidity` | not wired | Same missing machinery as `swap` |
-| `btcusd remove-liquidity` | not wired | Same missing machinery as `swap` |
-| `btcusd watch` | not wired | Address polling needs the monitor plumbing. Poll `mempool template` meanwhile |
-| `btcusd simulate` | not wired | Same missing monitor plumbing as `watch` |
-| `btcusd simulate-block` | not wired | The `simulateblock` view exists; assembling the candidate block to feed it does not |
 
 ## The pool
 
