@@ -37,9 +37,9 @@ The reserve sits on Ethereum, in the SUBFROST bridge vault. That vault has no ow
 What that does not remove:
 
 - **The collateral is off Bitcoin.** It carries Ethereum risk, Curve risk, and stablecoin issuer risk that `frBTC` does not.
-- **The contracts are upgradeable, and unaudited.** Both the vault and the `4:1776` token sit behind upgradeable proxies, and none of this has been through a formal security audit.
+- **The contracts are upgradeable, and unaudited.** Both the vault and the `4:1776` token sit behind upgradeable proxies, and none of this has been through a formal security audit. The token also keeps an owner of its own, an auth token that sets parameters like the burn floor; that is the vault's asymmetry, not its shape.
 - **A threshold is cryptography, not yet a federation.** How much a threshold protects you depends on where the key shares actually sit, and that is an operational fact rather than something you can read off a chain.
-- **Minting and redeeming run on SUBFROST infrastructure.** The bridge screens deposits and payouts against sanctions lists at its edge, and an exit waits on the signer group to act, with no bound on how long. Holding and moving frUSD on Bitcoin itself is not screened, and has no freeze function.
+- **Minting and redeeming run on SUBFROST infrastructure.** The bridge screens deposits against sanctions lists at its edge and checks payout addresses against the stablecoin issuers' own blacklists. An exit also waits on the signer group to act, with no bound on how long, and the only way to submit its calls is a relayer set managed by a single admin address. Holding and moving frUSD on Bitcoin itself is screened by none of that, and has no freeze function.
 
 Use it with all of that in mind.
 
@@ -53,9 +53,9 @@ The most direct route, and the one that never leaves Bitcoin. `frUSD` trades aga
 
 ### 2. Mint it by bridging USDC or USDT from Ethereum
 
-You deposit on Ethereum and the `frUSD` is minted to a Bitcoin address you name. The vault takes a flat fee and then a percentage of the remainder, currently **$1.99 plus 0.10%**, both read from the chain rather than hardcoded. **Burning back out pays the same flat fee**, so a burn near the floor returns noticeably less than it destroys.
+You deposit on Ethereum and the `frUSD` is minted to a Bitcoin address you name. The vault takes a flat fee and then a percentage of the remainder, currently **$1.99 plus 0.10%**, both read from the chain rather than hardcoded. **Burning back out pays the same flat fee and the same percentage**, so a burn near the floor returns noticeably less than it destroys.
 
-That floor is a **minimum of 10 frUSD**: below it the burn reverts rather than paying short.
+That floor is a **minimum of 10 frUSD**: below it the burn reverts rather than paying short. It is the token's default rather than a constant, changeable by whoever holds its auth token and readable from the chain.
 
 In the app, choose USDC or USDT as what you are paying with and `frUSD` as what you are receiving. You will be asked to connect an Ethereum wallet and sign two transactions: an approval for exactly the amount you are depositing, and the deposit itself.
 
