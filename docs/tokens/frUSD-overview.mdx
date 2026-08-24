@@ -1,13 +1,87 @@
 ---
+title: frUSD (Bitcoin-native stablecoin)
 sidebar_label: frUSD - Ultimate Stablecoin
 ---
 
-# frUSD - Ultimate Stablecoin
+import Admonition from '@theme/Admonition';
 
-:::info[Live on mainnet]
-frUSD, the Bitcoin-native stablecoin, is live. It trades against frBTC in a pool on mainnet, and it can be minted by bridging USDC or USDT in from Ethereum. A full page describing the design will land here; until then the pages below cover what you can do with it today.
+# frUSD Overview
+## The Dollar, Settled on Bitcoin L1
+
+`frUSD` is a US-dollar token that lives on Bitcoin L1 as an [Alkanes](../protocol/alkanes) asset. It holds an ordinary Bitcoin UTXO, moves in an ordinary Bitcoin transaction, and can be composed into the same contract calls as any other Alkanes token — which is what separates it from a dollar that merely *references* Bitcoin from another chain.
+
+It is live on mainnet at alkane id `4:1776`, with **8 decimals**.
+
+The point of frUSD is a BTC/USD market that clears on proof-of-work. The dollars most of the world actually uses settle somewhere else and ask Bitcoin to wait; frUSD settles where the bitcoin already is.
+
+## Where the dollars are
+
+frUSD is **fully reserved, not algorithmic**. There is no on-chain collateral ratio to watch, no liquidation engine, and no seigniorage. Each frUSD exists because someone deposited a dollar-denominated stablecoin on Ethereum:
+
+1. A user deposits **USDC or USDT** into the SUBFROST bridge vault on Ethereum.
+2. The SUBFROST coordinator observes the deposit and mints the matching `frUSD` on Bitcoin, to the Bitcoin address named in the deposit.
+3. Burning `frUSD` on Bitcoin is the reverse instruction: it releases value back out on Ethereum.
+
+The deposited stablecoins are not left idle. They are deployed by the protocol operator into [Curve's 3pool](https://curve.fi/), so the reserve backing frUSD is held as 3CRV liquidity rather than as raw USDC and USDT.
+
+A reading taken on **2026-08-24** found reserves slightly above supply — roughly **100.3%** of the outstanding `frUSD`. That is a measurement at one instant, not a guaranteed property: the reserve sits in a third-party pool whose value moves, and nobody attests to the ratio continuously.
+
+<Admonition type="warning" title="The trust model, stated plainly">
+
+frUSD does **not** inherit frBTC's custody story, and the two should not be read as equally trust-minimized.
+
+`frBTC` is secured by a [FROST & ROAST](../key-components/frost-and-roast) threshold-signature group whose decentralization roadmap is public. `frUSD` is different by construction: **its reserve lives on Ethereum, in a vault the SUBFROST operator controls**, and minting is mediated by an operator-run coordinator. The bridge vault and the `4:1776` token are both upgradeable proxies, and parameters such as the minimum bridge amount are owner-mutable.
+
+That is the honest description of the system as built today. It has not been through a formal security audit. Use it with that in mind.
+
+</Admonition>
+
+## How can I get frUSD?
+
+### 1. Swap for it in the frUSD/frBTC pool
+
+The most direct route, and the one that never leaves Bitcoin. `frUSD` trades against `frBTC` in a [CryptoSwap pool](../using-subfrost/pools-liquidity) at `4:1778`, so BTC-denominated value can be moved into dollars and back without touching another chain.
+
+:::warning[Read the quote, not the rate]
+This pool is young and therefore **shallow**, and its price is **not** a BTC/USD reference. It does not track an external market automatically: the pool's internal price anchor only re-adjusts when doing so is profitable for the pool, so it can sit meaningfully above or below the wider market for days at a time. Measurements days apart have found it on both sides.
+
+Read the quote you are actually given, size your trade against the pool's depth, and if you want to check where the pool sits before trading, [BTC/USD Commands](../api-reference/cli-sdk/btcusd) shows you how to measure it yourself.
 :::
+
+### 2. Mint it by bridging USDC or USDT from Ethereum
+
+You deposit on Ethereum and the `frUSD` is minted to a Bitcoin address you name. Minting is subject to a fee on the Ethereum side, and burning back out has a **minimum of 10 frUSD** (an owner-mutable parameter, read from the chain rather than hardcoded).
+
+In the app, choose USDC or USDT as what you are paying with and `frUSD` as what you are receiving. You will be asked to connect an Ethereum wallet and sign two transactions: an approval for exactly the amount you are depositing, and the deposit itself.
+
+If you would rather drive it yourself, [BTC/USD Commands](../api-reference/cli-sdk/btcusd) prints the same two calls for you to sign in your own wallet.
+
+:::danger[A plain transfer to the vault is not a deposit]
+The deposit must be made through the bridge contract's own deposit call, which carries the instruction naming your Bitcoin address. **Sending USDC or USDT to the vault address as an ordinary token transfer does not mint anything** — it arrives with no instruction attached, and there is no automatic route back.
+
+This is why SUBFROST deliberately ships no "deposit address" QR code for this route. Use the tooling that builds the call.
+:::
+
+### 3. Receive it
+
+`frUSD` is an ordinary Alkanes token. Any wallet that handles Alkanes assets can hold, send, and receive it, and it shows up alongside your other balances.
+
+## What is live today
+
+Being specific about status matters more here than usual, because the asset and the interfaces to it are at different stages.
+
+| | Status |
+|---|---|
+| The `frUSD` token on Bitcoin mainnet (`4:1776`) | **Live** |
+| The frUSD/frBTC pool (`4:1778`) — trading and liquidity | **Live** |
+| Minting by bridging USDC/USDT from Ethereum | **Live** — in the app, or from the command line |
+| Burning frUSD back out to Ethereum | **Rolling out** — the CLI prepares the payload but cannot send it yet, and there is no supported end-to-end path |
+| Splitting part of a deposit into BTC on the way in | **Supported by the CLI's deposit builder** — a split the network cannot execute pays plain frUSD instead, silently, so read the warnings on [BTC/USD Commands](../api-reference/cli-sdk/btcusd) before using it |
+| Native frUSD paths in the mobile apps | **Coming soon** |
+
+## Where to go next
 
 - [Swap](../using-subfrost/swap): trade BTC against USD through the frUSD/frBTC pool.
 - [Pools & Liquidity](../using-subfrost/pools-liquidity): what providing liquidity to that pool pays, and how its fee differs from a standard AMM pool.
 - [BTC/USD Commands](../api-reference/cli-sdk/btcusd): read the pool, quote a trade, or prepare a bridge deposit from the command line.
+- [frBTC Overview](./frBTC-overview): the wrapped-BTC asset frUSD trades against, and the custody model it does *not* share.
