@@ -22,6 +22,28 @@ frUSD is **fully reserved, not algorithmic**. There is no on-chain collateral ra
 2. The SUBFROST signer group observes the deposit and mints the matching `frUSD` on Bitcoin, to the Bitcoin address named in the deposit.
 3. Burning `frUSD` on Bitcoin is the reverse instruction: it releases value back out on Ethereum.
 
+```mermaid
+flowchart LR
+    subgraph ETH["Ethereum"]
+        U["You"]
+        V["SUBFROST<br/>bridge vault"]
+        C["Curve 3pool<br/>the reserve"]
+    end
+    subgraph BTC["Bitcoin L1"]
+        G["FROST<br/>signer group"]
+        F["frUSD<br/>4:1776"]
+    end
+    U -- "USDC or USDT" --> V
+    V -- "held as LP" --> C
+    V -. "sees it" .-> G
+    G == "mints" ==> F
+    F == "burns" ==> G
+    G -. "signs the release" .-> V
+    V -- "USDC or USDT" --> U
+```
+
+Read the two heavy arrows as the round trip. Everything else is where the value rests between them.
+
 Anchoring to USDC and USDT is a deliberate choice rather than a shortcut. On-chain, the canonical dollar is already settled: USDC and USDT are what the market quotes against and treats as cash. frUSD does not try to unseat that, it anchors to it, so the peg tracks the dollar the ecosystem has already agreed on instead of a synthetic approximation. What SUBFROST changes is not the dollar itself but the layer you hold and move it on.
 
 The deposited stablecoins are not left idle. The vault's strategy contract deposits them into [Curve's 3pool](https://curve.fi/), so the reserve backing frUSD is held as 3pool LP rather than as raw USDC and USDT. Changing that strategy takes the same threshold signature as moving the collateral itself.
@@ -33,6 +55,17 @@ That shape is doing more work than earning a yield. A Curve LP token has no issu
 frUSD does not carry the same risk profile as `frBTC`, and the two should not be read as equally trust-minimized. The difference is not who holds the keys. It is where the collateral lives.
 
 The reserve sits on Ethereum, in the SUBFROST bridge vault. That vault has no owner key: moving collateral out, changing the strategy and taking fees are all reachable only through a call carrying a BIP-340 signature from the same [FROST](../key-components/frost-and-roast) threshold group that signs frUSD's Bitcoin side. That group is frUSD's own; `frBTC` is signed by a separate federation.
+
+```mermaid
+flowchart TB
+    K["One FROST group<br/>one 32-byte public key"]
+    K --> B["On Bitcoin<br/>the taproot output that<br/>holds the mint authority"]
+    K --> E["On Ethereum<br/>the vault's<br/>defaultPublicKey"]
+    B --> BB["Signs the mint"]
+    E --> EE["Signs the release<br/>of collateral"]
+```
+
+The same 32 bytes are the witness program on one chain and the authorised key on the other. There is no mapping between them, and no second key to compromise; that is why the two sides cannot drift apart, and why widening the group is a key rotation rather than a migration.
 
 What that does not remove:
 
