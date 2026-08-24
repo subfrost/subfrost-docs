@@ -88,7 +88,7 @@ frUSD 的风险状况与 `frBTC` 并不相同，两者不应被视为具有同�
 储备位于以太坊上的 SUBFROST 跨链金库中。该金库没有所有者密钥：转出抵押品、更换策略和提取手续费，都只能通过一笔携带 BIP-340 签名的调用来完成，而该签名来自为 frUSD 比特币一侧签名的同一个 [FROST](../key-components/frost-and-roast) 门限组。该门限组是 frUSD 自己的；`frBTC` 由另一个联盟签名。
 
 <div className="sf-diagram">
-<svg viewBox="0 0 800 392" role="img" aria-label="SUBFROST 签名组是两条链上的权限来源：它在以太坊上观测存款、为抵押品的放行签名，并在比特币上铸造或销毁 frUSD">
+<svg viewBox="0 0 800 392" role="img" aria-label="SUBFROST 签名组是两条链上的权限来源：它在以太坊上观测存款、为抵押品的放行签名，并在比特币上针对存款铸造 frUSD。销毁则是持有者自己发起的，而放行正是对它的回应">
   <defs>
     <marker id="a" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow"/></marker>
     <marker id="af" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-soft"/></marker>
@@ -144,7 +144,7 @@ frUSD 的风险状况与 `frBTC` 并不相同，两者不应被视为具有同�
 这两条虚线是同一个权限跨越两条链的延伸。以太坊一侧的任何资金流动，都需要那个在比特币上铸币的门限组签名，而它签名所用的 32 字节是同一把密钥，不是一对。
 
 
-这并不能消除以下几点：
+### 这并不能消除以下几点
 
 - **抵押品不在比特币上。** 它承担 `frBTC` 所没有的以太坊风险、Curve 风险和稳定币发行方风险。
 - **合约可升级，且未经审计。** 跨链金库和 `4:1776` 代币都位于可升级代理之后，并且这一切都尚未经过正式的安全审计。代币一侧还保留着自己的所有者，即一枚设置销毁下限等参数的权限代币；这是与金库不同之处，而非金库的形态。
