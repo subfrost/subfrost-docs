@@ -22,27 +22,60 @@ frUSD 是**完全储备的，而非算法稳定币**。没有需要盯着的链�
 2. SUBFROST 签名组观测到该笔存款后，在比特币上铸造相应数量的 `frUSD`，发送到存款时指定的比特币地址。
 3. 在比特币上销毁 `frUSD` 则是反向指令：它会在以太坊一侧释放相应价值。
 
-```mermaid
-flowchart LR
-    subgraph ETH["以太坊"]
-        U["你"]
-        V["SUBFROST<br/>跨链金库"]
-        C["Curve 3pool<br/>储备所在"]
-    end
-    subgraph BTC["比特币 L1"]
-        G["FROST<br/>签名组"]
-        F["frUSD<br/>4:1776"]
-    end
-    U -- "USDC 或 USDT" --> V
-    V -- "以 LP 形式持有" --> C
-    V -. "观测到存款" .-> G
-    G == "铸造" ==> F
-    F == "销毁" ==> G
-    G -. "门限签名放行" .-> V
-    V -- "USDC 或 USDT" --> U
-```
+<div className="sf-diagram">
+<svg viewBox="0 0 800 250" role="img" aria-label="在以太坊上存入的 USDC 或 USDT 变成比特币上的 frUSD；储备以 Curve 3pool LP 的形式持有，并在 frUSD 销毁时再次被释放">
+  <defs>
+    <marker id="a" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow"/></marker>
+    <marker id="af" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-soft"/></marker>
+    <marker id="ao" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-out"/></marker>
+  </defs>
+  <text x="205" y="22" className="sf-chain sf-chain-eth" text-anchor="middle">以太坊</text>
+  <text x="612" y="22" className="sf-chain sf-chain-btc" text-anchor="middle">比特币 L1</text>
+  <line x1="417" y1="8" x2="417" y2="242" className="sf-divide"/>
 
-把两条粗箭头读作一次往返。其余部分是这段价值在两次操作之间停放的地方。
+  <rect x="20" y="48" width="170" height="72" rx="10" className="sf-box"/>
+  <text x="105" y="79" className="sf-label" text-anchor="middle">你</text>
+  <text x="105" y="99" className="sf-sub" text-anchor="middle">USDC 或 USDT</text>
+
+  <rect x="250" y="48" width="140" height="72" rx="10" className="sf-box sf-box-key"/>
+  <text x="320" y="79" className="sf-label sf-on-key" text-anchor="middle">SUBFROST</text>
+  <text x="320" y="99" className="sf-label sf-on-key" text-anchor="middle">跨链金库</text>
+
+  <rect x="205" y="172" width="200" height="62" rx="10" className="sf-box"/>
+  <text x="305" y="198" className="sf-label" text-anchor="middle">Curve 3pool</text>
+  <text x="305" y="217" className="sf-sub" text-anchor="middle">储备所在</text>
+
+  <rect x="445" y="48" width="150" height="72" rx="10" className="sf-box sf-box-btc"/>
+  <text x="520" y="79" className="sf-label" text-anchor="middle">FROST</text>
+  <text x="520" y="99" className="sf-label" text-anchor="middle">签名组</text>
+
+  <rect x="635" y="48" width="145" height="72" rx="10" className="sf-box sf-box-btc"/>
+  <text x="707" y="79" className="sf-label" text-anchor="middle">frUSD</text>
+  <text x="707" y="100" className="sf-sub" text-anchor="middle">4:1776</text>
+
+  <path d="M190,70 L236,70" className="sf-line" marker-end="url(#a)"/>
+  <text x="218" y="54" className="sf-edge" text-anchor="middle">存入</text>
+  <path d="M250,102 L204,102" className="sf-line" marker-end="url(#a)"/>
+  <text x="218" y="126" className="sf-edge" text-anchor="middle">出款</text>
+
+  <path d="M390,84 L431,84" className="sf-line" marker-end="url(#a)"/>
+  <text x="415" y="68" className="sf-edge" text-anchor="middle">观测到</text>
+
+  <path d="M597,70 L618,70" className="sf-line sf-line-heavy"/>
+  <polygon points="617,64 630,70 617,76" className="sf-head"/>
+  <text x="614" y="54" className="sf-edge" text-anchor="middle">铸造</text>
+  <path d="M633,102 L612,102" className="sf-line sf-line-heavy"/>
+  <polygon points="613,96 600,102 613,108" className="sf-head"/>
+  <text x="614" y="126" className="sf-edge" text-anchor="middle">销毁</text>
+
+  <path d="M272,120 L272,158" className="sf-line sf-line-soft" marker-end="url(#af)"/>
+  <text x="264" y="148" className="sf-edge" text-anchor="end">以 LP 形式持有</text>
+  <path d="M338,172 L338,134" className="sf-line sf-line-out" marker-end="url(#ao)"/>
+  <text x="346" y="148" className="sf-edge sf-edge-out">销毁时释放</text>
+</svg>
+</div>
+
+两条粗箭头就是一次往返。金库下方的两条虚线是储备：存款时进入 3pool，frUSD 被销毁时再取出来支付出款。
 
 以 USDC 和 USDT 作为锚定是一个刻意的选择，而不是权宜之计。在链上，标准的美元其实早已确定：USDC 和 USDT 就是市场用来报价、并当作现金看待的资产。frUSD 并不试图取代它们，而是锚定它们，因此其锚定价格跟踪的是整个生态已经达成共识的美元，而不是一种合成的近似物。SUBFROST 改变的不是美元本身，而是你持有和转移它所在的那一层。
 
