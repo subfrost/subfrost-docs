@@ -34,18 +34,11 @@ const config: Config = {
 
   markdown: {
     format: 'detect',
-    // Turns ```mermaid fences into rendered diagrams. Without it Prism just
-    // syntax-highlights the source, which is what the FROST & ROAST page had
-    // been shipping since it was written: a reader saw the words
-    // "sequenceDiagram / participant Client" instead of a diagram.
-    mermaid: true,
     hooks: {
       onBrokenMarkdownLinks: 'throw',
     },
   },
 
-  // Required alongside `markdown.mermaid`; the flag alone does nothing.
-  themes: ['@docusaurus/theme-mermaid'],
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
@@ -83,14 +76,6 @@ const config: Config = {
   ],
 
   themeConfig: {
-    // Two built-in themes rather than one hand-tuned palette: Docusaurus swaps
-    // on the site's light/dark toggle, and mermaid's own `themeVariables` are a
-    // single set with no light/dark half, so any palette written here would be
-    // wrong in one of the two modes.
-    mermaid: {
-      theme: {light: 'neutral', dark: 'dark'},
-    },
-
     // Social card. 1200x630 is what X renders for summary_large_image; anything
     // squarer gets letterboxed. The filename is versioned because X caches one card
     // per image URL, so a new path is the only way to invalidate an old card.

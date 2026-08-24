@@ -957,3 +957,20 @@ html[data-theme='dark'] .sf-edge { fill: #8fa6ba; stroke: #000000; }
 html[data-theme='dark'] .sf-divide { stroke: #22303d; }
 html[data-theme='dark'] .sf-head { fill: #e8f1fb; }
 html[data-theme='dark'] .sf-line-heavy { stroke: #e8f1fb; }
+
+/* Chain regions and the signing-authority lines, used by the trust-model
+   diagram. `fill: none` is not the default for `<rect>`: leave it out and the
+   region paints solid black, which is exactly what happened the first time
+   these classes were written in a scratch file and not carried over here. */
+.sf-zone { fill: none; stroke-width: 1px; }
+.sf-zone-eth { stroke: #cfe0f0; }
+.sf-zone-btc { stroke: #eecfa6; }
+.sf-line-key { stroke: #0b2239; stroke-width: 1.5px; stroke-dasharray: 3 4; }
+.sf-arrow-key { fill: #0b2239; }
+.sf-edge-key { fill: #0b2239; font-weight: 500; }
+
+html[data-theme='dark'] .sf-zone-eth { stroke: #22303d; }
+html[data-theme='dark'] .sf-zone-btc { stroke: #4a3720; }
+html[data-theme='dark'] .sf-line-key { stroke: #e8f1fb; }
+html[data-theme='dark'] .sf-arrow-key { fill: #e8f1fb; }
+html[data-theme='dark'] .sf-edge-key { fill: #e8f1fb; }

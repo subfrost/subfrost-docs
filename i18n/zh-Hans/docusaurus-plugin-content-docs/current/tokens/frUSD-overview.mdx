@@ -3,8 +3,6 @@ title: frUSD（比特币原生稳定币）
 sidebar_label: frUSD - 终极稳定币
 ---
 
-import Admonition from '@theme/Admonition';
-
 # frUSD 概览
 ## 结算在比特币 L1 上的美元
 
@@ -83,22 +81,68 @@ frUSD 是**完全储备的，而非算法稳定币**。没有需要盯着的链�
 
 这个结构的作用不只是赚取收益。Curve 的 LP 代币没有发行方，因此也没有冻结某个余额的函数：稳定币发行方无论拥有何种权限，都无法对一份资金池份额行使这些权限。
 
-<Admonition type="warning" title="明确说明信任模型">
+## 明确说明信任模型
 
 frUSD 的风险状况与 `frBTC` 并不相同，两者不应被视为具有同等程度的信任最小化。区别不在于谁持有密钥，而在于抵押品存放在哪里。
 
 储备位于以太坊上的 SUBFROST 跨链金库中。该金库没有所有者密钥：转出抵押品、更换策略和提取手续费，都只能通过一笔携带 BIP-340 签名的调用来完成，而该签名来自为 frUSD 比特币一侧签名的同一个 [FROST](../key-components/frost-and-roast) 门限组。该门限组是 frUSD 自己的；`frBTC` 由另一个联盟签名。
 
-```mermaid
-flowchart TB
-    K["同一个 FROST 组<br/>同一把 32 字节公钥"]
-    K --> B["在比特币上<br/>持有铸造权限的<br/>taproot 输出"]
-    K --> E["在以太坊上<br/>金库的<br/>defaultPublicKey"]
-    B --> BB["为铸造签名"]
-    E --> EE["为释放抵押品<br/>签名"]
-```
+<div className="sf-diagram">
+<svg viewBox="0 0 800 392" role="img" aria-label="SUBFROST 签名组是两条链上的权限来源：它在以太坊上观测存款、为抵押品的放行签名，并在比特币上铸造或销毁 frUSD">
+  <defs>
+    <marker id="a" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow"/></marker>
+    <marker id="af" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-soft"/></marker>
+    <marker id="ak" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-key"/></marker>
+  </defs>
+  <rect x="408" y="16" width="376" height="150" rx="12" className="sf-zone sf-zone-btc"/>
+  <text x="764" y="38" className="sf-chain sf-chain-btc" text-anchor="end">比特币 L1</text>
+  <rect x="430" y="58" width="140" height="70" rx="10" className="sf-box sf-box-btc"/>
+  <text x="500" y="88" className="sf-label" text-anchor="middle">FROST</text>
+  <text x="500" y="108" className="sf-label" text-anchor="middle">签名组</text>
+  <rect x="622" y="58" width="140" height="70" rx="10" className="sf-box sf-box-btc"/>
+  <text x="692" y="88" className="sf-label" text-anchor="middle">frUSD</text>
+  <text x="692" y="109" className="sf-sub" text-anchor="middle">4:1776</text>
+  <path d="M572,78 L606,78" className="sf-line sf-line-heavy"/>
+  <polygon points="605,72 618,78 605,84" className="sf-head"/>
+  <text x="596" y="62" className="sf-edge" text-anchor="middle">铸造</text>
+  <path d="M620,110 L586,110" className="sf-line sf-line-heavy"/>
+  <polygon points="587,104 574,110 587,116" className="sf-head"/>
+  <text x="596" y="130" className="sf-edge" text-anchor="middle">销毁</text>
 
-同样的 32 字节，在一条链上是见证程序，在另一条链上是被授权的公钥。两者之间没有任何映射关系，也没有第二把可以被攻破的密钥；这正是两侧无法彼此脱节的原因，也是扩大该组规模只是一次密钥轮换、而非一次迁移的原因。
+  <rect x="16" y="176" width="430" height="206" rx="12" className="sf-zone sf-zone-eth"/>
+  <text x="36" y="198" className="sf-chain sf-chain-eth">以太坊</text>
+
+  <rect x="40" y="222" width="126" height="68" rx="10" className="sf-box"/>
+  <text x="103" y="251" className="sf-label" text-anchor="middle">你</text>
+  <text x="103" y="271" className="sf-sub" text-anchor="middle">USDC 或 USDT</text>
+
+  <rect x="222" y="222" width="146" height="68" rx="10" className="sf-box sf-box-key"/>
+  <text x="295" y="251" className="sf-label sf-on-key" text-anchor="middle">SUBFROST</text>
+  <text x="295" y="271" className="sf-label sf-on-key" text-anchor="middle">跨链金库</text>
+
+  <rect x="196" y="322" width="200" height="56" rx="10" className="sf-box"/>
+  <text x="296" y="345" className="sf-label" text-anchor="middle">Curve 3pool</text>
+  <text x="296" y="363" className="sf-sub" text-anchor="middle">储备所在</text>
+
+  <path d="M166,240 L204,240" className="sf-line" marker-end="url(#a)"/>
+  <text x="185" y="230" className="sf-edge" text-anchor="middle">存入</text>
+  <path d="M222,272 L184,272" className="sf-line" marker-end="url(#a)"/>
+  <text x="185" y="290" className="sf-edge" text-anchor="middle">出款</text>
+
+  <path d="M266,290 L266,308" className="sf-line sf-line-soft" marker-end="url(#af)"/>
+  <text x="258" y="312" className="sf-edge" text-anchor="end">以 LP 形式持有</text>
+  <path d="M330,322 L330,304" className="sf-line sf-line-out" marker-end="url(#af)"/>
+  <text x="340" y="312" className="sf-edge sf-edge-out">销毁时释放</text>
+
+  <path d="M366,224 C398,208 416,184 428,146" className="sf-line sf-line-key" marker-end="url(#ak)"/>
+  <text x="396" y="176" className="sf-edge sf-edge-key" text-anchor="end">观测到存款</text>
+  <path d="M484,152 C474,202 442,232 388,250" className="sf-line sf-line-key" marker-end="url(#ak)"/>
+  <text x="462" y="216" className="sf-edge sf-edge-key">为放行签名</text>
+</svg>
+</div>
+
+这两条虚线是同一个权限跨越两条链的延伸。以太坊一侧的任何资金流动，都需要那个在比特币上铸币的门限组签名，而它签名所用的 32 字节是同一把密钥，不是一对。
+
 
 这并不能消除以下几点：
 
@@ -108,8 +152,6 @@ flowchart TB
 - **铸造与赎回运行在 SUBFROST 的基础设施上。** 跨链桥会在边界处针对制裁名单筛查存款，并对照稳定币发行方自己的黑名单检查出款地址。赎回还需要等待签名组行动，且没有时间上限，而提交其调用的唯一途径是一组由单个管理员地址管理的 relayer。至于在比特币上持有和转移 frUSD 本身，则不受上述任何筛查，也没有冻结功能。
 
 请在了解上述全部内容的前提下使用。
-
-</Admonition>
 
 ## 我要如何获得 frUSD？
 

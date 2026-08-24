@@ -3,8 +3,6 @@ title: frUSD (Bitcoin-native stablecoin)
 sidebar_label: frUSD - Ultimate Stablecoin
 ---
 
-import Admonition from '@theme/Admonition';
-
 # frUSD Overview
 ## The Dollar, Settled on Bitcoin L1
 
@@ -83,22 +81,68 @@ The deposited stablecoins are not left idle. The vault's strategy contract depos
 
 That shape is doing more work than earning a yield. A Curve LP token has no issuer, and so no function to freeze a balance: whatever authority a stablecoin issuer holds, they do not hold it over a pool share.
 
-<Admonition type="warning" title="The trust model, stated plainly">
+## The trust model, stated plainly
 
 frUSD does not carry the same risk profile as `frBTC`, and the two should not be read as equally trust-minimized. The difference is not who holds the keys. It is where the collateral lives.
 
 The reserve sits on Ethereum, in the SUBFROST bridge vault. That vault has no owner key: moving collateral out, changing the strategy and taking fees are all reachable only through a call carrying a BIP-340 signature from the same [FROST](../key-components/frost-and-roast) threshold group that signs frUSD's Bitcoin side. That group is frUSD's own; `frBTC` is signed by a separate federation.
 
-```mermaid
-flowchart TB
-    K["One FROST group<br/>one 32-byte public key"]
-    K --> B["On Bitcoin<br/>the taproot output that<br/>holds the mint authority"]
-    K --> E["On Ethereum<br/>the vault's<br/>defaultPublicKey"]
-    B --> BB["Signs the mint"]
-    E --> EE["Signs the release<br/>of collateral"]
-```
+<div className="sf-diagram">
+<svg viewBox="0 0 800 392" role="img" aria-label="the SUBFROST signer group is the authority on both chains: it sees the deposit on Ethereum, signs the release of collateral there, and mints or burns frUSD on Bitcoin">
+  <defs>
+    <marker id="a" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow"/></marker>
+    <marker id="af" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-soft"/></marker>
+    <marker id="ak" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-key"/></marker>
+  </defs>
+  <rect x="408" y="16" width="376" height="150" rx="12" className="sf-zone sf-zone-btc"/>
+  <text x="764" y="38" className="sf-chain sf-chain-btc" text-anchor="end">BITCOIN L1</text>
+  <rect x="430" y="58" width="140" height="70" rx="10" className="sf-box sf-box-btc"/>
+  <text x="500" y="88" className="sf-label" text-anchor="middle">FROST</text>
+  <text x="500" y="108" className="sf-label" text-anchor="middle">signer group</text>
+  <rect x="622" y="58" width="140" height="70" rx="10" className="sf-box sf-box-btc"/>
+  <text x="692" y="88" className="sf-label" text-anchor="middle">frUSD</text>
+  <text x="692" y="109" className="sf-sub" text-anchor="middle">4:1776</text>
+  <path d="M572,78 L606,78" className="sf-line sf-line-heavy"/>
+  <polygon points="605,72 618,78 605,84" className="sf-head"/>
+  <text x="596" y="62" className="sf-edge" text-anchor="middle">mints</text>
+  <path d="M620,110 L586,110" className="sf-line sf-line-heavy"/>
+  <polygon points="587,104 574,110 587,116" className="sf-head"/>
+  <text x="596" y="130" className="sf-edge" text-anchor="middle">burns</text>
 
-The same 32 bytes are the witness program on one chain and the authorised key on the other. There is no mapping between them, and no second key to compromise; that is why the two sides cannot drift apart, and why widening the group is a key rotation rather than a migration.
+  <rect x="16" y="176" width="430" height="206" rx="12" className="sf-zone sf-zone-eth"/>
+  <text x="36" y="198" className="sf-chain sf-chain-eth">ETHEREUM</text>
+
+  <rect x="40" y="222" width="126" height="68" rx="10" className="sf-box"/>
+  <text x="103" y="251" className="sf-label" text-anchor="middle">You</text>
+  <text x="103" y="271" className="sf-sub" text-anchor="middle">USDC or USDT</text>
+
+  <rect x="222" y="222" width="146" height="68" rx="10" className="sf-box sf-box-key"/>
+  <text x="295" y="251" className="sf-label sf-on-key" text-anchor="middle">SUBFROST</text>
+  <text x="295" y="271" className="sf-label sf-on-key" text-anchor="middle">bridge vault</text>
+
+  <rect x="196" y="322" width="200" height="56" rx="10" className="sf-box"/>
+  <text x="296" y="345" className="sf-label" text-anchor="middle">Curve 3pool</text>
+  <text x="296" y="363" className="sf-sub" text-anchor="middle">the reserve</text>
+
+  <path d="M166,240 L204,240" className="sf-line" marker-end="url(#a)"/>
+  <text x="185" y="230" className="sf-edge" text-anchor="middle">deposit</text>
+  <path d="M222,272 L184,272" className="sf-line" marker-end="url(#a)"/>
+  <text x="185" y="290" className="sf-edge" text-anchor="middle">payout</text>
+
+  <path d="M266,290 L266,308" className="sf-line sf-line-soft" marker-end="url(#af)"/>
+  <text x="258" y="312" className="sf-edge" text-anchor="end">held as LP</text>
+  <path d="M330,322 L330,304" className="sf-line sf-line-out" marker-end="url(#af)"/>
+  <text x="340" y="312" className="sf-edge sf-edge-out">released on a burn</text>
+
+  <path d="M366,224 C398,208 416,184 428,146" className="sf-line sf-line-key" marker-end="url(#ak)"/>
+  <text x="396" y="176" className="sf-edge sf-edge-key" text-anchor="end">sees the deposit</text>
+  <path d="M484,152 C474,202 442,232 388,250" className="sf-line sf-line-key" marker-end="url(#ak)"/>
+  <text x="462" y="216" className="sf-edge sf-edge-key">signs the release</text>
+</svg>
+</div>
+
+The two dotted lines are the same authority reaching across the gap. Nothing on the Ethereum side moves without a signature from the group that mints on Bitcoin, and the 32 bytes it signs with are one key, not a pair.
+
 
 What that does not remove:
 
@@ -108,8 +152,6 @@ What that does not remove:
 - **Minting and redeeming run on SUBFROST infrastructure.** The bridge screens deposits against sanctions lists at its edge and checks payout addresses against the stablecoin issuers' own blacklists. An exit also waits on the signer group to act, with no bound on how long, and the only way to submit its calls is a relayer set managed by a single admin address. Holding and moving frUSD on Bitcoin itself is screened by none of that, and has no freeze function.
 
 Use it with all of that in mind.
-
-</Admonition>
 
 ## How can I get frUSD?
 
