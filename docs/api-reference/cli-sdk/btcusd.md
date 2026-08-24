@@ -39,7 +39,7 @@ Without a key the CLI uses the shared `/v4/jsonrpc` endpoint and prints a warnin
 
 ## Command surface
 
-What you can use today. Commands that are not built yet are listed separately at the end, under "Not built yet" — they exist in `--help` and refuse on purpose rather than emitting a transaction that looks right and is not.
+What you can use today. Commands that are not built yet are listed separately at the end, under "Not built yet": they exist in `--help` and refuse on purpose rather than emitting a transaction that looks right and is not.
 
 | Command | Status | What it does |
 | --- | --- | --- |
@@ -146,7 +146,7 @@ curl -s https://mainnet.subfrost.io/v4/$SUBFROST_API_KEY/espo \
 
 ## What size actually costs
 
-The marginal price is not the price you get. This pool is shallow, so price impact is material and grows fast with size: in the ladders below, buying is already 0.9% off the marginal price at $500 and 8.8% off at $5,000, and selling 0.03 BTC clears about 8.5% below market. Whether a small trade starts out slightly for or against you depends on which side of the market the pool's marginal price is sitting on that day, and it moves — it was about 0.8% above market at this reading and has been below it since. That side is the one thing here you must re-measure rather than read: the ladders show impact, which is a property of the curve, but the starting point is not. Quote at the size you intend to trade, not at a smaller one.
+The marginal price is not the price you get. This pool is shallow, so price impact is material and grows fast with size: in the ladders below, buying is already 0.9% off the marginal price at $500 and 8.8% off at $5,000, and selling 0.03 BTC clears about 8.5% below market. Whether a small trade starts out slightly for or against you depends on which side of the market the pool's marginal price is sitting on that day, and it moves; it was about 0.8% above market at this reading and has been below it since. That side is the one thing here you must re-measure rather than read: the ladders show impact, which is a property of the curve, but the starting point is not. Quote at the size you intend to trade, not at a smaller one.
 
 **Buying frBTC with frUSD**
 
