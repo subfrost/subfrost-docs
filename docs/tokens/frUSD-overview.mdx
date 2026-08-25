@@ -170,7 +170,7 @@ If you would rather drive it yourself, [BTC/USD Commands](../api-reference/cli-s
 The deposit must be made through the bridge contract's own deposit call, which carries the instruction naming your Bitcoin address. **Sending USDC or USDT to the vault address as an ordinary token transfer does not mint anything**: it arrives with no instruction attached, and there is no automatic route back.
 :::
 
-### 3. Receive it
+### Option 3: Receive it
 
 `frUSD` is an ordinary Alkanes token. Any wallet that handles Alkanes assets can hold, send, and receive it, and it shows up alongside your other balances.
 
@@ -184,7 +184,7 @@ Being specific about status matters, so here is where each piece stands.
 | Minting by bridging USDC/USDT from Ethereum | **Live**. If desired as a developer, the command line prepares the two Ethereum calls for you to sign in your own wallet |
 | Burning frUSD back out to Ethereum | **Live** |
 | Splitting part of a deposit into BTC on the way in | **Live**. A split the network cannot execute pays plain frUSD instead, so read the notes on [BTC/USD Commands](../api-reference/cli-sdk/btcusd) before using it |
-| Splitting part of a redemption into ETH on the way out | **Live**. `burn` takes `--to-eth-bps`, so a fresh Ethereum address can land enough ETH to pay its own gas instead of receiving tokens it cannot move |
+| Splitting part of a redemption into ETH on the way out | **Built, not yet broadcast**. `burn` takes `--to-eth-bps` and prints the payload, but the command refuses to sign it until the cellpack packing is checked against the integration tests, and the burn that has settled on mainnet paid a plain stablecoin out. See [BTC/USD Commands](../api-reference/cli-sdk/btcusd) |
 
 ## Where to go next
 
