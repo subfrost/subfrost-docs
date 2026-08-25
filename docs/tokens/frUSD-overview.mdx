@@ -1,6 +1,6 @@
 ---
 title: frUSD (Bitcoin-native stablecoin)
-sidebar_label: frUSD - Ultimate Stablecoin
+sidebar_label: frUSD - Stablecoin on BTC
 ---
 
 # frUSD Overview
@@ -184,7 +184,7 @@ Being specific about status matters, so here is where each piece stands.
 | Minting by bridging USDC/USDT from Ethereum | **Live**. If desired as a developer, the command line prepares the two Ethereum calls for you to sign in your own wallet |
 | Burning frUSD back out to Ethereum | **Live** |
 | Splitting part of a deposit into BTC on the way in | **Live**. A split the network cannot execute pays plain frUSD instead, so read the notes on [BTC/USD Commands](../api-reference/cli-sdk/btcusd) before using it |
-| Splitting part of a redemption into ETH on the way out | **Built, not yet broadcast**. `burn` takes `--to-eth-bps` and prints the payload, but the command refuses to sign it until the cellpack packing is checked against the integration tests, and the burn that has settled on mainnet paid a plain stablecoin out. See [BTC/USD Commands](../api-reference/cli-sdk/btcusd) |
+| Splitting part of a redemption into ETH on the way out | **Live**. `burn` takes `--to-eth-bps`; a split the network cannot execute pays a plain stablecoin instead, so read the notes on [BTC/USD Commands](../api-reference/cli-sdk/btcusd) before using it |
 
 ## Where to go next
 

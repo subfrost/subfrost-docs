@@ -1,6 +1,6 @@
 ---
 title: frUSD（比特币原生稳定币）
-sidebar_label: frUSD - 终极稳定币
+sidebar_label: frUSD - 比特币上的稳定币
 ---
 
 # frUSD 概览
@@ -184,7 +184,7 @@ frUSD 是**完全储备的，而非算法稳定币**。没有需要盯着的链�
 | 通过从以太坊跨链存入 USDC/USDT 进行铸造 | **已上线**。开发者如有需要，命令行会为你准备好那两笔以太坊调用，供你在自己的钱包中签名 |
 | 将 frUSD 销毁并换回以太坊资产 | **已上线** |
 | 存入时将一部分拆分为 BTC | **已上线**。网络无法执行的拆分会改为支付普通 frUSD，使用前请阅读 [BTC/USD 命令](../api-reference/cli-sdk/btcusd)中的说明 |
-| 赎回时将一部分拆分为 ETH | **已实现，但尚未广播**。`burn` 支持 `--to-eth-bps` 并会打印出 payload，但在 cellpack 打包通过集成测试核对之前，该命令拒绝签名；而已在主网结算的那笔销毁支付的是普通稳定币。参见 [BTC/USD 命令](../api-reference/cli-sdk/btcusd) |
+| 赎回时将一部分拆分为 ETH | **已上线**。`burn` 支持 `--to-eth-bps`；网络无法执行的拆分会改为支付普通稳定币，使用前请阅读 [BTC/USD 命令](../api-reference/cli-sdk/btcusd)中的说明 |
 
 ## 接下来去哪里
 

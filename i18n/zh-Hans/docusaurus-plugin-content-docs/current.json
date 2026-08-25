@@ -43,9 +43,9 @@
     "message": "frBTC - DeFi 兼容的 BTC",
     "description": "The label for the doc item 'frBTC - Defi-compatible BTC' in sidebar 'docs', linking to the doc tokens/frBTC-overview"
   },
-  "sidebar.docs.doc.frUSD - Ultimate Stablecoin": {
-    "message": "frUSD - 终极稳定币",
-    "description": "The label for the doc item 'frUSD - Ultimate Stablecoin' in sidebar 'docs', linking to the doc tokens/frUSD-overview"
+  "sidebar.docs.doc.frUSD - Stablecoin on BTC": {
+    "message": "frUSD - 比特币上的稳定币",
+    "description": "The label for the doc item 'frUSD - Stablecoin on BTC' in sidebar 'docs', linking to the doc tokens/frUSD-overview"
   },
   "sidebar.docs.doc.dxBTC - Yield-bearing BTC": {
     "message": "dxBTC - 生息 BTC",
