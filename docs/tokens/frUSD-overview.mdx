@@ -152,21 +152,21 @@ Use it with all of that in mind.
 
 ## How can I get frUSD?
 
-### 1. Swap for it in the frUSD/frBTC pool
+### Option 1: Swap for it in the frUSD/frBTC pool
 
 The most direct route, and the one that never leaves Bitcoin. `frUSD` trades against `frBTC` in a [CryptoSwap pool](../using-subfrost/pools-liquidity) at `4:1778`, so BTC-denominated value can be moved into dollars and back without touching another chain.
 
-### 2. Mint it by bridging USDC or USDT from Ethereum
+### Option 2: Mint it by bridging USDC or USDT from Ethereum
 
-You deposit on Ethereum and the `frUSD` is minted to a Bitcoin address you name. The vault takes a flat fee and then a percentage of the remainder, currently **$1.99 plus 0.10%**, both read from the chain rather than hardcoded. **Burning back out pays the same flat fee and the same percentage**, so a burn near the floor returns noticeably less than it destroys.
+You deposit on Ethereum and the `frUSD` is minted to a Bitcoin address you name. The vault takes a flat fee used for gas on Ethereum, and then a percentage of the remainder, currently **$1.99 plus 0.10%**. **Burning back out pays the same flat fee and the same percentage**, so several small transactions to-and-from Ethereum are not recommended for economic purposes.
 
-That floor is a **minimum of 10 frUSD**: below it the burn reverts rather than paying short. It is the token's default rather than a constant, changeable by whoever holds its auth token and readable from the chain.
+The minimum bridge amount is **10 frUSD**: below it, the burn reverts rather than paying short.
 
 In the app, choose USDC or USDT as what you are paying with and `frUSD` as what you are receiving. You will be asked to connect an Ethereum wallet and sign two transactions: an approval for exactly the amount you are depositing, and the deposit itself.
 
 If you would rather drive it yourself, [BTC/USD Commands](../api-reference/cli-sdk/btcusd) prints the same two calls for you to sign in your own wallet.
 
-:::danger[A plain transfer to the vault is not a deposit]
+:::warning[A plain transfer to the vault is not a deposit]
 The deposit must be made through the bridge contract's own deposit call, which carries the instruction naming your Bitcoin address. **Sending USDC or USDT to the vault address as an ordinary token transfer does not mint anything**: it arrives with no instruction attached, and there is no automatic route back.
 :::
 
@@ -181,9 +181,10 @@ Being specific about status matters, so here is where each piece stands.
 | | Status |
 |---|---|
 | The `frUSD` token on Bitcoin mainnet (`4:1776`) | **Live** |
-| Minting by bridging USDC/USDT from Ethereum | **Live**. The command line prepares the two Ethereum calls for you to sign in your own wallet |
+| Minting by bridging USDC/USDT from Ethereum | **Live**. If desired as a developer, the command line prepares the two Ethereum calls for you to sign in your own wallet |
 | Burning frUSD back out to Ethereum | **Live** |
 | Splitting part of a deposit into BTC on the way in | **Live**. A split the network cannot execute pays plain frUSD instead, so read the notes on [BTC/USD Commands](../api-reference/cli-sdk/btcusd) before using it |
+| Splitting part of a redemption into ETH on the way out | **Live**. `burn` takes `--to-eth-bps`, so a fresh Ethereum address can land enough ETH to pay its own gas instead of receiving tokens it cannot move |
 
 ## Where to go next
 
