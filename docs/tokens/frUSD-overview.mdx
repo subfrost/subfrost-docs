@@ -83,8 +83,6 @@ That shape is doing more work than earning a yield. A Curve LP token has no issu
 
 ## The trust model, stated plainly
 
-frUSD does not carry the same risk profile as `frBTC`, and the two should not be read as equally trust-minimized. The difference is not who holds the keys. It is where the collateral lives.
-
 The reserve sits on Ethereum, in the SUBFROST bridge vault. That vault has no owner key: moving collateral out, changing the strategy and taking fees are all reachable only through a call carrying a BIP-340 signature from the same [FROST](../key-components/frost-and-roast) threshold group that signs frUSD's Bitcoin side. That group is frUSD's own; `frBTC` is signed by a separate federation.
 
 <div className="sf-diagram">
@@ -147,9 +145,8 @@ The two dotted lines are the same authority reaching across the gap. Nothing on 
 ### What this does not remove
 
 - **The collateral is off Bitcoin.** It carries Ethereum risk, Curve risk, and stablecoin issuer risk that `frBTC` does not.
-- **The contracts are upgradeable, and unaudited.** Both the vault and the `4:1776` token sit behind upgradeable proxies, and none of this has been through a formal security audit. The token also keeps an owner of its own, an auth token that sets parameters like the burn floor, so the two contracts do not share a control model.
-- **A threshold is cryptography, not yet a federation.** How much a threshold protects you depends on where the key shares actually sit, and that is an operational fact rather than something you can read off a chain.
-- **Minting and redeeming run on SUBFROST infrastructure.** The bridge screens deposits against sanctions lists at its edge and checks payout addresses against the stablecoin issuers' own blacklists. An exit also waits on the signer group to act, with no bound on how long, and the only way to submit its calls is a relayer set managed by a single admin address. Holding and moving frUSD on Bitcoin itself is screened by none of that, and has no freeze function.
+- **The contracts are upgradeable, and unaudited.** Both the vault and the `4:1776` token sit behind upgradeable proxies, and neither has been through a formal security audit yet.
+- **Minting and redeeming run on SUBFROST infrastructure with sanctions checks.** The bridge screens deposits against sanctions lists, such as OFAC, and checks payout addresses against the stablecoin issuers' own blacklists. An exit also waits on the signer group to act, with no bound on how long. Holding and moving frUSD on Bitcoin itself is screened by none of that, and has no freeze function.
 
 Use it with all of that in mind.
 
