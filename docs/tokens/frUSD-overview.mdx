@@ -14,7 +14,7 @@ The point of frUSD is a BTC/USD market that clears on proof-of-work. Until today
 
 ## Where the dollars are
 
-frUSD is **fully reserved, not algorithmic**. There is no on-chain collateral ratio to watch, no liquidation engine, and no seigniorage. Each frUSD exists because someone deposited a dollar-denominated stablecoin on Ethereum:
+frUSD is **fully reserved, not algorithmic**. There is no on-chain collateral ratio to watch and no liquidation engine. Each frUSD exists because someone deposited a dollar-denominated stablecoin on Ethereum:
 
 1. A user deposits **USDC or USDT** into the SUBFROST bridge vault on Ethereum.
 2. The SUBFROST signer group observes the deposit and mints the matching `frUSD` on Bitcoin, to the Bitcoin address named in the deposit.
@@ -75,11 +75,11 @@ frUSD is **fully reserved, not algorithmic**. There is no on-chain collateral ra
 
 The two heavy arrows are the round trip. The dashed pair below the vault is the reserve: it goes into 3pool on a deposit and comes back out to fund a payout when frUSD burns.
 
-Anchoring to USDC and USDT is a deliberate choice rather than a shortcut. On-chain, the canonical dollar is already settled: USDC and USDT are what the market quotes against and treats as cash. frUSD does not try to unseat that, it anchors to it, so the peg tracks the dollar the ecosystem has already agreed on instead of a synthetic approximation. What SUBFROST changes is not the dollar itself but the layer you hold and move it on.
+Anchoring to USDC and USDT is a deliberate choice rather than a shortcut. On-chain, the canonical dollar is already settled: USDC and USDT are what the market quotes against and treats as cash. frUSD does not try to unseat that, it anchors to it, so the peg tracks the dollar the ecosystem has already agreed on instead of a synthetic approximation. What SUBFROST changes is not the dollar itself but the blockchain to hold and use it on.
 
 The deposited stablecoins are not left idle. The vault's strategy contract deposits them into [Curve's 3pool](https://curve.fi/), so the reserve backing frUSD is held as 3pool LP rather than as raw USDC and USDT. Changing that strategy takes the same threshold signature as moving the collateral itself.
 
-That shape is doing more work than earning a yield. A Curve LP token has no issuer, and so no function to freeze a balance: whatever authority a stablecoin issuer holds, they do not hold it over a pool share.
+That shape is doing more work than earning a yield. A Curve LP token has no issuer, and so **no function to freeze a balance: whatever authority a stablecoin issuer holds (like Tether or Circle), they do not hold it over a pool share.**
 
 ## The trust model, stated plainly
 
