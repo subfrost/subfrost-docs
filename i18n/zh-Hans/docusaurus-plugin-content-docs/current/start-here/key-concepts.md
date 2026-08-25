@@ -19,7 +19,7 @@ description: SUBFROST 的速查表，涵盖 frBTC、DIESEL、FIRE、FUEL、dxBTC
 
 - **FIRE。** Alkanes 治理代币，奖励为 DIESEL/frBTC 资金池提供流动性的人，并由质押（staking）与债券（bonding）机制驱动。这是活跃参与者获得协议份额、并随时间推移参与治理的方式。
 
-- **frUSD。** 终极的 Bitcoin 原生稳定币：一种稳定的美元代币，结算在 Bitcoin 上，没有任何实体能够将其关闭或审查。它已在主网上与 frBTC 组成资金池进行交易，也可以通过从 Ethereum 跨链存入 USDC 或 USDT 来铸造。
+- **frUSD。** Bitcoin 原生稳定币：一种美元代币，结算在 Bitcoin 本身而非其他链上，因此美元余额可以与你的 BTC 组合进同一笔交易。它已在主网上与 frBTC 组成资金池进行交易，也可以通过从 Ethereum 跨链存入 USDC 或 USDT 来铸造。关于它如何进行储备、以及这要求你信任什么，参见 [frUSD](../tokens/frUSD-overview)。
 
 ### 规划中
 
@@ -64,7 +64,7 @@ description: SUBFROST 的速查表，涵盖 frBTC、DIESEL、FIRE、FUEL、dxBTC
 
 诚实面对现状很重要。快速一览：
 
-- **已上线：** frBTC 的原子化包装与解包回 BTC、Bitcoin 资产与 BTC 之间在 AMM 资金池中的兑换、向这些 AMM 资金池提供流动性以赚取收益，以及在进阶 DeFi "FIRE" vault 中的质押与债券。
+- **已上线：** frBTC 的原子化包装与解包回 BTC、Bitcoin 资产与 BTC 之间在 AMM 资金池中的兑换、持有并交易 Bitcoin 原生美元 frUSD、向这些 AMM 资金池提供流动性以赚取收益，以及在进阶 DeFi "FIRE" vault 中的质押与债券。
 - **规划中：** 生息 Bitcoin 金库代币（dxBTC）、FUEL 治理代币，以及完全无许可的签名者网络。
 
 ## 接下来去哪里

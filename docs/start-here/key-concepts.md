@@ -19,7 +19,7 @@ A short glossary to get you oriented. Each item links to a deeper page where one
 
 - **FIRE.** The Alkanes governance token, rewarding people who provide liquidity to the DIESEL/frBTC pool, and powered by staking and bonding. It is how active participants earn a share of the protocol and, over time, help govern it.
 
-- **frUSD.** The ultimate Bitcoin-native stablecoin: a stable US-dollar coin that settles on Bitcoin with no ability for any entity to shut it off or censor it. It trades against frBTC in a pool on mainnet, and can be minted by bridging USDC or USDT in from Ethereum.
+- **frUSD.** The Bitcoin-native stablecoin: a US-dollar token that settles on Bitcoin itself rather than on another chain, so a dollar balance can be composed into the same transactions as your BTC. It trades against frBTC in a pool on mainnet, and can be minted by bridging USDC or USDT in from Ethereum. See [frUSD](../tokens/frUSD-overview) for how it is reserved and what that asks you to trust.
 
 ### Planned
 
@@ -64,7 +64,7 @@ This section keeps things simple on purpose. Terms like protostone, cellpack, an
 
 Being honest about status matters. A quick snapshot:
 
-- **Live:** Atomic wrapping of frBTC and unwrapping back to BTC, swapping in AMM pools between Bitcoin assets and BTC, providing liquidity to these AMM pools to earn a yield, and staking and bonding within the advanced DeFi "FIRE" vault.
+- **Live:** Atomic wrapping of frBTC and unwrapping back to BTC, swapping in AMM pools between Bitcoin assets and BTC, holding and trading the Bitcoin-native dollar frUSD, providing liquidity to these AMM pools to earn a yield, and staking and bonding within the advanced DeFi "FIRE" vault.
 - **Planned:** a yield-bearing Bitcoin vault token (dxBTC), the FUEL governance token, and the fully permissionless signer network.
 
 ## Where to go next

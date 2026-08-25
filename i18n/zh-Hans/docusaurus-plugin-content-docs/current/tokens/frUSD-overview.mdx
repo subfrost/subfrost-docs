@@ -1,13 +1,195 @@
 ---
+title: frUSD（比特币原生稳定币）
 sidebar_label: frUSD - 终极稳定币
 ---
 
-# frUSD - 终极稳定币
+# frUSD 概览
+## 结算在比特币 L1 上的美元
 
-:::info[已在主网上线]
-frUSD，比特币原生稳定币，已经上线。它在主网上与 frBTC 组成资金池进行交易，也可以通过从 Ethereum 跨链存入 USDC 或 USDT 来铸造。介绍其设计的完整页面稍后会发布在这里；在此之前，下列页面涵盖了你现在就可以用它做的事情。
+`frUSD` 是一种以 [Alkanes](../protocol/alkanes) 资产形式存在于比特币 L1 上的美元代币。它持有普通的比特币 UTXO，通过普通的比特币交易转移，并且可以像其他任何 Alkanes 代币一样被组合进合约调用。今天在比特币上，没有比这更好的稳定币使用体验，也没有更好的安全性。
+
+它已在主网上线，alkane id 为 `4:1776`。
+
+frUSD 的意义在于一个由工作量证明清算的 BTC/USD 市场。在此之前，稳定币都结算在别处，用户要么必须把自己的 BTC 跨链桥接到另一条链上，要么只能通过中心化交易所把它换成美元。frUSD 就在 BTC 所在的地方结算。
+
+## 美元存放在哪里
+
+frUSD 是**完全储备的，而非算法稳定币**。没有需要盯着的链上抵押率，也没有清算引擎。每一枚 frUSD 之所以存在，都是因为有人在以太坊上存入了以美元计价的稳定币：
+
+1. 用户将 **USDC 或 USDT** 存入以太坊上的 SUBFROST 跨链金库。
+2. SUBFROST 签名组观测到该笔存款后，在比特币上铸造相应数量的 `frUSD`，发送到存款时指定的比特币地址。
+3. 在比特币上销毁 `frUSD` 则是反向指令：它会在以太坊一侧释放相应价值。
+
+<div className="sf-diagram">
+<svg viewBox="0 0 800 250" role="img" aria-label="在以太坊上存入的 USDC 或 USDT 变成比特币上的 frUSD；储备以 Curve 3pool LP 的形式持有，并在 frUSD 销毁时再次被释放">
+  <defs>
+    <marker id="a" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow"/></marker>
+    <marker id="af" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-soft"/></marker>
+    <marker id="ao" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-out"/></marker>
+  </defs>
+  <text x="205" y="22" className="sf-chain sf-chain-eth" text-anchor="middle">以太坊</text>
+  <text x="612" y="22" className="sf-chain sf-chain-btc" text-anchor="middle">比特币 L1</text>
+  <line x1="417" y1="8" x2="417" y2="242" className="sf-divide"/>
+
+  <rect x="20" y="48" width="170" height="72" rx="10" className="sf-box"/>
+  <text x="105" y="79" className="sf-label" text-anchor="middle">你</text>
+  <text x="105" y="99" className="sf-sub" text-anchor="middle">USDC 或 USDT</text>
+
+  <rect x="250" y="48" width="140" height="72" rx="10" className="sf-box sf-box-key"/>
+  <text x="320" y="79" className="sf-label sf-on-key" text-anchor="middle">SUBFROST</text>
+  <text x="320" y="99" className="sf-label sf-on-key" text-anchor="middle">跨链金库</text>
+
+  <rect x="205" y="172" width="200" height="62" rx="10" className="sf-box"/>
+  <text x="305" y="198" className="sf-label" text-anchor="middle">Curve 3pool</text>
+  <text x="305" y="217" className="sf-sub" text-anchor="middle">储备所在</text>
+
+  <rect x="445" y="48" width="150" height="72" rx="10" className="sf-box sf-box-btc"/>
+  <text x="520" y="79" className="sf-label" text-anchor="middle">FROST</text>
+  <text x="520" y="99" className="sf-label" text-anchor="middle">签名组</text>
+
+  <rect x="635" y="48" width="145" height="72" rx="10" className="sf-box sf-box-btc"/>
+  <text x="707" y="79" className="sf-label" text-anchor="middle">frUSD</text>
+  <text x="707" y="100" className="sf-sub" text-anchor="middle">4:1776</text>
+
+  <path d="M190,70 L236,70" className="sf-line" marker-end="url(#a)"/>
+  <text x="218" y="54" className="sf-edge" text-anchor="middle">存入</text>
+  <path d="M250,102 L204,102" className="sf-line" marker-end="url(#a)"/>
+  <text x="218" y="126" className="sf-edge" text-anchor="middle">出款</text>
+
+  <path d="M390,84 L431,84" className="sf-line" marker-end="url(#a)"/>
+  <text x="415" y="68" className="sf-edge" text-anchor="middle">观测到</text>
+
+  <path d="M597,70 L618,70" className="sf-line sf-line-heavy"/>
+  <polygon points="617,64 630,70 617,76" className="sf-head"/>
+  <text x="614" y="54" className="sf-edge" text-anchor="middle">铸造</text>
+  <path d="M633,102 L612,102" className="sf-line sf-line-heavy"/>
+  <polygon points="613,96 600,102 613,108" className="sf-head"/>
+  <text x="614" y="126" className="sf-edge" text-anchor="middle">销毁</text>
+
+  <path d="M272,120 L272,158" className="sf-line sf-line-soft" marker-end="url(#af)"/>
+  <text x="264" y="148" className="sf-edge" text-anchor="end">以 LP 形式持有</text>
+  <path d="M338,172 L338,134" className="sf-line sf-line-out" marker-end="url(#ao)"/>
+  <text x="346" y="148" className="sf-edge sf-edge-out">销毁时释放</text>
+</svg>
+</div>
+
+两条粗箭头就是一次往返。金库下方的两条虚线是储备：存款时进入 3pool，frUSD 被销毁时再取出来支付出款。
+
+以 USDC 和 USDT 作为锚定是一个刻意的选择，而不是权宜之计。在链上，标准的美元其实早已确定：USDC 和 USDT 就是市场用来报价、并当作现金看待的资产。frUSD 并不试图取代它们，而是锚定它们，因此其锚定价格跟踪的是整个生态已经达成共识的美元，而不是一种合成的近似物。SUBFROST 改变的不是美元本身，而是持有和使用它所在的区块链。
+
+存入的稳定币不会闲置。金库的策略合约会把它们存入 [Curve 3pool](https://curve.fi/)，因此支撑 frUSD 的储备是以 3pool LP 的形式持有，而非原始的 USDC 和 USDT。更换该策略需要与转移抵押品本身相同的门限签名。
+
+这个结构的作用不只是赚取收益。Curve 的 LP 代币没有发行方，因此**也没有冻结某个余额的函数：稳定币发行方（如 Tether 或 Circle）无论拥有何种权限，都无法对一份资金池份额行使这些权限。**
+
+## 明确说明信任模型
+
+储备位于以太坊上的 SUBFROST 跨链金库中。该金库没有所有者密钥：转出抵押品、更换策略和提取手续费，都只能通过一笔携带 BIP-340 签名的调用来完成，而该签名来自为 frUSD 比特币一侧签名的同一个 [FROST](../key-components/frost-and-roast) 门限组。该门限组是 frUSD 自己的；`frBTC` 由另一个联盟签名。
+
+<div className="sf-diagram">
+<svg viewBox="0 0 800 392" role="img" aria-label="SUBFROST 签名组是两条链上的权限来源：它在以太坊上观测存款、为抵押品的放行签名，并在比特币上针对存款铸造 frUSD。销毁则是持有者自己发起的，而放行正是对它的回应">
+  <defs>
+    <marker id="a" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow"/></marker>
+    <marker id="af" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-soft"/></marker>
+    <marker id="ak" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-key"/></marker>
+  </defs>
+  <rect x="408" y="16" width="376" height="150" rx="12" className="sf-zone sf-zone-btc"/>
+  <text x="764" y="38" className="sf-chain sf-chain-btc" text-anchor="end">比特币 L1</text>
+  <rect x="430" y="58" width="140" height="70" rx="10" className="sf-box sf-box-btc"/>
+  <text x="500" y="88" className="sf-label" text-anchor="middle">FROST</text>
+  <text x="500" y="108" className="sf-label" text-anchor="middle">签名组</text>
+  <rect x="622" y="58" width="140" height="70" rx="10" className="sf-box sf-box-btc"/>
+  <text x="692" y="88" className="sf-label" text-anchor="middle">frUSD</text>
+  <text x="692" y="109" className="sf-sub" text-anchor="middle">4:1776</text>
+  <path d="M572,78 L606,78" className="sf-line sf-line-heavy"/>
+  <polygon points="605,72 618,78 605,84" className="sf-head"/>
+  <text x="596" y="62" className="sf-edge" text-anchor="middle">铸造</text>
+  <path d="M620,110 L586,110" className="sf-line sf-line-heavy"/>
+  <polygon points="587,104 574,110 587,116" className="sf-head"/>
+  <text x="596" y="130" className="sf-edge" text-anchor="middle">销毁</text>
+
+  <rect x="16" y="176" width="430" height="206" rx="12" className="sf-zone sf-zone-eth"/>
+  <text x="36" y="198" className="sf-chain sf-chain-eth">以太坊</text>
+
+  <rect x="40" y="222" width="126" height="68" rx="10" className="sf-box"/>
+  <text x="103" y="251" className="sf-label" text-anchor="middle">你</text>
+  <text x="103" y="271" className="sf-sub" text-anchor="middle">USDC 或 USDT</text>
+
+  <rect x="222" y="222" width="146" height="68" rx="10" className="sf-box sf-box-key"/>
+  <text x="295" y="251" className="sf-label sf-on-key" text-anchor="middle">SUBFROST</text>
+  <text x="295" y="271" className="sf-label sf-on-key" text-anchor="middle">跨链金库</text>
+
+  <rect x="196" y="322" width="200" height="56" rx="10" className="sf-box"/>
+  <text x="296" y="345" className="sf-label" text-anchor="middle">Curve 3pool</text>
+  <text x="296" y="363" className="sf-sub" text-anchor="middle">储备所在</text>
+
+  <path d="M166,240 L204,240" className="sf-line" marker-end="url(#a)"/>
+  <text x="185" y="230" className="sf-edge" text-anchor="middle">存入</text>
+  <path d="M222,272 L184,272" className="sf-line" marker-end="url(#a)"/>
+  <text x="185" y="290" className="sf-edge" text-anchor="middle">出款</text>
+
+  <path d="M266,290 L266,308" className="sf-line sf-line-soft" marker-end="url(#af)"/>
+  <text x="258" y="312" className="sf-edge" text-anchor="end">以 LP 形式持有</text>
+  <path d="M330,322 L330,304" className="sf-line sf-line-out" marker-end="url(#af)"/>
+  <text x="340" y="312" className="sf-edge sf-edge-out">销毁时释放</text>
+
+  <path d="M366,224 C398,208 416,184 428,146" className="sf-line sf-line-key" marker-end="url(#ak)"/>
+  <text x="396" y="176" className="sf-edge sf-edge-key" text-anchor="end">观测到存款</text>
+  <path d="M484,152 C474,202 442,232 388,250" className="sf-line sf-line-key" marker-end="url(#ak)"/>
+  <text x="462" y="216" className="sf-edge sf-edge-key">为放行签名</text>
+</svg>
+</div>
+
+这两条虚线是同一个权限跨越两条链的延伸。以太坊一侧的任何资金流动，都需要那个在比特币上铸币的门限组签名，而它签名所用的 32 字节是同一把密钥，不是一对。
+
+
+### 这并不能消除以下几点
+
+- **抵押品不在比特币上。** 它承担 `frBTC` 所没有的以太坊风险、Curve 风险和稳定币发行方风险。
+- **合约可升级，且未经审计。** 跨链金库和 `4:1776` 代币都位于可升级代理之后，两者都尚未经过正式的安全审计。
+- **铸造与赎回运行在 SUBFROST 的基础设施上，并带有制裁筛查。** 跨链桥会针对制裁名单（例如 OFAC）筛查存款，并对照稳定币发行方自己的黑名单检查出款地址。赎回还需要等待签名组行动，且没有时间上限。至于在比特币上持有和转移 frUSD 本身，则不受上述任何筛查，也没有冻结功能。
+
+请在了解上述全部内容的前提下使用。
+
+## 我要如何获得 frUSD？
+
+### 方式一：在 frUSD/frBTC 资金池中交换
+
+最直接的路径，也是全程不离开比特币的路径。`frUSD` 在 `4:1778` 的 [CryptoSwap 资金池](../using-subfrost/pools-liquidity)中与 `frBTC` 交易，因此以 BTC 计价的价值可以在不触及其他链的情况下换成美元，并换回来。
+
+### 方式二：通过从以太坊跨链存入 USDC 或 USDT 来铸造
+
+你在以太坊上存款，`frUSD` 会被铸造到你指定的比特币地址。金库会先收取一笔用于支付以太坊 gas 的固定费用，再按剩余部分收取一定比例，目前是 **1.99 美元加 0.10%**。**销毁换回同样要支付这笔固定费用和同样比例的费用**，因此不建议出于经济目的在以太坊之间进行多笔小额往返交易。
+
+跨链的最小金额为 **10 frUSD**：低于该值，销毁会直接回滚，而不是少付给你。
+
+在应用中，选择 USDC 或 USDT 作为你支付的资产，选择 `frUSD` 作为你收到的资产。你会被要求连接一个以太坊钱包并签署两笔交易：一笔是针对你所存入金额的授权（approve），另一笔是存款本身。
+
+如果你更愿意自己操作，[BTC/USD 命令](../api-reference/cli-sdk/btcusd)会打印出同样的两个调用，供你在自己的钱包中签名。
+
+:::warning[向金库发送普通转账不等于存款]
+存款必须通过跨链合约自身的存款调用完成，该调用携带了指明你比特币地址的指令。**以普通代币转账的方式向金库地址发送 USDC 或 USDT 不会铸造任何东西**：它到达时不附带任何指令，并且没有自动的退回路径。
 :::
+
+### 方式三：接收它
+
+`frUSD` 是一种普通的 Alkanes 代币。任何支持 Alkanes 资产的钱包都可以持有、发送和接收它，它会与你的其他余额一同显示。
+
+## 目前有哪些功能已经上线
+
+说清楚状态很重要，以下是各个部分的现状。
+
+| | 状态 |
+|---|---|
+| 比特币主网上的 `frUSD` 代币（`4:1776`） | **已上线** |
+| 通过从以太坊跨链存入 USDC/USDT 进行铸造 | **已上线**。开发者如有需要，命令行会为你准备好那两笔以太坊调用，供你在自己的钱包中签名 |
+| 将 frUSD 销毁并换回以太坊资产 | **已上线** |
+| 存入时将一部分拆分为 BTC | **已上线**。网络无法执行的拆分会改为支付普通 frUSD，使用前请阅读 [BTC/USD 命令](../api-reference/cli-sdk/btcusd)中的说明 |
+| 赎回时将一部分拆分为 ETH | **已实现，但尚未广播**。`burn` 支持 `--to-eth-bps` 并会打印出 payload，但在 cellpack 打包通过集成测试核对之前，该命令拒绝签名；而已在主网结算的那笔销毁支付的是普通稳定币。参见 [BTC/USD 命令](../api-reference/cli-sdk/btcusd) |
+
+## 接下来去哪里
 
 - [Swap（交换）](../using-subfrost/swap)：通过 frUSD/frBTC 资金池进行 BTC 与 USD 之间的交易。
 - [Pools & Liquidity（资金池与流动性）](../using-subfrost/pools-liquidity)：向该资金池提供流动性能获得什么，以及它的手续费与标准 AMM 资金池有何不同。
 - [BTC/USD Commands（BTC/USD 命令）](../api-reference/cli-sdk/btcusd)：从命令行读取资金池数据、获取报价，或准备一笔跨链存入交易。
+- [frBTC 概览](./frBTC-overview)：frUSD 与之交易的包装 BTC 资产，以及两者托管模型的差异所在。
+- [Every Stablecoin Has an Off-Switch. frUSD Doesn't.（每一种稳定币都有关闭开关，frUSD 没有）](https://subfrost.io/articles/frusd-off-switch-free-finance)：阐述「为什么值得构建一种结算在 Bitcoin 上的美元」的文章。它论述的是目标；本页记录的是今天已经建成的部分。

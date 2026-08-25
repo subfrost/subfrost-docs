@@ -39,7 +39,7 @@ Without a key the CLI uses the shared `/v4/jsonrpc` endpoint and prints a warnin
 
 ## Command surface
 
-What you can use today. Commands that are not built yet are listed separately at the end, under "Not built yet" — they exist in `--help` and refuse on purpose rather than emitting a transaction that looks right and is not.
+What you can use today. Commands that are not built yet are listed separately at the end, under "Not built yet": they exist in `--help` and refuse on purpose rather than emitting a transaction that looks right and is not.
 
 | Command | Status | What it does |
 | --- | --- | --- |
@@ -146,7 +146,7 @@ curl -s https://mainnet.subfrost.io/v4/$SUBFROST_API_KEY/espo \
 
 ## What size actually costs
 
-The marginal price is not the price you get. This pool is shallow, so price impact is material and grows fast with size: in the ladders below, buying is already 0.9% off the marginal price at $500 and 8.8% off at $5,000, and selling 0.03 BTC clears about 8.5% below market. Whether a small trade starts out slightly for or against you depends on which side of the market the pool's marginal price is sitting on that day, and it moves — it was about 0.8% above market at this reading and has been below it since. That side is the one thing here you must re-measure rather than read: the ladders show impact, which is a property of the curve, but the starting point is not. Quote at the size you intend to trade, not at a smaller one.
+The marginal price is not the price you get. This pool is shallow, so price impact is material and grows fast with size: in the ladders below, buying is already 0.9% off the marginal price at $500 and 8.8% off at $5,000, and selling 0.03 BTC clears about 8.5% below market. Whether a small trade starts out slightly for or against you depends on which side of the market the pool's marginal price is sitting on that day, and it moves; it was about 0.8% above market at this reading and has been below it since. That side is the one thing here you must re-measure rather than read: the ladders show impact, which is a property of the curve, but the starting point is not. Quote at the size you intend to trade, not at a smaller one.
 
 **Buying frBTC with frUSD**
 
@@ -309,7 +309,7 @@ It is a raw byte encoding:
 
 **One allowlisted target only.** Uniswap V2 Router02 at `0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D`, calldata `swapExactTokensForETH(amountIn, amountOutMin, path, to, deadline)` with `path = [USDC, WETH]`. Anything else degrades to a plain payout. V2 and not V3 deliberately: one `target.call`, no multicall.
 
-**`burn` does not broadcast yet.** The `burnData` payload is authoritative, matched to the coordinator's own parser and unit tested. The frUSD `BurnAndBridge` cellpack packing around it still needs checking against the integration tests before anything is signed. Guessing that packing is exactly how a burn silently degrades to a plain payout.
+**The route is live; this command does not broadcast it yet.** A burn has settled end to end on mainnet, so `BurnAndBridge` itself works: reference transaction `8aa2d9412897dcb25fd91155a910848e8481d72318cc5724dfaac20d58cc576e`, block 961,294, which burned frUSD and paid USDT out on Ethereum. What this command produces is the `burnData` payload, which is authoritative, matched to the coordinator's own parser and unit tested. The frUSD `BurnAndBridge` cellpack packing around that payload still needs checking against the integration tests before anything is signed, so the CLI prints and refuses. Guessing that packing is exactly how a burn silently degrades to a plain payout.
 
 ## Watching both chains
 
@@ -364,7 +364,7 @@ Listed so nobody builds a workflow on top of a command that refuses.
 - `simulate-block`: the node-side view exists, assembling the candidate block to feed it does not. It refuses.
 - `mempool watch`: the websocket stream needs its reconnect state machine, because a changed `instance` invalidates every sequence number. It refuses. `mempool info`, `template` and `entry` all work.
 - `deposit` local signing: the key flags refuse. The supported path is printing the two calls and signing in your own wallet, which is what the web app does.
-- `burn` broadcast: the payload is built and printed, the cellpack packing around it is unverified.
+- `burn` broadcast: the payload is built and printed, the cellpack packing around it is unverified. The on-chain route itself is live.
 - `candles` and `signers`: they answer, but print the raw protobuf hex instead of a decoded table.
 
 ## Next steps

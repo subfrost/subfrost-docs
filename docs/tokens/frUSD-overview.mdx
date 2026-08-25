@@ -1,13 +1,195 @@
 ---
+title: frUSD (Bitcoin-native stablecoin)
 sidebar_label: frUSD - Ultimate Stablecoin
 ---
 
-# frUSD - Ultimate Stablecoin
+# frUSD Overview
+## The Dollar, Settled on Bitcoin L1
 
-:::info[Live on mainnet]
-frUSD, the Bitcoin-native stablecoin, is live. It trades against frBTC in a pool on mainnet, and it can be minted by bridging USDC or USDT in from Ethereum. A full page describing the design will land here; until then the pages below cover what you can do with it today.
+`frUSD` is a US-dollar token that lives on Bitcoin L1 as an [Alkanes](../protocol/alkanes) asset. It holds an ordinary Bitcoin UTXO, moves in an ordinary Bitcoin transaction, and can be composed into the same contract calls as any other Alkanes token. There is no better stablecoin UX, or security, anywhere on Bitcoin today.
+
+It is live on mainnet at alkane id `4:1776`.
+
+The point of frUSD is a BTC/USD market that clears on proof-of-work. Until today, stablecoins settle elsewhere and always require users to bridge their BTC onto another chain, or use a centralized exchange to swap it for USD. frUSD settles where BTC already is.
+
+## Where the dollars are
+
+frUSD is **fully reserved, not algorithmic**. There is no on-chain collateral ratio to watch and no liquidation engine. Each frUSD exists because someone deposited a dollar-denominated stablecoin on Ethereum:
+
+1. A user deposits **USDC or USDT** into the SUBFROST bridge vault on Ethereum.
+2. The SUBFROST signer group observes the deposit and mints the matching `frUSD` on Bitcoin, to the Bitcoin address named in the deposit.
+3. Burning `frUSD` on Bitcoin is the reverse instruction: it releases value back out on Ethereum.
+
+<div className="sf-diagram">
+<svg viewBox="0 0 800 250" role="img" aria-label="USDC or USDT deposited on Ethereum becomes frUSD on Bitcoin; the reserve is held as Curve 3pool LP and released again when frUSD burns">
+  <defs>
+    <marker id="a" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow"/></marker>
+    <marker id="af" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-soft"/></marker>
+    <marker id="ao" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-out"/></marker>
+  </defs>
+  <text x="205" y="22" className="sf-chain sf-chain-eth" text-anchor="middle">ETHEREUM</text>
+  <text x="612" y="22" className="sf-chain sf-chain-btc" text-anchor="middle">BITCOIN L1</text>
+  <line x1="417" y1="8" x2="417" y2="242" className="sf-divide"/>
+
+  <rect x="20" y="48" width="170" height="72" rx="10" className="sf-box"/>
+  <text x="105" y="79" className="sf-label" text-anchor="middle">You</text>
+  <text x="105" y="99" className="sf-sub" text-anchor="middle">USDC or USDT</text>
+
+  <rect x="250" y="48" width="140" height="72" rx="10" className="sf-box sf-box-key"/>
+  <text x="320" y="79" className="sf-label sf-on-key" text-anchor="middle">SUBFROST</text>
+  <text x="320" y="99" className="sf-label sf-on-key" text-anchor="middle">bridge vault</text>
+
+  <rect x="205" y="172" width="200" height="62" rx="10" className="sf-box"/>
+  <text x="305" y="198" className="sf-label" text-anchor="middle">Curve 3pool</text>
+  <text x="305" y="217" className="sf-sub" text-anchor="middle">the reserve</text>
+
+  <rect x="445" y="48" width="150" height="72" rx="10" className="sf-box sf-box-btc"/>
+  <text x="520" y="79" className="sf-label" text-anchor="middle">FROST</text>
+  <text x="520" y="99" className="sf-label" text-anchor="middle">signer group</text>
+
+  <rect x="635" y="48" width="145" height="72" rx="10" className="sf-box sf-box-btc"/>
+  <text x="707" y="79" className="sf-label" text-anchor="middle">frUSD</text>
+  <text x="707" y="100" className="sf-sub" text-anchor="middle">4:1776</text>
+
+  <path d="M190,70 L236,70" className="sf-line" marker-end="url(#a)"/>
+  <text x="218" y="54" className="sf-edge" text-anchor="middle">deposit</text>
+  <path d="M250,102 L204,102" className="sf-line" marker-end="url(#a)"/>
+  <text x="218" y="126" className="sf-edge" text-anchor="middle">payout</text>
+
+  <path d="M390,84 L431,84" className="sf-line" marker-end="url(#a)"/>
+  <text x="415" y="68" className="sf-edge" text-anchor="middle">sees it</text>
+
+  <path d="M597,70 L618,70" className="sf-line sf-line-heavy"/>
+  <polygon points="617,64 630,70 617,76" className="sf-head"/>
+  <text x="614" y="54" className="sf-edge" text-anchor="middle">mints</text>
+  <path d="M633,102 L612,102" className="sf-line sf-line-heavy"/>
+  <polygon points="613,96 600,102 613,108" className="sf-head"/>
+  <text x="614" y="126" className="sf-edge" text-anchor="middle">burns</text>
+
+  <path d="M272,120 L272,158" className="sf-line sf-line-soft" marker-end="url(#af)"/>
+  <text x="264" y="148" className="sf-edge" text-anchor="end">held as LP</text>
+  <path d="M338,172 L338,134" className="sf-line sf-line-out" marker-end="url(#ao)"/>
+  <text x="346" y="148" className="sf-edge sf-edge-out">released on a burn</text>
+</svg>
+</div>
+
+The two heavy arrows are the round trip. The dashed pair below the vault is the reserve: it goes into 3pool on a deposit and comes back out to fund a payout when frUSD burns.
+
+Anchoring to USDC and USDT is a deliberate choice rather than a shortcut. On-chain, the canonical dollar is already settled: USDC and USDT are what the market quotes against and treats as cash. frUSD does not try to unseat that, it anchors to it, so the peg tracks the dollar the ecosystem has already agreed on instead of a synthetic approximation. What SUBFROST changes is not the dollar itself but the blockchain to hold and use it on.
+
+The deposited stablecoins are not left idle. The vault's strategy contract deposits them into [Curve's 3pool](https://curve.fi/), so the reserve backing frUSD is held as 3pool LP rather than as raw USDC and USDT. Changing that strategy takes the same threshold signature as moving the collateral itself.
+
+That shape is doing more work than earning a yield. A Curve LP token has no issuer, and so **no function to freeze a balance: whatever authority a stablecoin issuer holds (like Tether or Circle), they do not hold it over a pool share.**
+
+## The trust model, stated plainly
+
+The reserve sits on Ethereum, in the SUBFROST bridge vault. That vault has no owner key: moving collateral out, changing the strategy and taking fees are all reachable only through a call carrying a BIP-340 signature from the same [FROST](../key-components/frost-and-roast) threshold group that signs frUSD's Bitcoin side. That group is frUSD's own; `frBTC` is signed by a separate federation.
+
+<div className="sf-diagram">
+<svg viewBox="0 0 800 392" role="img" aria-label="the SUBFROST signer group is the authority on both chains: it sees the deposit on Ethereum, signs the release of collateral there, and mints frUSD on Bitcoin against a deposit. Burning is the holder's own call, and it is what the release answers">
+  <defs>
+    <marker id="a" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow"/></marker>
+    <marker id="af" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-soft"/></marker>
+    <marker id="ak" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow-key"/></marker>
+  </defs>
+  <rect x="408" y="16" width="376" height="150" rx="12" className="sf-zone sf-zone-btc"/>
+  <text x="764" y="38" className="sf-chain sf-chain-btc" text-anchor="end">BITCOIN L1</text>
+  <rect x="430" y="58" width="140" height="70" rx="10" className="sf-box sf-box-btc"/>
+  <text x="500" y="88" className="sf-label" text-anchor="middle">FROST</text>
+  <text x="500" y="108" className="sf-label" text-anchor="middle">signer group</text>
+  <rect x="622" y="58" width="140" height="70" rx="10" className="sf-box sf-box-btc"/>
+  <text x="692" y="88" className="sf-label" text-anchor="middle">frUSD</text>
+  <text x="692" y="109" className="sf-sub" text-anchor="middle">4:1776</text>
+  <path d="M572,78 L606,78" className="sf-line sf-line-heavy"/>
+  <polygon points="605,72 618,78 605,84" className="sf-head"/>
+  <text x="596" y="62" className="sf-edge" text-anchor="middle">mints</text>
+  <path d="M620,110 L586,110" className="sf-line sf-line-heavy"/>
+  <polygon points="587,104 574,110 587,116" className="sf-head"/>
+  <text x="596" y="130" className="sf-edge" text-anchor="middle">burns</text>
+
+  <rect x="16" y="176" width="430" height="206" rx="12" className="sf-zone sf-zone-eth"/>
+  <text x="36" y="198" className="sf-chain sf-chain-eth">ETHEREUM</text>
+
+  <rect x="40" y="222" width="126" height="68" rx="10" className="sf-box"/>
+  <text x="103" y="251" className="sf-label" text-anchor="middle">You</text>
+  <text x="103" y="271" className="sf-sub" text-anchor="middle">USDC or USDT</text>
+
+  <rect x="222" y="222" width="146" height="68" rx="10" className="sf-box sf-box-key"/>
+  <text x="295" y="251" className="sf-label sf-on-key" text-anchor="middle">SUBFROST</text>
+  <text x="295" y="271" className="sf-label sf-on-key" text-anchor="middle">bridge vault</text>
+
+  <rect x="196" y="322" width="200" height="56" rx="10" className="sf-box"/>
+  <text x="296" y="345" className="sf-label" text-anchor="middle">Curve 3pool</text>
+  <text x="296" y="363" className="sf-sub" text-anchor="middle">the reserve</text>
+
+  <path d="M166,240 L204,240" className="sf-line" marker-end="url(#a)"/>
+  <text x="185" y="230" className="sf-edge" text-anchor="middle">deposit</text>
+  <path d="M222,272 L184,272" className="sf-line" marker-end="url(#a)"/>
+  <text x="185" y="290" className="sf-edge" text-anchor="middle">payout</text>
+
+  <path d="M266,290 L266,308" className="sf-line sf-line-soft" marker-end="url(#af)"/>
+  <text x="258" y="312" className="sf-edge" text-anchor="end">held as LP</text>
+  <path d="M330,322 L330,304" className="sf-line sf-line-out" marker-end="url(#af)"/>
+  <text x="340" y="312" className="sf-edge sf-edge-out">released on a burn</text>
+
+  <path d="M366,224 C398,208 416,184 428,146" className="sf-line sf-line-key" marker-end="url(#ak)"/>
+  <text x="396" y="176" className="sf-edge sf-edge-key" text-anchor="end">sees the deposit</text>
+  <path d="M484,152 C474,202 442,232 388,250" className="sf-line sf-line-key" marker-end="url(#ak)"/>
+  <text x="462" y="216" className="sf-edge sf-edge-key">signs the release</text>
+</svg>
+</div>
+
+The two dotted lines are the same authority reaching across the gap. Nothing on the Ethereum side moves without a signature from the group that mints on Bitcoin, and the 32 bytes it signs with are one key, not a pair.
+
+
+### What this does not remove
+
+- **The collateral is off Bitcoin.** It carries Ethereum risk, Curve risk, and stablecoin issuer risk that `frBTC` does not.
+- **The contracts are upgradeable, and unaudited.** Both the vault and the `4:1776` token sit behind upgradeable proxies, and neither has been through a formal security audit yet.
+- **Minting and redeeming run on SUBFROST infrastructure with sanctions checks.** The bridge screens deposits against sanctions lists, such as OFAC, and checks payout addresses against the stablecoin issuers' own blacklists. An exit also waits on the signer group to act, with no bound on how long. Holding and moving frUSD on Bitcoin itself is screened by none of that, and has no freeze function.
+
+Use it with all of that in mind.
+
+## How can I get frUSD?
+
+### Option 1: Swap for it in the frUSD/frBTC pool
+
+The most direct route, and the one that never leaves Bitcoin. `frUSD` trades against `frBTC` in a [CryptoSwap pool](../using-subfrost/pools-liquidity) at `4:1778`, so BTC-denominated value can be moved into dollars and back without touching another chain.
+
+### Option 2: Mint it by bridging USDC or USDT from Ethereum
+
+You deposit on Ethereum and the `frUSD` is minted to a Bitcoin address you name. The vault takes a flat fee used for gas on Ethereum, and then a percentage of the remainder, currently **$1.99 plus 0.10%**. **Burning back out pays the same flat fee and the same percentage**, so several small transactions to-and-from Ethereum are not recommended for economic purposes.
+
+The minimum bridge amount is **10 frUSD**: below it, the burn reverts rather than paying short.
+
+In the app, choose USDC or USDT as what you are paying with and `frUSD` as what you are receiving. You will be asked to connect an Ethereum wallet and sign two transactions: an approval for exactly the amount you are depositing, and the deposit itself.
+
+If you would rather drive it yourself, [BTC/USD Commands](../api-reference/cli-sdk/btcusd) prints the same two calls for you to sign in your own wallet.
+
+:::warning[A plain transfer to the vault is not a deposit]
+The deposit must be made through the bridge contract's own deposit call, which carries the instruction naming your Bitcoin address. **Sending USDC or USDT to the vault address as an ordinary token transfer does not mint anything**: it arrives with no instruction attached, and there is no automatic route back.
 :::
+
+### Option 3: Receive it
+
+`frUSD` is an ordinary Alkanes token. Any wallet that handles Alkanes assets can hold, send, and receive it, and it shows up alongside your other balances.
+
+## What is live today
+
+Being specific about status matters, so here is where each piece stands.
+
+| | Status |
+|---|---|
+| The `frUSD` token on Bitcoin mainnet (`4:1776`) | **Live** |
+| Minting by bridging USDC/USDT from Ethereum | **Live**. If desired as a developer, the command line prepares the two Ethereum calls for you to sign in your own wallet |
+| Burning frUSD back out to Ethereum | **Live** |
+| Splitting part of a deposit into BTC on the way in | **Live**. A split the network cannot execute pays plain frUSD instead, so read the notes on [BTC/USD Commands](../api-reference/cli-sdk/btcusd) before using it |
+| Splitting part of a redemption into ETH on the way out | **Built, not yet broadcast**. `burn` takes `--to-eth-bps` and prints the payload, but the command refuses to sign it until the cellpack packing is checked against the integration tests, and the burn that has settled on mainnet paid a plain stablecoin out. See [BTC/USD Commands](../api-reference/cli-sdk/btcusd) |
+
+## Where to go next
 
 - [Swap](../using-subfrost/swap): trade BTC against USD through the frUSD/frBTC pool.
 - [Pools & Liquidity](../using-subfrost/pools-liquidity): what providing liquidity to that pool pays, and how its fee differs from a standard AMM pool.
 - [BTC/USD Commands](../api-reference/cli-sdk/btcusd): read the pool, quote a trade, or prepare a bridge deposit from the command line.
+- [frBTC Overview](./frBTC-overview): the wrapped-BTC asset frUSD trades against, and how the two custody stories differ.
+- [Every Stablecoin Has an Off-Switch. frUSD Doesn't.](https://subfrost.io/articles/frusd-off-switch-free-finance): the essay making the case for why a dollar that settles on Bitcoin is worth building. It argues the destination; this page documents what is built today.

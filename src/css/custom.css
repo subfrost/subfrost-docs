@@ -906,3 +906,71 @@ html[data-theme='dark'] a {
 html[data-theme='dark'] .pagination-nav__link:hover {
   border-color: #f5f5f5;
 }
+
+/* ============================================================================
+   Hand-drawn docs diagrams (`.sf-diagram`).
+
+   These are inline SVG rather than mermaid because mermaid picks the layout
+   and the palette, and neither matched the site. The colour split is the one
+   the diagrams lean on: ice blue is Ethereum, amber is Bitcoin, and the navy
+   block is SUBFROST's own piece sitting between them.
+
+   Every colour is redefined under `[data-theme='dark']`, so a diagram that
+   only sets fills here will be unreadable in dark mode. Add both halves.
+
+   Arrowheads on the heavy lines are explicit `<polygon>`s, not markers: a
+   marker's tip renders with a serrated edge where it meets the end of a thick
+   stroke, and it is visible at reading size. Thin lines keep their markers.
+   ========================================================================= */
+.sf-diagram { margin: 1.6rem 0; }
+.sf-diagram svg { width: 100%; height: auto; font-family: 'Geist', system-ui, sans-serif; }
+.sf-box { fill: #ffffff; stroke: #c5d7e9; stroke-width: 1.5px; }
+.sf-box-key { fill: #0b2239; stroke: #0b2239; }
+.sf-box-btc { fill: #fdf0e2; stroke: #e0a860; }
+.sf-label { font-size: 13px; font-weight: 500; fill: #0b2239; }
+.sf-on-key { fill: #ffffff; }
+.sf-sub { font-size: 11px; fill: #5b7f9e; }
+/* `paint-order: stroke` puts a background-coloured halo behind the label so it
+   can sit near a line without the line running through the letters. */
+.sf-edge { font-size: 11px; fill: #5b7f9e; paint-order: stroke; stroke: #ffffff; stroke-width: 3px; stroke-linejoin: round; }
+.sf-edge-out { fill: #b3690f; }
+.sf-chain { font-size: 10px; letter-spacing: .14em; font-weight: 600; }
+.sf-chain-eth { fill: #3b7cc4; }
+.sf-chain-btc { fill: #c07a1e; }
+.sf-divide { stroke: #dfe8f1; stroke-width: 1px; stroke-dasharray: 4 5; }
+.sf-line { stroke: #8aa7bf; stroke-width: 1.5px; fill: none; }
+.sf-line-soft { stroke: #b9cee1; stroke-dasharray: 4 4; }
+.sf-line-heavy { stroke: #0b2239; stroke-width: 2.5px; }
+.sf-line-out { stroke: #d98324; stroke-width: 1.5px; stroke-dasharray: 4 4; }
+.sf-arrow { fill: #8aa7bf; }
+.sf-arrow-soft { fill: #b9cee1; }
+.sf-arrow-out { fill: #d98324; }
+.sf-head { fill: #0b2239; stroke: none; }
+
+html[data-theme='dark'] .sf-box { fill: #101418; stroke: #2b3a4a; }
+html[data-theme='dark'] .sf-box-key { fill: #e8f1fb; stroke: #e8f1fb; }
+html[data-theme='dark'] .sf-box-btc { fill: #2a1e10; stroke: #7a5623; }
+html[data-theme='dark'] .sf-label { fill: #dbe6f0; }
+html[data-theme='dark'] .sf-on-key { fill: #0b2239; }
+html[data-theme='dark'] .sf-sub { fill: #8fa6ba; }
+html[data-theme='dark'] .sf-edge { fill: #8fa6ba; stroke: #000000; }
+html[data-theme='dark'] .sf-divide { stroke: #22303d; }
+html[data-theme='dark'] .sf-head { fill: #e8f1fb; }
+html[data-theme='dark'] .sf-line-heavy { stroke: #e8f1fb; }
+
+/* Chain regions and the signing-authority lines, used by the trust-model
+   diagram. `fill: none` is not the default for `<rect>`: leave it out and the
+   region paints solid black, which is exactly what happened the first time
+   these classes were written in a scratch file and not carried over here. */
+.sf-zone { fill: none; stroke-width: 1px; }
+.sf-zone-eth { stroke: #cfe0f0; }
+.sf-zone-btc { stroke: #eecfa6; }
+.sf-line-key { stroke: #0b2239; stroke-width: 1.5px; stroke-dasharray: 3 4; }
+.sf-arrow-key { fill: #0b2239; }
+.sf-edge-key { fill: #0b2239; font-weight: 500; }
+
+html[data-theme='dark'] .sf-zone-eth { stroke: #22303d; }
+html[data-theme='dark'] .sf-zone-btc { stroke: #4a3720; }
+html[data-theme='dark'] .sf-line-key { stroke: #e8f1fb; }
+html[data-theme='dark'] .sf-arrow-key { fill: #e8f1fb; }
+html[data-theme='dark'] .sf-edge-key { fill: #e8f1fb; }
