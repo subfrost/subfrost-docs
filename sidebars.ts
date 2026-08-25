@@ -49,7 +49,7 @@ const sidebars: SidebarsConfig = {
         {
           type: 'doc',
           id: 'tokens/frUSD-overview',
-          label: 'frUSD - Ultimate Stablecoin',
+          label: 'frUSD - Stablecoin on BTC',
         },
         {
           type: 'doc',
