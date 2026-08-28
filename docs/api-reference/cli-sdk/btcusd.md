@@ -369,6 +369,7 @@ Listed so nobody builds a workflow on top of a command that refuses.
 
 ## Next steps
 
+- [BTCUSD Pool](../../using-subfrost/btcusd-pool): the same pool as a product page, for anyone you are handing this to.
 - [Pools & Liquidity](../../using-subfrost/pools-liquidity): what providing liquidity to this pool pays.
 - [frUSD Overview](../../tokens/frUSD-overview): the asset on the USD side of the pair.
 - [Alkanes Commands](./alkanes): contract execution, traces, and the general AMM surface.

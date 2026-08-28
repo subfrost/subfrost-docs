@@ -1,7 +1,7 @@
 ---
 title: Lending
 sidebar_label: Lending
-sidebar_position: 7
+sidebar_position: 8
 description: Lend your tokens to earn interest, or borrow against collateral, settled peer-to-peer on Bitcoin L1.
 ---
 

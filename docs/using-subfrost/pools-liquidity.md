@@ -53,5 +53,6 @@ Neither figure can be read from the pool contract today: the views that would ex
 
 ## Next steps
 
+- [BTCUSD Pool](./btcusd-pool): the frUSD/frBTC pool the warning above is about.
 - [FIRE Vault](./fire-vault): stake your LP and earn FIRE, or buy FIRE through bonds.
 - [Swap](./swap): the other side of the pool.

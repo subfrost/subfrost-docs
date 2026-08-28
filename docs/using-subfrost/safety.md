@@ -1,7 +1,7 @@
 ---
 title: Safety
 sidebar_label: Safety
-sidebar_position: 6
+sidebar_position: 7
 description: Keep your Ordinals, Runes and BRC-20 assets safe when using SUBFROST.
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: Futures
 sidebar_label: Futures
-sidebar_position: 8
+sidebar_position: 9
 description: Futures on SUBFROST are coming soon.
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: FIRE Vault
 sidebar_label: FIRE Vault
-sidebar_position: 5
+sidebar_position: 6
 description: 质押流动性以赚取 FIRE，或通过债券以折扣价购买 FIRE。
 ---
 
