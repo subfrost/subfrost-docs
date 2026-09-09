@@ -259,24 +259,11 @@ Deposit FIRE and you receive a **cFIRE-POS** NFT position holding your claim. Ex
 
 So the rate only moves in one direction, and it moves because somebody left. Staying longer than the people around you is the whole of the strategy.
 
-### The problem cFIRE solves, and the position that solves it
-
-Voting power is read **by address**. FIRE sitting in the vault is not at your address, so after a plain deposit you read as **zero** in governance. You are choosing between the yield and the vote.
-
-Depositing through a **position** is how you take both.
-
-| | Plain deposit | Deposit through a position |
-| --- | --- | --- |
-| What you hold | cFIRE at your address | A `cFIRE-POS` NFT, plus a vote token |
-| Earns | The vault rate | The same vault rate |
-| Counts in governance | No | Yes, through the vote token |
-| Costs to leave | 8% | 10% |
-
-The position earns exactly what a plain deposit earns. The two points are what the vote costs.
-
 ### What you get, and what each piece does
 
-One deposit through the wrapper produces two things:
+Voting power is read **by address**, and FIRE sitting in a vault is not at your address. That is what the position is for: it holds the deposit, and a separate token carries the vote.
+
+One FIRE deposit into the cFIRE vault produces two things:
 
 ```
 Deposit(FIRE) -> cFIRE-POS-{n}            the position: holds the vault shares
@@ -293,9 +280,9 @@ Your weight is what your position is worth **in FIRE**, so a position and a plai
 
 It is measured **before** the exit fee: a position that would pay out 90 FIRE weighs 100. And it rises on its own as the pot drips back into the rate, without you touching anything.
 
-### Delegating is a transfer
+### Delegating is a transfer, made easy
 
-There is no registry and no signature scheme behind delegation. The vote token is a **bearer** asset, and whoever holds it votes with it. So delegating is an ordinary send.
+There is no registry and no signature scheme behind delegation. The vote token is a **bearer** asset, and whoever holds it votes with it. So delegating is an ordinary send, but we have created a UI for it.
 
 | Action | What happens on chain |
 | --- | --- |
@@ -305,8 +292,8 @@ There is no registry and no signature scheme behind delegation. The vote token i
 
 Minting a replacement cancels the previous token **wherever it is**. Nothing is taken from the person holding it: their token stays in their wallet and reports zero from that moment.
 
-:::warning[Both tokens are bearer assets]
-Whoever holds the position (**cFIRE-POS**) can exit it, so sending the position sends the deposit. Sending the vote token sends only the vote. **NEVER SEND THE cFIRE-POS NFT UNLESS YOU MEAN TO SEND YOUR FIRE AWAY.** The only NFT meant to travel is **cFIRE-DELEGATE**.
+:::warning[Sending cFIRE-POS is sending your FIRE away]
+Whoever holds the position (**cFIRE-POS**) can exit it, so sending the position sends the deposit. Sending the vote token (**cFIRE-DELEGATE**) sends only the vote. **NEVER SEND THE cFIRE-POS NFT UNLESS YOU MEAN TO SEND YOUR FIRE AWAY.** The only NFT meant to travel is **cFIRE-DELEGATE**.
 :::
 
 ### Leaving the cFIRE vault
