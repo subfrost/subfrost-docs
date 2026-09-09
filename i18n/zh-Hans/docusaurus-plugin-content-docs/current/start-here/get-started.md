@@ -11,12 +11,12 @@ description: 选择一个钱包，存入 Bitcoin，在 SUBFROST 上完成你的�
 
 ## 第 1 步：打开 SUBFROST
 
-今天最简单的开始方式是使用 **网页应用**。原生客户端也即将推出：
+**网页应用**随处可用，另有两个原生客户端已经发布：
 
-- **<a href="https://app.subfrost.io" target="_blank" rel="noopener noreferrer">Web app</a>.** 现已可用，是目前推荐的入门方式。
-- **Android。** 即将推出。
+- **<a href="https://app.subfrost.io" target="_blank" rel="noopener noreferrer">Web app</a>.** 在任意浏览器中都能使用，也是最快的入门方式。
+- **<a href="https://subfrost.io/download/android" target="_blank" rel="noopener noreferrer">Android</a>。** 直接安装包，无需应用商店账号。Google Play 上架即将推出。
+- **<a href="https://chromewebstore.google.com/detail/subfrost/pcmlnnfmcdmaifmleedbhomhaeldkeen" target="_blank" rel="noopener noreferrer">Chrome 浏览器扩展</a>。** 已上架 Chrome 应用商店。
 - **iOS。** 即将推出（App Store 审核中）。
-- **Chrome 浏览器扩展。** 即将推出。
 
 本指南将使用网页应用。各选项的详细说明见 [钱包](../using-subfrost/wallets)。
 

@@ -11,12 +11,12 @@ This guide takes you from zero to your first swap. You will pick how to access S
 
 ## Step 1: Open SUBFROST
 
-The easiest way to start today is the **web app**. Native clients are on the way:
+The **web app** works everywhere, and there are two native clients out already:
 
-- **<a href="https://app.subfrost.io" target="_blank" rel="noopener noreferrer">Web app</a>.** Available now, and the recommended way to get started right now.
-- **Android.** Coming soon.
+- **<a href="https://app.subfrost.io" target="_blank" rel="noopener noreferrer">Web app</a>.** Works in any browser, and the quickest way to get started.
+- **<a href="https://subfrost.io/download/android" target="_blank" rel="noopener noreferrer">Android</a>.** A direct install file. No app store account needed. Google Play listing coming soon.
+- **<a href="https://chromewebstore.google.com/detail/subfrost/pcmlnnfmcdmaifmleedbhomhaeldkeen" target="_blank" rel="noopener noreferrer">Chrome browser extension</a>.** On the Chrome Web Store.
 - **iOS.** Coming soon (in App Store review).
-- **Chrome Browser extension.** Coming soon.
 
 For this guide we will use the web app. See [Wallets](../using-subfrost/wallets) for details on each option.
 
