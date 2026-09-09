@@ -7,7 +7,7 @@ description: Create or connect a Bitcoin wallet for SUBFROST, manage your balanc
 
 # Wallets
 
-To use SUBFROST you need a Bitcoin wallet. The **web app** works in any browser, and there are native clients for Android and iOS plus a Chrome extension.
+To use SUBFROST you need a Bitcoin wallet. The **web app** works in any browser, and there is an Android app and a Chrome extension out already.
 
 Your wallet is where you view your assets, interact with smart contracts, manage UTXOs, track transactions, and send and receive BTC.
 
@@ -137,11 +137,11 @@ Send only Bitcoin or Alkanes tokens to this address. Verify the address is corre
 
 ## Mobile and browser extension
 
-SUBFROST is built mobile-first, and the native clients are out.
+SUBFROST is built mobile-first.
 
-- **<a href="https://play.google.com/store/apps/details?id=io.subfrost.android" target="_blank" rel="noopener noreferrer">Android</a>.** On Google Play.
-- **<a href="https://apps.apple.com/app/id6780035552" target="_blank" rel="noopener noreferrer">iOS</a>.** On the App Store.
+- **<a href="https://subfrost.io/download/android" target="_blank" rel="noopener noreferrer">Android</a>.** A direct install file. No app store account needed. Google Play listing coming soon.
 - **<a href="https://chromewebstore.google.com/detail/subfrost/pcmlnnfmcdmaifmleedbhomhaeldkeen" target="_blank" rel="noopener noreferrer">Chrome browser extension</a>.** On the Chrome Web Store.
+- **iOS.** In review for the App Store.
 
 ## Next steps
 
