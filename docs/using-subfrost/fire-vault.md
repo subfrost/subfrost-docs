@@ -247,6 +247,105 @@ Staking, bonding, and redemption are not three separate features. They feed each
 
 Read it as a loop: locked LP earns the 85% share of each block's emission, and the remaining 15% is what bonds are paid out of; bonders hand over LP for FIRE at a discount to the market price; that LP never leaves the treasury, so the floor rises; and a higher floor both protects FIRE holders and makes committing liquidity safer, which brings the loop back to the top. The emission itself is fixed by the schedule. What the loop moves is the **floor**, in one direction only.
 
+## Staking FIRE itself: the cFIRE vault
+
+Everything above is about earning FIRE by staking **LP**. The **cFIRE vault** is a different vault, and it takes **FIRE** itself.
+
+It is worth being blunt about where the yield comes from, because it is unlike anything else on this page: **the cFIRE vault has no intrinsic yield.** It holds a plain token and nothing farms with it. Between exits it is exactly zero-sum. What it pays is what leavers leave behind.
+
+### How the pot works
+
+Deposit FIRE and you receive **cFIRE** at the current rate. Exit and you leave an **8% tithe** in a pot. That pot does not go to the protocol: it drips back into the exchange rate once per Bitcoin day, over roughly a year, for everyone still in the vault.
+
+| Setting | Value |
+| --- | --- |
+| Underlying | FIRE |
+| Exit tithe (plain deposit) | 8% (800 bps) |
+| Drip interval | 144 blocks (about one Bitcoin day) |
+| Release periods | 365 |
+| Decimals | 8, inherited from FIRE |
+
+So the rate only moves in one direction, and it moves because somebody left. Staying longer than the people around you is the whole of the strategy.
+
+### The problem cFIRE solves, and the position that solves it
+
+Voting power is read **by address**. FIRE sitting in the vault is not at your address, so after a plain deposit you read as **zero** in governance. You are choosing between the yield and the vote.
+
+Depositing through a **position** is how you take both.
+
+| | Plain deposit | Deposit through a position |
+| --- | --- | --- |
+| What you hold | cFIRE at your address | A `cFIRE-POS` NFT, plus a vote token |
+| Earns | The vault rate | The same vault rate |
+| Counts in governance | No | Yes, through the vote token |
+| Costs to leave | 8% | 10% |
+
+The position earns exactly what a plain deposit earns. The two points are what the vote costs.
+
+### What you get, and what each piece does
+
+One deposit through the wrapper produces two things:
+
+```
+Deposit(FIRE) -> cFIRE-POS-{n}            the position: holds the vault shares
+              -> cFIRE-DELEGATE-{n}-{m}   the vote: transferable, carries the weight
+```
+
+The **position** holds the shares. It earns whatever the vault earns, and on its own it votes nothing. The **vote token** carries the position's weight and is an ordinary transferable token.
+
+A single contract does both in one call, reading the position out of the mint, so the vote cannot be left behind.
+
+### Your weight
+
+Your weight is what your position is worth **in FIRE**, so a position and a plain FIRE balance of the same value weigh the same.
+
+It is measured **before** the exit fee: a position that would pay out 90 FIRE weighs 100. And it rises on its own as the pot drips back into the rate, without you touching anything.
+
+### Delegating is a transfer
+
+There is no registry and no signature scheme behind delegation. The vote token is a **bearer** asset, and whoever holds it votes with it. So delegating is an ordinary send.
+
+| Action | What happens on chain |
+| --- | --- |
+| **Keep it** | You hold the token and you vote |
+| **Send it** | Whoever receives it votes with your weight |
+| **Delegate to yourself** | The position mints a **new** vote token to you and cancels the old one in the same transaction |
+| **Cancel** | The position clears its delegate. The old token is untouched in its holder's wallet and simply stops counting |
+
+Minting a replacement cancels the previous token **wherever it is**. Nothing is taken from the person holding it: their token stays in their wallet and reports zero from that moment.
+
+:::warning[Both tokens are bearer assets]
+Whoever holds the **position** can exit it, so sending the position sends the deposit. Sending the **vote token** sends only the vote. They are not the same thing, and only one of them is meant to travel.
+:::
+
+### Leaving
+
+Burn the position and take your FIRE back, minus **10%**:
+
+| Where it goes | Share |
+| --- | --- |
+| Stays in the pot, for everyone still in | 8% |
+| Burned | 1% |
+| To the protocol treasury | 1% |
+| **Total** | **10%** |
+
+The position is destroyed, not kept as a receipt, and any token voting for it stops counting.
+
+That 10% is a contract invariant rather than a display number. The factory refuses to bind a vault unless the vault's own tithe plus the wrapper's two 1% legs comes to exactly 10%, so the split cannot drift from what this page says.
+
+### The contracts
+
+| Piece | Alkane |
+| --- | --- |
+| Vault | `4:877` |
+| Position factory | `4:876` |
+| Deposit-and-mint contract | `4:878` |
+| Treasury | `4:868` |
+
+:::info[Governance does not read these tokens yet]
+Minting a vote token now sets it up. It starts counting when the tally is changed to read them. Everything else on this page, including the yield and the exit, works today.
+:::
+
 ## Risks
 
 | Risk | What it means for you |
@@ -255,6 +354,9 @@ Read it as a loop: locked LP earns the 85% share of each block's emission, and t
 | **Empty treasury at the start** | The floor price begins at 0 and only rises as bonders deposit LP |
 | **Lock illiquidity** | Locked LP cannot be withdrawn before expiry. Split into FIRE-PT if you need partial flexibility |
 | **Block time variance** | Every duration here assumes Bitcoin's roughly 10-minute average block. Real elapsed time drifts |
+| **The cFIRE vault pays nothing on its own** | It holds a plain token and farms nothing. The only thing that raises the rate is somebody else leaving and paying the tithe |
+| **The vote token is a bearer asset** | Send it to the wrong address and the vote is gone. Minting a replacement is the only recovery, and it costs a transaction |
+| **The cFIRE vote is not counted yet** | Governance does not read these tokens today. Minting one now sets it up for when it does |
 
 ## Tips
 
@@ -263,6 +365,9 @@ Read it as a loop: locked LP earns the 85% share of each block's emission, and t
 - **Bonding is not staking.** Bonding gives you FIRE upfront and your LP is gone for good. Staking returns your LP plus rewards.
 - **Watch the halving.** Emission halves every 105,000 blocks, so early epochs pay the most.
 - **Treasury growth is floor growth.** The more LP that arrives through bonding, the stronger the redemption floor.
+- **Do not confuse the two vaults.** The FIRE vault above takes DIESEL / frBTC LP. The cFIRE vault takes FIRE itself, and its yield is entirely other people's exit tithes.
+- **Deposit through a position if you intend to vote.** A plain deposit earns the same and reads as zero in governance, and the difference costs two points on the way out.
+- **Send the vote token, never the position.** The position is the deposit.
 
 ## Next steps
 
