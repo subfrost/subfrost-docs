@@ -247,23 +247,15 @@ Staking, bonding, and redemption are not three separate features. They feed each
 
 Read it as a loop: locked LP earns the 85% share of each block's emission, and the remaining 15% is what bonds are paid out of; bonders hand over LP for FIRE at a discount to the market price; that LP never leaves the treasury, so the floor rises; and a higher floor both protects FIRE holders and makes committing liquidity safer, which brings the loop back to the top. The emission itself is fixed by the schedule. What the loop moves is the **floor**, in one direction only.
 
-## Staking FIRE itself: the cFIRE vault
+## cFIRE vault: Staking FIRE itself
 
 Everything above is about earning FIRE by staking **LP**. The **cFIRE vault** is a different vault, and it takes **FIRE** itself.
 
-It is worth being blunt about where the yield comes from, because it is unlike anything else on this page: **the cFIRE vault has no intrinsic yield.** It holds a plain token and nothing farms with it. Between exits it is exactly zero-sum. What it pays is what leavers leave behind.
+Where does the yield come from? It comes from positions that exit the vault before you. Unlike anything else on this page, cFIRE does not have an intrinsic yield: the yield comes from the activity.
 
 ### How the pot works
 
-Deposit FIRE and you receive **cFIRE** at the current rate. Exit and you leave an **8% tithe** in a pot. That pot does not go to the protocol: it drips back into the exchange rate once per Bitcoin day, over roughly a year, for everyone still in the vault.
-
-| Setting | Value |
-| --- | --- |
-| Underlying | FIRE |
-| Exit tithe (plain deposit) | 8% (800 bps) |
-| Drip interval | 144 blocks (about one Bitcoin day) |
-| Release periods | 365 |
-| Decimals | 8, inherited from FIRE |
+Deposit FIRE and you receive a **cFIRE-POS** NFT position holding your claim. Exit and you leave an **8% tithe** in a pot. That pot does not go to the protocol: it drips back into existing holders of cFIRE-POS who have not exited yet, once every 144 blocks (a Bitcoin day), over roughly a year. This is where the yield comes from.
 
 So the rate only moves in one direction, and it moves because somebody left. Staying longer than the people around you is the whole of the strategy.
 
@@ -315,17 +307,17 @@ There is no registry and no signature scheme behind delegation. The vote token i
 Minting a replacement cancels the previous token **wherever it is**. Nothing is taken from the person holding it: their token stays in their wallet and reports zero from that moment.
 
 :::warning[Both tokens are bearer assets]
-Whoever holds the **position** can exit it, so sending the position sends the deposit. Sending the **vote token** sends only the vote. They are not the same thing, and only one of them is meant to travel.
+Whoever holds the position (**cFIRE-POS**) can exit it, so sending the position sends the deposit. Sending the vote token sends only the vote. **NEVER SEND THE cFIRE-POS NFT UNLESS YOU MEAN TO SEND YOUR FIRE AWAY.** The only NFT meant to travel is **cFIRE-DELEGATE**.
 :::
 
-### Leaving
+### Leaving the cFIRE vault
 
 Burn the position and take your FIRE back, minus **10%**:
 
 | Where it goes | Share |
 | --- | --- |
 | Stays in the pot, for everyone still in | 8% |
-| Burned | 1% |
+| FIRE is burned | 1% |
 | To the protocol treasury | 1% |
 | **Total** | **10%** |
 
