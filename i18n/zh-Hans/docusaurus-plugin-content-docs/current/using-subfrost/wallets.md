@@ -7,7 +7,7 @@ description: 创建或连接一个用于 SUBFROST 的 Bitcoin 钱包，管理你
 
 # 钱包
 
-要使用 SUBFROST，你需要一个 Bitcoin 钱包。目前**网页应用（web app）**是主要入口，移动应用和浏览器扩展也即将推出。
+要使用 SUBFROST，你需要一个 Bitcoin 钱包。**网页应用（web app）**在任意浏览器中都能使用，此外还有 Android 与 iOS 原生客户端以及 Chrome 扩展。
 
 你的钱包是你查看资产、与智能合约交互、管理 UTXO、追踪交易记录，以及发送和接收 BTC 的地方。
 
@@ -135,15 +135,13 @@ Bitcoin 的运作方式不像银行余额。你的资金是一组被称为 UTXO�
 只向此地址发送 Bitcoin 或 Alkanes 代币。发送任何资产前请先核实地址是否正确。
 :::
 
-## 移动端与浏览器扩展（即将推出）
+## 移动端与浏览器扩展
 
-SUBFROST 采用移动优先（mobile-first）的设计理念，原生客户端也正在开发中。
+SUBFROST 采用移动优先（mobile-first）的设计理念，原生客户端均已发布。
 
-- **Android。** 即将推出。
-- **iOS。** 正在 App Store 审核中。
-- **Chrome 浏览器扩展。** 正在积极开发中，力求实现与移动应用相同的功能。
-
-这些客户端正式上线后，我们会为每一个发布完整的设置指南。在此之前，请使用上述网页应用。
+- **<a href="https://play.google.com/store/apps/details?id=io.subfrost.android" target="_blank" rel="noopener noreferrer">Android</a>。** 已上架 Google Play。
+- **<a href="https://apps.apple.com/app/id6780035552" target="_blank" rel="noopener noreferrer">iOS</a>。** 已上架 App Store。
+- **<a href="https://chromewebstore.google.com/detail/subfrost/pcmlnnfmcdmaifmleedbhomhaeldkeen" target="_blank" rel="noopener noreferrer">Chrome 浏览器扩展</a>。** 已上架 Chrome 应用商店。
 
 ## 下一步
 
