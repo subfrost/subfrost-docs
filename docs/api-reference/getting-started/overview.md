@@ -19,6 +19,8 @@ The API provides:
 - **Lua Scripting.** Execute custom server-side scripts with full RPC access.
 - **REST API.** High-level endpoints for Alkanes, BRC-20, pools, and other blockchain data.
 - **Real-time Data.** Access to mempool, UTXOs, inscriptions, and runes.
+- **Mempool (Preview).** A live view of the Bitcoin and Ethereum mempools over JSON-RPC and a sequenced WebSocket change stream. See [Mempool](../mempool/overview).
+- **Orderbook (Beta).** REST snapshots and a WebSocket firehose over the off-chain PSBT order books. See [Orderbook](../orderbook/overview).
 
 ## API endpoints
 
@@ -67,10 +69,14 @@ Response:
 
 - **`esplora_*`**: Electrs/Esplora block explorer API
 - **`ord_*`**: Ordinals protocol (inscriptions, runes, sats)
-- **`metashrew_*`**: indexer views
+- **`metashrew_*`**: Metashrew indexer views
 - **`alkanes_*`**: Alkanes protocol methods
 - **`btc_*`**: Bitcoin Core RPC passthrough
 - **`lua_*`**: server-side Lua script execution
+- **`forex_*`**: fiat exchange rates, via the `/forex` endpoint ([Foreign Exchange](../json-rpc/forex))
+- **`mempool_*`**: live mempool queries, via the `/mempool` and `/ethereum/mempool` endpoints ([Mempool JSON-RPC](../mempool/jsonrpc))
+
+Some data is served from dedicated endpoints with their own indexers: the [BTC/USD pool](../json-rpc/btcusd) (`/btcusd`), [frUSD deposits on Ethereum](../json-rpc/frusd) (`/ethereum/frusd`), and the [Espo indexer](../json-rpc/espo) (`/espo`).
 
 ## Authentication
 
