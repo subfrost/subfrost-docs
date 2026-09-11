@@ -84,9 +84,19 @@ POST https://mainnet.subfrost.io/v4/<your-api-key>/brc20-prog
 - **`alkanes_*`**: Alkanes protocol (e.g., `alkanes_protorunesbyaddress`)
 - **`btc_*`**: Bitcoin Core RPC (e.g., `btc_getblockcount`)
 - **`brc20_*`**: BRC20 Programmable Module (e.g., `brc20_balanceOf`), via the `/brc20-prog` endpoint
-- **`subfrost_*`**: FROST threshold signature wallet (e.g., `subfrost_getpublic`, `subfrost_reset`, `subfrost_thieve`)
+- **`subfrost_*`**: FROST threshold signature wallet, regtest development only (e.g., `subfrost_getpublic`, `subfrost_reset`, `subfrost_thieve`)
 - **`lua_*`**: Lua script execution (e.g., `lua_evalscript`)
 - **`sandshrew_*`**: Alias for lua_* (e.g., `sandshrew_evalscript`)
+- **`forex_*`**: Fiat exchange rates (e.g., `forex_rates`), via the `/forex` endpoint. See [Foreign Exchange](./forex).
+- **`mempool_*`**: Live Bitcoin and Ethereum mempool (e.g., `mempool_info`), via the `/mempool` and `/ethereum/mempool` endpoints. See [Mempool JSON-RPC](../mempool/jsonrpc).
+
+### Dedicated endpoints
+
+These are JSON-RPC 2.0 too, but each is served from its own path and indexer:
+
+- **BTC/USD Pool** (`/v4/YOUR_API_KEY/btcusd`): protobuf views over `metashrew_view`. See [BTC/USD Pool](./btcusd).
+- **frUSD Deposits** (`/v4/YOUR_API_KEY/ethereum/frusd`): protobuf views over `metashrew_view`, indexed by BTC recipient. See [frUSD Deposits (Ethereum)](./frusd).
+- **Espo** (`/v4/YOUR_API_KEY/espo`): alkanes and AMM analytics (e.g., `get_holders`, `ammdata.get_candles`). See [Espo](./espo).
 
 ## Method Naming Convention
 
