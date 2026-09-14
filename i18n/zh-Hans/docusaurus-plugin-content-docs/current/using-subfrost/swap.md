@@ -36,6 +36,7 @@ frUSD/frBTC 资金池上线不久，深度仍然较浅，因此**即使是在其
 
 ## 下一步
 
+- [BTCUSD 资金池](./btcusd-pool)：本页中 BTC 与美元交易所依托的 frUSD/frBTC 市场。
 - [Wrap & Unwrap（包装与解包）](./wrap-unwrap-frbtc)：了解包装与解包 BTC 的底层工作原理。
 - [Pools & Liquidity（资金池与流动性）](./pools-liquidity)：通过提供流动性赚取手续费。
 - [FIRE Vault](./fire-vault)：质押并获得收益。

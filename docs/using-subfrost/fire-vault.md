@@ -1,7 +1,7 @@
 ---
 title: FIRE Vault
 sidebar_label: FIRE Vault
-sidebar_position: 5
+sidebar_position: 6
 description: Stake liquidity to earn FIRE, or buy FIRE at a discount through bonds.
 ---
 

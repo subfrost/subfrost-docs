@@ -1,7 +1,7 @@
 ---
 title: 安全须知
 sidebar_label: 安全须知
-sidebar_position: 6
+sidebar_position: 7
 description: 使用 SUBFROST 时，保护好你的 Ordinals、Runes 和 BRC-20 资产。
 ---
 

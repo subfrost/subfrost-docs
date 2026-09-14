@@ -53,5 +53,6 @@ frUSD/frBTC 资金池是 CryptoSwap 资金池，而不是标准 AMM 资金池，
 
 ## 下一步
 
+- [BTCUSD 资金池](./btcusd-pool)：上方警告所指的 frUSD/frBTC 资金池。
 - [FIRE Vault](./fire-vault)：质押你的 LP 仓位赚取 FIRE，或通过债券购买 FIRE。
 - [Swap（交换）](./swap)：资金池的另一面。

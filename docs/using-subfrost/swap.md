@@ -36,6 +36,7 @@ The frUSD/frBTC pool is young and therefore shallow, so **a trade size that woul
 
 ## Next steps
 
+- [BTCUSD Pool](./btcusd-pool): the frUSD/frBTC market this page trades BTC against USD on.
 - [Wrap & Unwrap](./wrap-unwrap-frbtc): how wrapping and unwrapping BTC works under the hood.
 - [Pools & Liquidity](./pools-liquidity): earn fees by providing liquidity.
 - [FIRE Vault](./fire-vault): stake and earn.

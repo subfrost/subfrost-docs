@@ -1,7 +1,7 @@
 ---
 title: 借贷
 sidebar_label: 借贷
-sidebar_position: 7
+sidebar_position: 8
 description: 出借代币赚取利息，或以抵押品借入代币，点对点结算，在 Bitcoin L1 上完成。
 ---
 
