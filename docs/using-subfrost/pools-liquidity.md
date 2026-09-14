@@ -31,9 +31,7 @@ So on those pools, **as a liquidity provider you earn 0.8% of the volume that tr
 
 The frUSD/frBTC pool is a CryptoSwap pool, not a standard AMM pool, and the numbers above do not describe it.
 
-Its fee is **dynamic between 0.2% and 0.8%**, depending on how unbalanced a trade leaves the pool: balanced trades pay the low end, unbalancing trades pay the high end. It also carries an **admin fee of 50%**, so a material share of what the pool charges accrues to the protocol rather than to your position.
-
-Neither figure can be read from the pool contract today: the views that would expose the fee parameters are not deployed yet. Quote before you trade, and treat "0.8% to liquidity providers" as a fact about standard pools only.
+Its fee is **dynamic between 0.2% and 0.8%**, depending on how unbalanced a trade leaves the pool: balanced trades pay the low end, unbalancing trades pay the high end.
 
 :::
 
