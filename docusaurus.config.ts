@@ -20,6 +20,13 @@ const config: Config = {
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
 
+  // Cloudflare Pages serves `page/index.html` at `/page/` and 308-redirects
+  // `/page` to it; it serves `page.html` at `/page` and 308-redirects `/page/`
+  // to it. With trailing-slash URLs the browser resolves
+  // the relative links in the docs (`../protocol/x`) one folder too deep on
+  // click, so every page is emitted as `page.html` and served without a slash.
+  trailingSlash: false,
+
   // Docusaurus reads `favicon` HERE, at the top level of the config. There was
   // a `favicon` key inside `themeConfig` instead, which is not a thing it looks
   // at, so the site shipped with no <link rel="icon"> at all.
