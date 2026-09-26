@@ -57,7 +57,7 @@ Your wallet also works out its own estimate from the same pool before asking for
 
 ## Where the DIESEL goes
 
-Your DIESEL is paid into a **treasury contract** on-chain, whose only job is to hold the DIESEL it receives. It is pooled rather than paid to one relayer, because the repayment is owed to the relayer network as a whole.
+Your DIESEL is paid into a **treasury contract** on-chain, which holds the DIESEL it receives until the protocol collects it. It is pooled rather than paid to one relayer, because the repayment is owed to the relayer network as a whole.
 
 Turning that DIESEL back into BTC is designed to happen later and separately, in the protocol's own transactions, to top up the BTC the relayers put in. None of that is part of your transaction.
 
