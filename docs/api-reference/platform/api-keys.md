@@ -45,6 +45,16 @@ curl -X POST "https://mainnet.subfrost.io/v4/jsonrpc" \
   -d '{"jsonrpc":"2.0","method":"btc_getblockcount","params":[],"id":1}'
 ```
 
+### With the explorer verification API
+
+The same key works for the SUBFROST explorer's [contract verification API](../verification/verify-and-attest), at `https://explorer.subfrost.io/api/v1/{key}/...`. There is nothing extra to enable. That API only reads the key from the path, not from the header.
+
+| Call | Key required |
+|------|--------------|
+| `POST /api/v1/{key}/verify` | Any active key. A wrong recipe cannot publish anything, so this is open to every valid key. |
+| `GET /api/v1/{key}/source/...` | Any active key. See [Source API](../verification/source-api). |
+| `POST /api/v1/{key}/attest` | An admin key issued by the SUBFROST team. Contact the team if you have a build proven outside the explorer's sandbox that needs to be recorded. |
+
 ## Key management
 
 ### Viewing keys
