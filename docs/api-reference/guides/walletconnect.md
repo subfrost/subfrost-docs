@@ -1,11 +1,11 @@
 ---
-title: Subfrost WalletConnect
+title: SUBFROST WalletConnect
 sidebar_label: WalletConnect
 sidebar_position: 2
 description: Pair a web app with the SUBFROST mobile wallet over the pair bridge and request PSBT and message signatures. Full wire protocol for dapp and wallet implementers.
 ---
 
-# Subfrost WalletConnect
+# SUBFROST WalletConnect
 
 SUBFROST WalletConnect lets a web app (the dapp) request Bitcoin signatures from the SUBFROST wallet on the user's phone. It is **not** WalletConnect v2. The two sides meet on a WebSocket rendezvous service, the pair bridge, at `wss://pair.subfrost.io/v1/pair`. The bridge forwards bytes between them. Everything after the key exchange is encrypted with ChaCha20-Poly1305 under a key the bridge cannot derive.
 
