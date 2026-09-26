@@ -36,6 +36,7 @@ DIESEL 不会按需印发。没有水龙头（faucet），也没有任何方式�
 - **它是核心 AMM 资金池的锚点。** DIESEL 与 frBTC 在协议的核心流动性池中配对，为 SUBFROST 提供了一个原生的计价单位。为该资金池提供流动性同时也是赚取 [FIRE](../using-subfrost/fire-vault) 的方式。
 - **它通过参与来获得。** 由于 DIESEL 是随着区块产生而分发的，与协议交互的参与者可以获得一部分发行份额。
 - **它被用于路由（routing）。** 当一笔兑换没有直接对应的资金池时，DIESEL 通常作为中间跳转（intermediate hop）（参见 [Swap](../using-subfrost/swap)）。
+- **它可以支付网络手续费。** 在 SUBFROST Chrome 扩展和 Android 应用中，你可以用 DIESEL 而不是 BTC 支付一笔交易的 Bitcoin 网络手续费（参见 [用 DIESEL 支付手续费](../using-subfrost/pay-fees-in-diesel) 和 [DIESEL 手续费的工作原理](../protocol/diesel-fees)）。
 
 ## 接下来可以看看
 

@@ -36,6 +36,7 @@ So your share depends on how many others minted at the same height. This is the 
 - **It anchors the core AMM pool.** DIESEL pairs with frBTC in the protocol's central liquidity pool, giving SUBFROST a native unit of account. Providing liquidity to that pool is also what earns [FIRE](../using-subfrost/fire-vault).
 - **It is earned by participation.** Because DIESEL is distributed as blocks are produced, participants who interact with the protocol can receive a share of the emission.
 - **It is used in routing.** DIESEL is a common intermediate hop when a swap has no direct pool (see [Swap](../using-subfrost/swap)).
+- **It can pay network fees.** In the SUBFROST Chrome extension and Android app, you can pay a transaction's Bitcoin network fee in DIESEL instead of BTC (see [Pay Fees in DIESEL](../using-subfrost/pay-fees-in-diesel) and [How DIESEL Fees Work](../protocol/diesel-fees)).
 
 ## Where to go next
 

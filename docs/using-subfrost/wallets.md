@@ -123,6 +123,8 @@ To send BTC you provide:
 
 Review the details, then confirm. Your wallet signs the transaction and broadcasts it.
 
+Short on BTC for the fee? In the SUBFROST Chrome extension and Android app you can pay it in DIESEL instead. See [Pay Fees in DIESEL](./pay-fees-in-diesel).
+
 :::warning[Check unusually high fees]
 The app warns you when your fee looks unusually high. Always double-check before confirming a large transaction.
 :::
