@@ -17,8 +17,7 @@ Want to know how it works under the hood? See [How DIESEL Fees Work](../protocol
 
 When an action supports it, you will see a **Network fee** row with two options: **BTC** and **DIESEL**.
 
-- **Chrome extension.** The row is on the **Send** sheet and the **Swap** sheet.
-- **Android app.** The row is on the **Send** screen and the **Swap** screen.
+On both the <a href="https://chromewebstore.google.com/detail/subfrost/pcmlnnfmcdmaifmleedbhomhaeldkeen" target="_blank" rel="noopener noreferrer">Chrome extension</a> and <a href="https://subfrost.io/download/android" target="_blank" rel="noopener noreferrer">Android app</a>, the row is on the **Send** screen and **Swap** screen.
 
 BTC is the default. If you do not have enough BTC to pay the fee, the wallet switches to DIESEL for you and says so: *"Not enough BTC for the fee. DIESEL is selected."*
 
@@ -31,11 +30,6 @@ That number is a **cap**, not a fixed price:
 - The wallet estimates the fee from the current DIESEL price, then adds a small margin on top. That is the "up to" figure you see on the review.
 - The actual charge is set by the fee quote, and it can be lower than the cap.
 - If the quote comes back **higher** than the cap you approved, the wallet stops and nothing is sent. You will see *"The DIESEL price moved above what you approved. Nothing was sent."*
-
-The review also tells you:
-
-- *"The fee network adds its own input and pays the miner."*
-- On Android: *"The DIESEL and any change use your taproot address."*
 
 :::note[Keep your DIESEL in your taproot address]
 The fee is paid from the DIESEL in your taproot address. If there is not enough there, you will see *"Not enough DIESEL in your taproot address for this fee."*

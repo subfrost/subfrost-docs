@@ -17,8 +17,7 @@ SUBFROST Chrome 扩展和 Android 应用让你可以改用 **DIESEL** 支付这�
 
 当某个操作支持这一功能时，你会看到一行 **网络费用**，其中有两个选项：**BTC** 和 **DIESEL**。
 
-- **Chrome 扩展：** 这一行位于 **Send（发送）** 页面和 **Swap（交换）** 页面。
-- **Android 应用：** 这一行位于 **Send（发送）** 界面和 **Swap（交换）** 界面。
+在 <a href="https://chromewebstore.google.com/detail/subfrost/pcmlnnfmcdmaifmleedbhomhaeldkeen" target="_blank" rel="noopener noreferrer">Chrome 扩展</a>和 <a href="https://subfrost.io/download/android" target="_blank" rel="noopener noreferrer">Android 应用</a>中，这一行都位于 **Send（发送）** 界面和 **Swap（交换）** 界面。
 
 默认选项是 BTC。如果你的 BTC 不足以支付手续费，钱包会自动切换到 DIESEL，并提示你：*“BTC 不足以支付手续费。已选择 DIESEL。”*
 
@@ -31,11 +30,6 @@ SUBFROST Chrome 扩展和 Android 应用让你可以改用 **DIESEL** 支付这�
 - 钱包会根据当前的 DIESEL 价格估算手续费，然后在此基础上加上一小部分余量。这就是你在确认页看到的“最多”那个数字。
 - 实际收取的金额由手续费报价决定，可能低于这个上限。
 - 如果报价**高于**你批准的上限，钱包会停止操作，不会发送任何内容。你会看到 *“DIESEL 价格已超出你批准的上限。未发送任何内容。”*
-
-确认页面还会告诉你：
-
-- *“手续费网络会添加自己的输入并支付矿工。”*
-- 在 Android 上：*“DIESEL 和找零使用您的 taproot 地址。”*
 
 :::note[请把 DIESEL 放在你的 taproot 地址中]
 手续费从你 taproot 地址中的 DIESEL 支付。如果那里的 DIESEL 不够，你会看到 *“你的 taproot 地址中的 DIESEL 不足以支付此手续费。”*
