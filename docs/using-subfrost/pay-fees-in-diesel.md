@@ -56,7 +56,7 @@ When you unwrap with a DIESEL fee, the review adds a line: *"You receive X BTC, 
 The DIESEL option is greyed out, with a short reason under it, in these cases:
 
 - **Sending to more than one recipient.** *"DIESEL fee works with one recipient."*
-- **Swaps with BTC on one side**, other than a plain wrap or unwrap. *"DIESEL fee is not available for swaps with BTC."* Swap from frBTC instead, or pay this one in BTC.
+- **Swaps with BTC on one side.** Swap from frBTC instead, or pay this one in BTC. *"DIESEL fee is not available for swaps with BTC."*
 - **Hardware wallets** in the Android app. *"DIESEL fee is not available for hardware wallets."*
 - **Networks other than mainnet.** *"DIESEL fee works on mainnet only."*
 
