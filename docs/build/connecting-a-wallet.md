@@ -12,7 +12,7 @@ A web app never holds the user's keys. To do anything that costs money or moves 
 ## Two connection paths
 
 - **Injected provider.** When the user has the SUBFROST browser extension installed, it injects a provider object that your page can call directly. This is the smoothest path when it is available.
-- **Remote signing.** When the user is on a desktop browser with no wallet present, the app pairs with the wallet on the user's phone over an encrypted relay. The app shows a QR code, the phone scans it, and from then on the app sends sign requests to the phone, which prompts the user for each one. This is documented in full on the [WalletConnect](../api-reference/guides/walletconnect) reference page.
+- **Remote signing.** When the user is on a desktop browser with no wallet present, the app pairs with the wallet on the user's phone through the SUBFROST pair bridge, with end-to-end encryption. The app shows a QR code, the phone scans it, and from then on the app sends sign requests to the phone, which prompts the user for each one. This is documented in full on the [WalletConnect](../api-reference/guides/walletconnect) reference page.
 
 Both paths expose the same two operations that matter: **sign a PSBT** (to authorize a Bitcoin transaction) and **sign a message** (to prove control of an address). The app builds the transaction or message, the wallet approves and signs, the app broadcasts.
 
@@ -45,53 +45,73 @@ if (!subfrost) {
 
 ### Connecting and reading account state
 
-`requestAccounts` is the connect call: it prompts the user to approve your site, and resolves with the addresses they chose to share. `getAccounts` returns the addresses for a site that is already connected.
+`requestAccounts` is the connect call. The first request from a site the user has not connected yet, whichever method it is, opens a connect prompt in the wallet; the request continues if the user approves and fails if they decline. `getAccounts` sends exactly the same request as `requestAccounts`, so it also prompts on a site that is not connected yet.
+
+Both resolve with an array holding one address: the address currently selected in the wallet (the active account and address type). While the wallet is locked, the request waits for the user to unlock rather than failing, and the page's own 60-second timeout applies.
 
 ```javascript
-// Prompts the user to connect, returns the approved addresses
+// Prompts the user to connect, returns the selected address
 const accounts = await subfrost.requestAccounts();
 
-// The network the wallet is currently on
+// The network the wallet is on. The extension currently always answers 'mainnet'.
 const network = await subfrost.getNetwork();
 
-// Public key for an address (defaults to the active account)
-const pubkey = await subfrost.getPublicKey(accounts[0]);
+// Taproot x-only public key of the active account, 64 hex characters
+const pubkey = await subfrost.getPublicKey();
 ```
+
+`getPublicKey` accepts an address argument but ignores it: it always returns the x-only taproot public key of the active account. It needs an unlocked wallet and waits for an unlock like `getAccounts`.
 
 ### Signing
 
 ```javascript
-// Sign one PSBT. The user approves it in the wallet.
+// Sign one PSBT (hex). The user approves it in the wallet.
 const signedPsbtHex = await subfrost.signPsbt(unsignedPsbtHex);
 
-// Optionally let the wallet finalize the PSBT for you
-const finalized = await subfrost.signPsbt(unsignedPsbtHex, { autoFinalized: true });
+// Keep the signed PSBT unfinalized, for example when another party still has to sign
+const partial = await subfrost.signPsbt(unsignedPsbtHex, { autoFinalized: false });
+
+// Request a sighash type for a specific input (0x83 = SIGHASH_SINGLE | ANYONECANPAY)
+const listing = await subfrost.signPsbt(unsignedPsbtHex, {
+  autoFinalized: false,
+  toSignInputs: [{ index: 0, sighashTypes: [0x83] }],
+});
 
 // Prove control of an address
 const signature = await subfrost.signMessage('Authorize this action', accounts[0]);
 ```
 
-`signMessage` takes an optional third argument that selects the signature format:
+`signPsbt(psbtHex, options?)` options:
 
-| `protocol` | Signature produced |
+| Option | Effect |
 | --- | --- |
-| `'bip322'` or `'bip322-simple'` | BIP-322 witness signature, for segwit and taproot addresses |
-| omitted, `'bsm'`, or `'ecdsa'` | Legacy BIP-137 Bitcoin Signed Message |
+| `autoFinalized` | When omitted, the wallet finalizes the inputs it signs. Pass `false` to get a signed but unfinalized PSBT back. |
+| `toSignInputs` | Array of `{ index, sighashTypes? }` entries that request a sighash type for an input. It does not choose which inputs get signed. |
+
+`signMessage(message, address)` signs with the format that fits the address: BIP-322 for taproot addresses, BIP-137 (legacy Bitcoin Signed Message) for the others.
+
+### Building PSBTs for the extension
+
+- **Inputs.** The wallet signs every input it owns and leaves the rest alone. It recognizes its inputs by the `witness_utxo` script, so set `witness_utxo` on every input. For p2wpkh inputs, also set `bip32_derivation` with the wallet's public key.
+- **Other parties' inputs.** By default the wallet finalizes the PSBT, and it refuses if any input is left unsigned. When the PSBT has inputs that someone else signs, pass `autoFinalized: false`.
+- **Coin selection is yours.** The wallet does not pick inputs for your PSBT. Choose the inputs yourself and leave out UTXOs that carry Alkanes, or those assets move with the transaction.
+- **Fee.** If your PSBT pays less than the wallet's current fee rate, the wallet can raise the fee before signing, by lowering your change output or adding an input and change output of its own. Read the transaction back from the returned PSBT.
+- **Broadcast.** The provider has no broadcast method. Your app broadcasts the signed transaction.
 
 ### Signing several PSBTs
 
-Two calls take an array of PSBTs, and they differ in how many times the user is asked to approve:
+Two calls take an array of PSBT hex strings, and they differ in how many times the user is asked to approve:
 
-- **`signPsbts(psbts, options?)`** queues one approval per PSBT. The user steps through them one at a time.
-- **`signPsbtBundle(psbts, options?)`** sends the whole array as a single envelope. When the wallet recognizes the bundle as a known operation, it renders one approval covering every transaction, so the user approves once. When it does not recognize the bundle, it falls back to the same one-approval-per-PSBT flow as `signPsbts`.
+- **`signPsbts(psbts, options?)`** sends one request per PSBT, each with the same `options` as `signPsbt`. The user approves them one at a time.
+- **`signPsbtBundle(psbts, options?)`** sends the whole array as a single request, and the user approves the bundle once. The approval shows every transaction in the bundle; when the wallet recognizes the bundle as a known operation, it also labels the approval with that operation. `options` is accepted but not applied: every PSBT in a bundle is signed with the defaults (finalized, default sighash).
 
-Both resolve with the signed PSBTs in the same order as the input. If the user rejects any single PSBT, the whole call rejects and nothing is returned, so re-submit the unsigned remainder rather than expecting a partial result.
+Both resolve with the signed PSBTs in the same order as the input, and both resolve with an empty array when given one. If the user rejects, the whole call rejects and nothing is returned, so re-submit the unsigned remainder rather than expecting a partial result.
 
 ```javascript
 // One approval per PSBT
 const signed = await subfrost.signPsbts([psbtA, psbtB, psbtC]);
 
-// One approval for the whole bundle, when the wallet recognizes it
+// One approval for the whole bundle
 const signedBundle = await subfrost.signPsbtBundle([psbtA, psbtB, psbtC]);
 ```
 
@@ -99,10 +119,10 @@ const signedBundle = await subfrost.signPsbtBundle([psbtA, psbtB, psbtC]);
 
 The provider is an event emitter. Subscribe with `on`, unsubscribe with `off`.
 
-| Event | Fires when |
-| --- | --- |
-| `accountsChanged` | The wallet locks or unlocks, so the visible accounts change |
-| `disconnect` | The user revokes your site under Connected Sites |
+| Event | Handler arguments | Fires when |
+| --- | --- | --- |
+| `accountsChanged` | `(accounts)`, an array with the newly selected address, or empty | The wallet is unlocked, or the user switches wallet, account or address type, or adds or removes an account. An empty array means the wallet was locked. |
+| `disconnect` | none | The user revokes your site under Connected Sites |
 
 ```javascript
 const onAccountsChanged = (accounts) => {
@@ -128,12 +148,14 @@ Every method rejects with an `Error` whose message is prefixed with a code in sq
 [REQUEST_TIMEOUT] subfrost: request timed out
 ```
 
-Two codes reach the page today:
+Two codes matter to your app:
 
 | Code | Meaning |
 | --- | --- |
-| `REQUEST_TIMEOUT` | 60 seconds passed with no answer from the wallet. The user most likely never saw the prompt. |
-| `UNKNOWN_ERROR` | Everything else, including the user rejecting the request. |
+| `REQUEST_TIMEOUT` | 60 seconds passed with no answer from the wallet. The user most likely never saw the prompt, or the wallet stayed locked. |
+| `UNKNOWN_ERROR` | The request did not go through, including the user rejecting it or declining the connect prompt. |
+
+Treat any other code as a failure to reach the extension.
 
 A request that goes unanswered rejects after 60 seconds. Treat that as "no answer" rather than as a refusal, and invite the user to open the wallet and retry.
 
@@ -155,9 +177,9 @@ try {
 
 ## Remote signing (QR pairing)
 
-When there is no injected provider, pair with the mobile wallet over the relay. The app renders a pairing QR, the phone scans it, and a session is established. Requests and responses are end-to-end encrypted; the relay only forwards ciphertext, and every request is approved on the phone.
+When there is no injected provider, pair with the mobile wallet over the SUBFROST pair bridge. The app renders a pairing QR code, the phone scans it and connects to the app through the bridge, and a session is established. Requests and responses are end-to-end encrypted: the bridge never sees the pairing code or the app's public key, so it cannot read or change a request, and every signing request is approved on the phone.
 
-The client library and the full protocol (pairing URI, envelope format, security model) are on the [WalletConnect](../api-reference/guides/walletconnect) page.
+The full protocol (pairing URI, bridge frames, key derivation, framing, message format, security model) and the reference client are on the [WalletConnect](../api-reference/guides/walletconnect) page.
 
 ## Where to go next
 

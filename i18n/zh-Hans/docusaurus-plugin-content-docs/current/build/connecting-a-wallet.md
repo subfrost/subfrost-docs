@@ -12,7 +12,7 @@ Web 应用永远不会持有用户的私钥。要做任何涉及花费或转移�
 ## 两种连接路径
 
 - **注入式 provider（Injected provider）。** 当用户安装了 SUBFROST 浏览器扩展时，它会向页面注入一个 provider 对象，供你的页面直接调用。只要该路径可用，就是最顺畅的一种。
-- **远程签名（Remote signing）。** 当用户使用没有钱包存在的桌面浏览器时，应用会通过加密中继与用户手机上的钱包配对。应用显示一个二维码，手机扫描后，此后应用就会向手机发送签名请求，手机会针对每一次请求提示用户确认。这一流程完整记录在 [WalletConnect](../api-reference/guides/walletconnect) 参考页面中。
+- **远程签名（Remote signing）。** 当用户使用没有钱包存在的桌面浏览器时，应用会通过 SUBFROST 配对桥（pair bridge）与用户手机上的钱包配对，全程端到端加密。应用显示一个二维码，手机扫描后，此后应用就会向手机发送签名请求，手机会针对每一次请求提示用户确认。这一流程完整记录在 [WalletConnect](../api-reference/guides/walletconnect) 参考页面中。
 
 这两条路径都暴露出同样两个关键操作：**签署 PSBT**（用于授权一笔 Bitcoin 交易）和**签署消息**（用于证明对某地址的控制权）。应用构建交易或消息，钱包批准并签名，应用负责广播。
 
@@ -29,69 +29,89 @@ function getProvider() {
   return typeof window !== 'undefined' ? window.subfrost : undefined;
 }
 
-// 已经注入的常见情况
+// Already injected, the common case
 let subfrost = getProvider();
 
-// 稍后才注入，适用于在扩展之前运行的脚本
+// Injected later, for scripts that run before the extension
 window.addEventListener('subfrost:initialized', (event) => {
   subfrost = getProvider();
   // event.detail: { id: 'subfrost', name: 'Subfrost', icon: '/icons/icon-128.png' }
 });
 
 if (!subfrost) {
-  // 此上下文中没有扩展。回退到远程签名（二维码配对）。
+  // No extension in this context. Fall back to remote signing (QR pairing).
 }
 ```
 
 ### 连接并读取账户状态
 
-`requestAccounts` 是连接调用：它会提示用户批准你的站点，并返回用户选择分享的地址。`getAccounts` 则返回一个已连接站点的地址。
+`requestAccounts` 是连接调用。对于用户尚未连接过的站点，无论调用的是哪个方法，第一个请求都会在钱包中弹出连接提示；用户批准后请求继续执行，拒绝则请求失败。`getAccounts` 发送的请求与 `requestAccounts` 完全相同，因此在尚未连接的站点上它同样会弹出提示。
+
+两者都会返回一个只包含一个地址的数组：即钱包中当前选中的地址（当前激活的账户与地址类型）。钱包处于锁定状态时，请求会等待用户解锁，而不是直接失败，此时页面自身的 60 秒超时依然生效。
 
 ```javascript
-// 提示用户连接，返回已批准的地址
+// Prompts the user to connect, returns the selected address
 const accounts = await subfrost.requestAccounts();
 
-// 钱包当前所在的网络
+// The network the wallet is on. The extension currently always answers 'mainnet'.
 const network = await subfrost.getNetwork();
 
-// 某个地址的公钥（默认为当前激活账户）
-const pubkey = await subfrost.getPublicKey(accounts[0]);
+// Taproot x-only public key of the active account, 64 hex characters
+const pubkey = await subfrost.getPublicKey();
 ```
+
+`getPublicKey` 接受一个地址参数，但会忽略它：它总是返回当前激活账户的 x-only taproot 公钥。它需要钱包处于解锁状态，并且与 `getAccounts` 一样会等待用户解锁。
 
 ### 签名
 
 ```javascript
-// 签署一个 PSBT。用户在钱包中批准它。
+// Sign one PSBT (hex). The user approves it in the wallet.
 const signedPsbtHex = await subfrost.signPsbt(unsignedPsbtHex);
 
-// 可选：让钱包为你最终确定（finalize）该 PSBT
-const finalized = await subfrost.signPsbt(unsignedPsbtHex, { autoFinalized: true });
+// Keep the signed PSBT unfinalized, for example when another party still has to sign
+const partial = await subfrost.signPsbt(unsignedPsbtHex, { autoFinalized: false });
 
-// 证明对某个地址的控制权
+// Request a sighash type for a specific input (0x83 = SIGHASH_SINGLE | ANYONECANPAY)
+const listing = await subfrost.signPsbt(unsignedPsbtHex, {
+  autoFinalized: false,
+  toSignInputs: [{ index: 0, sighashTypes: [0x83] }],
+});
+
+// Prove control of an address
 const signature = await subfrost.signMessage('Authorize this action', accounts[0]);
 ```
 
-`signMessage` 接受一个可选的第三个参数，用于选择签名格式：
+`signPsbt(psbtHex, options?)` 的选项：
 
-| `protocol` | 产生的签名 |
+| 选项 | 作用 |
 | --- | --- |
-| `'bip322'` 或 `'bip322-simple'` | BIP-322 witness 签名，适用于 segwit 和 taproot 地址 |
-| 省略、`'bsm'` 或 `'ecdsa'` | 旧版 BIP-137 Bitcoin Signed Message |
+| `autoFinalized` | 省略时，钱包会最终确定（finalize）它所签名的输入。传入 `false` 可以拿回一个已签名但未最终确定的 PSBT。 |
+| `toSignInputs` | 由 `{ index, sighashTypes? }` 条目组成的数组，用于为某个输入请求 sighash 类型。它不决定哪些输入会被签名。 |
+
+`signMessage(message, address)` 会按地址类型选择签名格式：taproot 地址使用 BIP-322，其他地址使用 BIP-137（旧版 Bitcoin Signed Message）。
+
+### 为扩展构建 PSBT
+
+- **输入。** 钱包会签署所有属于它的输入，其余输入保持不变。它通过 `witness_utxo` 的脚本识别自己的输入，因此请为每个输入设置 `witness_utxo`。对于 p2wpkh 输入，还需设置包含钱包公钥的 `bip32_derivation`。
+- **其他方的输入。** 默认情况下钱包会最终确定 PSBT，如果有任何输入未被签名，它会拒绝。当 PSBT 中有由他人签名的输入时，请传入 `autoFinalized: false`。
+- **选币由你负责。** 钱包不会为你的 PSBT 挑选输入。请自行选择输入，并排除携带 Alkanes 的 UTXO，否则这些资产会随交易一起转移。
+- **手续费。** 如果你的 PSBT 支付的费率低于钱包当前的费率，钱包可能会在签名前提高手续费，方式是减少你的找零输出，或添加它自己的一个输入和找零输出。请从返回的 PSBT 中重新读取交易内容。
+- **广播。** provider 没有广播方法。由你的应用广播已签名的交易。
 
 ### 签署多个 PSBT
 
-有两个调用都接受一个 PSBT 数组作为参数，区别在于用户需要批准的次数：
+有两个调用都接受一个 PSBT hex 字符串数组作为参数，区别在于用户需要批准的次数：
 
-- **`signPsbts(psbts, options?)`** 会为每个 PSBT 排队一次批准。用户需要逐一确认。
-- **`signPsbtBundle(psbts, options?)`** 会把整个数组作为一个单独的信封（envelope）发送。当钱包能够将该 bundle 识别为一个已知操作时，会渲染一次覆盖所有交易的批准界面，用户只需批准一次。当钱包无法识别该 bundle 时，则会回退到与 `signPsbts` 相同的、每个 PSBT 一次批准的流程。
+- **`signPsbts(psbts, options?)`** 会为每个 PSBT 各发送一个请求，每个请求都使用与 `signPsbt` 相同的 `options`。用户需要逐一批准。
+- **`signPsbtBundle(psbts, options?)`** 会把整个数组作为一个单独的请求发送，用户只需对整个 bundle 批准一次。批准界面会展示 bundle 中的每一笔交易；当钱包能够将该 bundle 识别为一个已知操作时，还会在批准界面上标注该操作。`options` 会被接受但不会被应用：bundle 中的每个 PSBT 都以默认设置签名（最终确定、默认 sighash）。
 
-两者都会按照与输入相同的顺序，返回已签名的 PSBT。如果用户拒绝了其中任意一个 PSBT，整个调用都会被拒绝，且不会返回任何结果，因此应重新提交尚未签名的剩余部分，而不要指望得到部分结果。
+两者都会按照与输入相同的顺序返回已签名的 PSBT；传入空数组时，两者都会返回空数组。如果用户拒绝，整个调用都会被拒绝，且不会返回任何结果，因此应重新提交尚未签名的剩余部分，而不要指望得到部分结果。
 
 ```javascript
-// 每个 PSBT 一次批准
+// One approval per PSBT
 const signed = await subfrost.signPsbts([psbtA, psbtB, psbtC]);
 
-// 当钱包识别该 bundle 时，整个 bundle 只需一次批准
+// One approval for the whole bundle
 const signedBundle = await subfrost.signPsbtBundle([psbtA, psbtB, psbtC]);
 ```
 
@@ -99,22 +119,22 @@ const signedBundle = await subfrost.signPsbtBundle([psbtA, psbtB, psbtC]);
 
 该 provider 是一个事件发射器（event emitter）。使用 `on` 订阅，使用 `off` 取消订阅。
 
-| 事件 | 触发时机 |
-| --- | --- |
-| `accountsChanged` | 钱包锁定或解锁，导致可见账户发生变化 |
-| `disconnect` | 用户在 Connected Sites 中撤销了对你站点的授权 |
+| 事件 | 处理函数参数 | 触发时机 |
+| --- | --- | --- |
+| `accountsChanged` | `(accounts)`，一个包含新选中地址的数组，或空数组 | 钱包解锁，或用户切换钱包、账户或地址类型，或添加、删除账户。空数组表示钱包已被锁定。 |
+| `disconnect` | 无 | 用户在 Connected Sites 中撤销了对你站点的授权 |
 
 ```javascript
 const onAccountsChanged = (accounts) => {
-  // 重新读取状态，或将空列表视为"已锁定"
+  // Re-read state, or treat an empty list as "locked"
 };
 
 subfrost.on('accountsChanged', onAccountsChanged);
 subfrost.on('disconnect', () => {
-  // 丢弃会话，并重新显示你的连接按钮
+  // Drop the session and show your connect button again
 });
 
-// 之后，在你的组件卸载时
+// Later, when your component unmounts
 subfrost.off('accountsChanged', onAccountsChanged);
 ```
 
@@ -128,12 +148,14 @@ subfrost.off('accountsChanged', onAccountsChanged);
 [REQUEST_TIMEOUT] subfrost: request timed out
 ```
 
-目前有两种代码会传达到页面：
+你的应用需要处理的是这两个代码：
 
 | 代码 | 含义 |
 | --- | --- |
-| `REQUEST_TIMEOUT` | 已经过去 60 秒，钱包仍未响应。用户很可能根本没有看到这个提示。 |
-| `UNKNOWN_ERROR` | 其他所有情况，包括用户拒绝了该请求。 |
+| `REQUEST_TIMEOUT` | 已经过去 60 秒，钱包仍未响应。用户很可能根本没有看到这个提示，或者钱包一直处于锁定状态。 |
+| `UNKNOWN_ERROR` | 请求未能完成，包括用户拒绝了该请求或拒绝了连接提示。 |
+
+其他任何代码都请当作无法连接到扩展来处理。
 
 一个未得到回应的请求会在 60 秒后被拒绝。请把这种情况当作"没有回应"来处理，而不是当作用户拒绝，并引导用户打开钱包后重试。
 
@@ -146,18 +168,18 @@ try {
   const signed = await subfrost.signPsbt(psbtHex);
 } catch (err) {
   if (err.message.startsWith('[REQUEST_TIMEOUT]')) {
-    // 没有回应。让用户打开钱包并重试。
+    // No answer. Ask the user to open the wallet and try again.
   } else {
-    // 用户拒绝了，或钱包报告了一个错误。让用户重试。
+    // The user rejected, or the wallet reported an error. Let them retry.
   }
 }
 ```
 
 ## 远程签名（二维码配对）
 
-当没有注入式 provider 时，就通过中继与移动端钱包配对。应用渲染一个配对二维码，手机扫描后建立会话。请求与响应是端到端加密的，中继只转发密文，且每一次请求都在手机端得到批准。
+当没有注入式 provider 时，就通过 SUBFROST 配对桥（pair bridge）与移动端钱包配对。应用渲染一个配对二维码，手机扫描后通过配对桥连接到应用，随后建立会话。请求与响应是端到端加密的：配对桥从不接触配对码或应用的公钥，因此无法读取或篡改请求，并且每一次签名请求都需要在手机端得到批准。
 
-客户端库以及完整协议（配对 URI、信封格式、安全模型）都在 [WalletConnect](../api-reference/guides/walletconnect) 页面中。
+完整协议（配对 URI、配对桥帧、密钥派生、分帧、消息格式、安全模型）以及参考客户端都在 [WalletConnect](../api-reference/guides/walletconnect) 页面中。
 
 ## 接下来去哪里
 
