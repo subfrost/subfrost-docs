@@ -17,15 +17,15 @@ A short glossary to get you oriented. Each item links to a deeper page where one
 
 - **DIESEL.** The protocol's native emission. Every Bitcoin block emits the same amount of DIESEL as new bitcoin (3.125 today) on the same halving schedule. See [DIESEL](../tokens-economics/diesel) for the numbers and who receives it.
 
-- **FIRE.** The Alkanes governance token, rewarding people who provide liquidity to the DIESEL/frBTC pool, and powered by staking and bonding. It is how active participants earn a share of the protocol and, over time, help govern it.
+- **FIRE.** FIRE is the Alkanes governance token. It rewards people who provide liquidity to the DIESEL/frBTC pool, and is powered by staking and bonding. It is how active participants earn a share of the protocol and, over time, help govern it.
 
 - **frUSD.** The Bitcoin-native stablecoin: a US-dollar token that settles on Bitcoin itself rather than on another chain, so a dollar balance can be composed into the same transactions as your BTC. It trades against frBTC in a pool on mainnet, and can be minted by bridging USDC or USDT in from Ethereum. See [frUSD](../tokens/frUSD-overview) for how it is reserved and what that asks you to trust.
 
 ### Planned
 
-- **dxBTC.** Yield-bearing Bitcoin. You stake BTC and receive dxBTC; behind the scenes your Bitcoin is put to work in market-neutral yield strategies without ever leaving the Bitcoin blockchain.
+- **dxBTC (planned).** A yield-bearing Bitcoin token. The plan is that you deposit BTC and receive dxBTC, while behind the scenes your Bitcoin will be put to work in market-neutral yield strategies without ever leaving the Bitcoin blockchain.
 
-- **FUEL.** The governance token for the subfrost protocol's treasury and parameters (for example, mint/redeem fees and protocol upgrades). Its tokenomics are not yet public.
+- **FUEL.** FUEL is the SUBFROST protocol governance token. It is planned to govern the protocol's treasury and parameters (for example, mint/redeem fees and protocol upgrades). Its tokenomics are not yet public.
 
 :::note[Note]
 Capitalization is what separates the two "fuels" you will meet in these docs: **FUEL** in uppercase is always this token, while lowercase **fuel** is the compute budget an Alkanes contract call is allowed to spend, the equivalent of gas elsewhere.
@@ -65,7 +65,7 @@ This section keeps things simple on purpose. Terms like protostone, cellpack, an
 Being honest about status matters. A quick snapshot:
 
 - **Live:** Atomic wrapping of frBTC and unwrapping back to BTC, swapping in AMM pools between Bitcoin assets and BTC, holding and trading the Bitcoin-native dollar frUSD, providing liquidity to these AMM pools to earn a yield, and staking and bonding within the advanced DeFi "FIRE" vault.
-- **Planned:** a yield-bearing Bitcoin vault token (dxBTC), the FUEL governance token, and the fully permissionless signer network.
+- **Planned:** a yield-bearing Bitcoin vault token (dxBTC), FUEL (the SUBFROST protocol governance token), and the fully permissionless signer network.
 
 ## Where to go next
 

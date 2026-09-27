@@ -31,12 +31,12 @@ alkanes-cli -p signet <command>
 ## 钱包基础操作
 
 ```bash
-# 创建或导入钱包
+# 创建新钱包，或通过助记词恢复钱包
 alkanes-cli wallet create
-alkanes-cli wallet import
+alkanes-cli wallet create "<MNEMONIC>"
 
-# 列出地址（range 为 起始:结束）
-alkanes-cli wallet addresses --range 0:5
+# 列出地址（类型:起始-结束）
+alkanes-cli wallet addresses p2tr:0-5
 
 # 余额与未花费输出
 alkanes-cli wallet balance
@@ -51,17 +51,14 @@ alkanes-cli wallet utxos
 # 执行调用：合约 [2,1]，opcode 1
 alkanes-cli -p signet alkanes execute "[2,1,1]" --fee-rate 10 -y
 
-# 通过免费的 view 调用读取状态：合约 [2,1]，opcode 2
-alkanes-cli -p signet alkanes view "[2,1]" "2"
-
-# 在不广播的情况下模拟一次调用
+# 在不广播的情况下模拟调用以读取状态：合约 2:1，opcode 2
 alkanes-cli -p signet alkanes simulate "2:1:2"
 
 # 检查合约的字节码与元数据
 alkanes-cli -p signet alkanes inspect "2:1" --meta
 ```
 
-`-y` 参数用于自动确认。`execute` 会产生一笔 Bitcoin 交易并支付费用；`view` 和 `simulate` 读取索引器状态，不产生任何花费。
+`-y` 参数用于自动确认。`execute` 会产生一笔 Bitcoin 交易并支付费用；`simulate` 读取索引器状态，不产生任何花费。
 
 ## 直接查询 Bitcoin
 

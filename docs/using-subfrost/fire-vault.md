@@ -7,7 +7,7 @@ description: Stake liquidity to earn FIRE, or buy FIRE at a discount through bon
 
 # FIRE Vault
 
-**FIRE** is the Alkanes governance & rewards token. It rewards the people who provide liquidity to the [DIESEL / frBTC pool](./pools-liquidity), and it is earned two ways: by **staking** your liquidity, or by **bonding**.
+**FIRE** is the Alkanes governance token. It also rewards the people who provide liquidity to the [DIESEL / frBTC pool](./pools-liquidity), and it is earned two ways: by **staking** your liquidity, or by **bonding**.
 
 There is no premine. Every FIRE that exists was emitted by the protocol, and the only way FIRE leaves circulation is redemption against the treasury.
 

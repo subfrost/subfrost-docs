@@ -236,12 +236,12 @@ uint256 signetId = FrBTCLib.SIGNET_CHAIN_ID;    // 0x425243323073
 
 ## CLI 命令
 
-使用 `alkanes` CLI 的 `brc20-prog` 子命令与 FR-BTC 交互：
+使用 `alkanes-cli` 的 `brc20-prog` 子命令与 FR-BTC 交互。下文中的 `<AMOUNT>` 均为以聪为单位的整数。
 
 ### 包装 BTC
 
 ```bash
-alkanes brc20-prog wrap-btc <AMOUNT> \
+alkanes-cli brc20-prog wrap-btc <AMOUNT> \
   --from <ADDRESSES> \
   -y
 ```
@@ -249,7 +249,7 @@ alkanes brc20-prog wrap-btc <AMOUNT> \
 ### 解包 FR-BTC
 
 ```bash
-alkanes brc20-prog unwrap-btc <AMOUNT> \
+alkanes-cli brc20-prog unwrap-btc <AMOUNT> \
   --vout <OUTPUT_INDEX> \
   --to <YOUR_BTC_ADDRESS> \
   -y
@@ -260,7 +260,7 @@ alkanes brc20-prog unwrap-btc <AMOUNT> \
 原子性地包装 BTC 并调用合约：
 
 ```bash
-alkanes brc20-prog wrap-and-execute2 <AMOUNT> \
+alkanes-cli brc20-prog wrap-and-execute2 <AMOUNT> \
   --target 0x<CONTRACT_ADDRESS> \
   --signature "deposit()" \
   -y
@@ -268,20 +268,22 @@ alkanes brc20-prog wrap-and-execute2 <AMOUNT> \
 
 ### 查询余额
 
+`<ADDRESS>` 为位置参数，是以 0x 开头的 BRC2.0（EVM）地址。
+
 ```bash
-alkanes brc20-prog get-balance --address <ADDRESS>
+alkanes-cli brc20-prog get-balance <ADDRESS>
 ```
 
 ### 获取签名者地址
 
 ```bash
-alkanes brc20-prog signer-address
+alkanes-cli brc20-prog signer-address
 ```
 
 ### 查看待处理的解包
 
 ```bash
-alkanes brc20-prog unwrap
+alkanes-cli brc20-prog unwrap
 ```
 
 ## 安全注意事项

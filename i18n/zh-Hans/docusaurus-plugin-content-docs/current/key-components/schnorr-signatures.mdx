@@ -42,9 +42,9 @@ Schnorr 签名是一种强大的密码学工具，相比旧的签名方案具有
 
 SUBFROST 在整个协议中广泛使用 Schnorr 签名。`schnorrkel` crate 用于提供核心 Schnorr 签名功能。
 
-### `frBTC` 和 `dxBTC` 代币
+### `frBTC`（以及规划中的 `dxBTC`）
 
-`frBTC` 和 `dxBTC` 代币都由 Schnorr 签名保护。当用户想要铸造 `frBTC` 代币时，必须首先将其 BTC 锁定在一个由 SUBFROST 签名者集合控制的 Bitcoin 地址中。该地址的私钥是由签名者持有的 Schnorr 密钥。
+`frBTC` 代币由 Schnorr 签名保护；`dxBTC` 上线后也将以同样方式受到保护。当用户想要铸造 `frBTC` 代币时，必须首先将其 BTC 锁定在一个由 SUBFROST 签名者集合控制的 Bitcoin 地址中。该地址的私钥是由签名者持有的 Schnorr 密钥。
 
 当用户想要将其 `frBTC` 代币赎回为 BTC 时，必须向 SUBFROST 网络提交请求。SUBFROST 签名者将使用其 Schnorr 密钥签署一笔 Bitcoin 交易，将 BTC 发送到用户的地址。
 
@@ -52,4 +52,4 @@ SUBFROST 在整个协议中广泛使用 Schnorr 签名。`schnorrkel` crate 用�
 
 `schnorrkel` crate 是 Schnorr 签名的纯 Rust 实现。它提供了一个简单易用的 API，用于创建和验证 Schnorr 签名。
 
-`subfrost-core` crate 使用 `schnorrkel` crate 来实现 FROST 和 ROAST 签名协议。`schnorrkel` crate 也用于创建保护 `frBTC` 和 `dxBTC` 代币的 Schnorr 签名。
+`subfrost-core` crate 使用 `schnorrkel` crate 来实现 FROST 和 ROAST 签名协议。`schnorrkel` crate 也用于创建保护 `frBTC` 代币（以及上线后的 `dxBTC` 代币）的 Schnorr 签名。

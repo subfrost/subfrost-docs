@@ -57,7 +57,7 @@ Runestone 代币操作包含以下几个关键字段：
 
 ### 示例：销毁 `frBTC`（解包装）
 
-要进行解包装，用户需要花费包含 `frBTC` 的 UTXO。此交易中的 Runestone 将具有一个空的 `edicts` 数组，表示销毁操作。`calldata` 用于指定释放抵押品的目标 Bitcoin 地址。
+要进行解包装，用户需要花费包含 `frBTC` 的 UTXO。此交易中的 Runestone 将具有一个空的 `edicts` 数组，表示销毁操作。`calldata` 调用 `unwrap`（操作码 78），并传入两个参数：`vout`，即标识释放的 BTC 去向的交易输出索引；以及 `amount`，即要解包装的 `frBTC` 数量（以聪为单位）。
 
 ```json
 {
@@ -65,7 +65,7 @@ Runestone 代币操作包含以下几个关键字段：
     "protocolTag": 1n,
     "edicts": [], // An empty array signifies a burn of input runes
     "pointer": 0,
-    "calldata": [32n, 0n, 78n, /*...destination address...*/] // Call 'unwrap'
+    "calldata": [32n, 0n, 78n, 0n, 50000000n] // Call 'unwrap': vout of the destination output, amount in sats
   }]
 }
 ```

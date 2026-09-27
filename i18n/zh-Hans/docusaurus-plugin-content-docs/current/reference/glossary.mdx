@@ -22,16 +22,27 @@ description: SUBFROST 文档中所用术语的简明定义。
 *   **`OP_RETURN`：** 比特币脚本中的一个操作码，可在交易中嵌入少量数据。
 *   **BRC2.0：** 比特币上一个兼容 EVM 的智能合约层（也称为 brc20-prog），运行状态源自比特币交易的 Solidity 合约。
 *   **`frBTC`：** Alkanes 内部由比特币支撑的价值单位，与 BTC 保持 1:1 锚定，可在整个比特币 DeFi 中使用。
+*   **`FR-BTC`：** frBTC 在 BRC2.0 上的部署。
 *   **DIESEL：** 协议的公平发行原生代币。每个 Bitcoin 区块发行的 DIESEL 数量，与该区块新发行的比特币数量相同，并与 Bitcoin 同步减半。
-*   **FIRE：** FIRE 金库背后的代币，与通过预言机对协议国库定价的债券机制相绑定。
+*   **FIRE：** FIRE 是 Alkanes 治理代币。它也是 FIRE 金库背后的代币，与通过预言机对协议国库定价的债券机制相绑定。
 *   **`dxBTC`：** 一种生息的合成比特币资产（规划中）。
-*   **`FUEL`：** 协议代币。请勿与下面的小写 fuel 混淆。
+*   **`FUEL`：** FUEL 是 SUBFROST 协议治理代币（规划中）。请勿与下面的小写 fuel 混淆。
 *   **fuel：** 一次 Alkanes 合约调用被允许消耗的计算预算，就其所衡量的内容而言可类比以太坊上的 gas。但与 gas 不同，它是免费的：每个区块的固定 fuel 预算，只在真正运行合约的交易之间按大小分配，不会从中扣除任何费用。网络手续费就是普通的 Bitcoin 矿工费，以原生 BTC 支付。
 *   **AMM：** 自动做市商（Automated Market Maker）。一种依靠公式而非订单簿为资产定价的去中心化交易所。
 *   **Wrap / Unwrap（包装 / 解包）：** 包装会锁定 BTC 并按 1:1 铸造 frBTC；解包则会销毁 frBTC，并由签名者组释放对应的底层 BTC。
 *   **Oracle（预言机）：** 一个通过共识将链外数据（主要是价格）带上链的去中心化群体，确保没有任何单一方能左右数值。
 *   **Signer set（签名者组）：** 通过门限签名共同托管支撑 frBTC 的 BTC 的一组参与者。
 *   **PSBT：** 部分签名比特币交易（Partially Signed Bitcoin Transaction）。钱包在授权交易时签署的格式。
+
+## Alkane ID
+
+Alkane ID 的写法是 `block:tx`。例如 frBTC 是 `32:0`，它在 calldata 数组中写作 `[32, 0]`，在 protostone JSON 中写作 `{block: 32n, tx: 0n}`。
+
+| 代币 | 主网 Alkane ID |
+| --- | --- |
+| `frBTC` | `32:0` |
+| DIESEL | `2:0` |
+| frUSD | `4:1776` |
 
 ## 密码学
 

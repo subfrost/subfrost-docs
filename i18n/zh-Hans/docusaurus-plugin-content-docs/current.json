@@ -47,10 +47,6 @@
     "message": "frUSD - 比特币上的稳定币",
     "description": "The label for the doc item 'frUSD - Stablecoin on BTC' in sidebar 'docs', linking to the doc tokens/frUSD-overview"
   },
-  "sidebar.docs.doc.dxBTC - Yield-bearing BTC": {
-    "message": "dxBTC - 生息 BTC",
-    "description": "The label for the doc item 'dxBTC - Yield-bearing BTC' in sidebar 'docs', linking to the doc tokens/dxBTC-overview"
-  },
   "sidebar.docs.doc.FUEL - Protocol Token": {
     "message": "FUEL - 协议代币",
     "description": "The label for the doc item 'FUEL - Protocol Token' in sidebar 'docs', linking to the doc tokens/FUEL-token"

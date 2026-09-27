@@ -33,12 +33,12 @@ For production traffic, pass an API key through `--jsonrpc-url` for higher rate 
 ## Wallet basics
 
 ```bash
-# Create or import a wallet
+# Create a new wallet, or restore one from a mnemonic phrase
 alkanes-cli wallet create
-alkanes-cli wallet import
+alkanes-cli wallet create "<MNEMONIC>"
 
-# List addresses (range is start:end)
-alkanes-cli wallet addresses --range 0:5
+# List addresses (type:start-end)
+alkanes-cli wallet addresses p2tr:0-5
 
 # Balances and unspent outputs
 alkanes-cli wallet balance
@@ -55,17 +55,14 @@ Contract operations live under the `alkanes` namespace. A contract is addressed 
 # Execute a call: contract [2,1], opcode 1
 alkanes-cli -p signet alkanes execute "[2,1,1]" --fee-rate 10 -y
 
-# Read state with a free view call: contract [2,1], opcode 2
-alkanes-cli -p signet alkanes view "[2,1]" "2"
-
-# Simulate a call without broadcasting
+# Read state by simulating a call without broadcasting: contract 2:1, opcode 2
 alkanes-cli -p signet alkanes simulate "2:1:2"
 
 # Inspect a contract's bytecode and metadata
 alkanes-cli -p signet alkanes inspect "2:1" --meta
 ```
 
-The `-y` flag auto-confirms. `execute` produces a Bitcoin transaction and pays a fee; `view` and `simulate` read indexer state and cost nothing. See [Alkanes Commands](../api-reference/cli-sdk/alkanes) for the full flag set on `execute`, `simulate`, and `inspect`.
+The `-y` flag auto-confirms. `execute` produces a Bitcoin transaction and pays a fee; `simulate` reads indexer state and costs nothing. See [Alkanes Commands](../api-reference/cli-sdk/alkanes) for the full flag set on `execute`, `simulate`, and `inspect`.
 
 ## Querying Bitcoin directly
 

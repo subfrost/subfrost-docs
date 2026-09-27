@@ -17,15 +17,15 @@ description: SUBFROST 的速查表，涵盖 frBTC、DIESEL、FIRE、FUEL、dxBTC
 
 - **DIESEL。** 协议的原生发行代币。每个 Bitcoin 区块发行的 DIESEL 数量，与该区块新发行的比特币数量相同（今天是 3.125），并遵循相同的减半时间表。具体数字与领取对象见 [DIESEL](../tokens-economics/diesel)。
 
-- **FIRE。** Alkanes 治理代币，奖励为 DIESEL/frBTC 资金池提供流动性的人，并由质押（staking）与债券（bonding）机制驱动。这是活跃参与者获得协议份额、并随时间推移参与治理的方式。
+- **FIRE。** FIRE 是 Alkanes 治理代币。它奖励为 DIESEL/frBTC 资金池提供流动性的人，并由质押（staking）与债券（bonding）机制驱动。这是活跃参与者获得协议份额、并随时间推移参与治理的方式。
 
 - **frUSD。** Bitcoin 原生稳定币：一种美元代币，结算在 Bitcoin 本身而非其他链上，因此美元余额可以与你的 BTC 组合进同一笔交易。它已在主网上与 frBTC 组成资金池进行交易，也可以通过从 Ethereum 跨链存入 USDC 或 USDT 来铸造。关于它如何进行储备、以及这要求你信任什么，参见 [frUSD](../tokens/frUSD-overview)。
 
 ### 规划中
 
-- **dxBTC。** 生息 Bitcoin。你质押 BTC 并收到 dxBTC；在后台，你的 Bitcoin 会被投入市场中性的收益策略中运作，且始终不会离开 Bitcoin 区块链。
+- **dxBTC（规划中）。** 一种生息 Bitcoin 代币。按照计划，你存入 BTC 并收到 dxBTC；在后台，你的 Bitcoin 将被投入市场中性的收益策略中运作，且始终不会离开 Bitcoin 区块链。
 
-- **FUEL。** subfrost 协议国库与参数（例如铸造/赎回费用和协议升级）的治理代币。其代币经济学尚未公开。
+- **FUEL。** FUEL 是 SUBFROST 协议治理代币。按计划，它将用于治理协议的国库与参数（例如铸造/赎回费用和协议升级）。其代币经济学尚未公开。
 
 :::note[说明]
 大小写区分了你会在这些文档中遇到的两个"fuel"：大写的 **FUEL** 始终指这个代币，而小写的 **fuel** 指一次 Alkanes 合约调用被允许消耗的计算预算，相当于其他链上的 gas。
@@ -65,7 +65,7 @@ description: SUBFROST 的速查表，涵盖 frBTC、DIESEL、FIRE、FUEL、dxBTC
 诚实面对现状很重要。快速一览：
 
 - **已上线：** frBTC 的原子化包装与解包回 BTC、Bitcoin 资产与 BTC 之间在 AMM 资金池中的兑换、持有并交易 Bitcoin 原生美元 frUSD、向这些 AMM 资金池提供流动性以赚取收益，以及在进阶 DeFi "FIRE" vault 中的质押与债券。
-- **规划中：** 生息 Bitcoin 金库代币（dxBTC）、FUEL 治理代币，以及完全无许可的签名者网络。
+- **规划中：** 生息 Bitcoin 金库代币（dxBTC）、FUEL（SUBFROST 协议治理代币），以及完全无许可的签名者网络。
 
 ## 接下来去哪里
 
