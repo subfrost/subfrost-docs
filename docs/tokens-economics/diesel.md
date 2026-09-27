@@ -2,6 +2,7 @@
 title: DIESEL
 sidebar_label: DIESEL
 sidebar_position: 2
+unlisted: true
 description: DIESEL is SUBFROST's native emission, issued on-chain in step with Bitcoin's own block production.
 ---
 

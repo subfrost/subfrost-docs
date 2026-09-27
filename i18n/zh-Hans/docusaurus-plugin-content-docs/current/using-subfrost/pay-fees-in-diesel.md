@@ -107,5 +107,4 @@ Android 应用还支持在 [BTCUSD 资金池](./btcusd-pool) 中交易 frBTC 和
 ## 下一步
 
 - [DIESEL 手续费的工作原理](../protocol/diesel-fees)：这项功能背后的设计。
-- [DIESEL](../tokens-economics/diesel)：DIESEL 是什么，以及它如何发行。
 - [Wallets（钱包）](./wallets)：发送、接收以及管理你的余额。

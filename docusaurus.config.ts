@@ -1,8 +1,11 @@
 import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
+import type {Config, PluginConfig} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
+
+// Docusaurus loads this config once per locale and sets this variable first.
+const isDefaultLocale = (process.env.DOCUSAURUS_CURRENT_LOCALE ?? 'en') === 'en';
 
 const config: Config = {
   title: 'SUBFROST',
@@ -74,6 +77,12 @@ const config: Config = {
           
         },
         blog: false,
+        // search.html marks itself noindex with <meta property="robots"> (not
+        // name=), so the sitemap plugin keeps it; robots.txt disallows it, and
+        // a disallowed URL in the sitemap gets flagged by Search Console.
+        sitemap: {
+          ignorePatterns: ['/search', '/zh-Hans/search'],
+        },
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -145,69 +154,65 @@ const config: Config = {
   } satisfies Preset.ThemeConfig,
 
   plugins: [
-    // The docs root used to be introduction/subfrost-overview, which carried
-    // `slug: /`. Gabe asked for that page to be killed on 2026-07-28, which
-    // left `/` with nothing to serve. Redirecting instead of moving the slug
-    // onto What is SUBFROST keeps every existing relative link working: a slug
-    // change moves the page's route, and the links around the site are
-    // URL-relative, not file-relative.
-    [
-      '@docusaurus/plugin-client-redirects',
-      {
-        redirects: [
-          {from: '/', to: '/start-here/what-is-subfrost'},
-          // The SUBFROST Networking section was removed on 2026-07-29 at
-          // flex's request. All six pages were live and served 200, so they
-          // are redirected rather than left to 404. There is no equivalent
-          // page to land on, so they point at the docs root.
-          {from: '/subfrost-networking/introduction-to-subp2p', to: '/start-here/what-is-subfrost'},
-          {from: '/subfrost-networking/subrelay', to: '/start-here/what-is-subfrost'},
-          {from: '/subfrost-networking/subproxy', to: '/start-here/what-is-subfrost'},
-          {from: '/subfrost-networking/subtun', to: '/start-here/what-is-subfrost'},
-          {from: '/subfrost-networking/gossipsub-and-encrypted-communication', to: '/start-here/what-is-subfrost'},
-          {from: '/subfrost-networking/building-microservices-on-subp2p', to: '/start-here/what-is-subfrost'},
-          // The frBTC roadmap page was merged INTO the frBTC overview on
-          // 2026-07-29 at Gabe's request. Its content now lives under the
-          // "frBTC is live on Alkanes and BRC2.0" paragraph there.
-          {from: '/tokens/frBTC-roadmap', to: '/tokens/frBTC-overview'},
-
-          // Everything below is the retirement of the legacy tree. Each of
-          // these fourteen routes serves 200 on docs.subfrost.io TODAY
-          // (measured 2026-07-31, following the nginx trailing-slash 301), and
-          // none of them survives the restructure, so without these entries
-          // shipping this branch converts fourteen live pages into 404s. They
-          // are the pages linked from X posts and picked up by search, which is
-          // exactly the traffic that never comes back from a 404.
-
-          // The app section moved wholesale: subfrost-app/* -> using-subfrost/*.
-          {from: '/subfrost-app/fire-vault', to: '/using-subfrost/fire-vault'},
-          {from: '/subfrost-app/futures', to: '/using-subfrost/futures'},
-          {from: '/subfrost-app/lending', to: '/using-subfrost/lending'},
-          {from: '/subfrost-app/swap', to: '/using-subfrost/swap'},
-          {from: '/subfrost-app/wallet', to: '/using-subfrost/wallets'},
-          // "DeFi Vaults on Bitcoin" was the automated-yield page; the FIRE
-          // Vault is the only vault that actually exists, so it lands there
-          // rather than on a section index.
-          {from: '/subfrost-app/vaults', to: '/using-subfrost/fire-vault'},
-          // Both overview pages were feature tours of an app that was "in
-          // development". Get Started is the page that now does that job.
-          {from: '/subfrost-app/overview', to: '/start-here/get-started'},
-          {from: '/introduction/subfrost-app-overview', to: '/start-here/get-started'},
-          // Technical Overview was the conceptual tour of FROST, Alkanes and
-          // the p2p layer. Key Concepts replaced it.
-          {from: '/introduction/technical-overview', to: '/start-here/key-concepts'},
-          // This one was a stub that pointed at api.subfrost.io/docs. The API
-          // reference is now a first-class section in this site.
-          {from: '/introduction/subfrost-api-docs', to: '/api-reference/getting-started/overview'},
-          // PoS described signers staking FUEL and frBTC to sign for the peg.
-          {from: '/key-components/proof-of-stake', to: '/protocol/signing-and-keys'},
-          // The three CLI reference pages collapsed into the CLI/SDK section.
-          {from: '/reference/subfrost-cli-reference', to: '/api-reference/cli-sdk/overview'},
-          {from: '/reference/subfrost-node-cli-reference', to: '/api-reference/cli-sdk/overview'},
-          {from: '/reference/subrail-cli-reference', to: '/api-reference/cli-sdk/overview'},
-        ],
-      },
-    ],
+    // Redirects (the docs root and the retired legacy URLs) are HTTP 301s in
+    // static/_redirects, served by Cloudflare Pages. They used to come from
+    // @docusaurus/plugin-client-redirects, which emitted 200 pages with a meta
+    // refresh that crawlers and AI fetchers do not follow.
+    //
+    // llms.txt, llms-full.txt, llms-api.txt and a .md twin of every doc page
+    // (https://llmstxt.org). The plugin reads the English sources in docs/
+    // only, so it is registered for the default locale alone; otherwise the
+    // zh-Hans build would publish the English text under /zh-Hans/.
+    ...(isDefaultLocale
+      ? [
+          [
+            'docusaurus-plugin-llms',
+            {
+              docsDir: 'docs',
+              // routeBasePath is '/', so the docs/ folder is not part of any URL:
+              // pathTransformation.ignorePaths strips it from the link URLs.
+              // (preserveDirectoryStructure: false is effectively a no-op here;
+              // the .md twins already land at build/<route>.md.)
+              pathTransformation: {ignorePaths: ['docs']},
+              preserveDirectoryStructure: false,
+              title: 'SUBFROST Documentation',
+              description:
+                'Official docs for SUBFROST on Bitcoin L1: frBTC, frUSD, DIESEL, FIRE, the Alkanes metaprotocol, the SUBFROST API and alkanes-cli.',
+              generateLLMsTxt: true,
+              generateLLMsFullTxt: true,
+              generateMarkdownFiles: true,
+              excludeImports: true,
+              removeDuplicateHeadings: true,
+              includeOrder: [
+                'start-here/**',
+                'using-subfrost/**',
+                'tokens-economics/**',
+                'tokens/**',
+                'protocol/**',
+                'build/**',
+                'api-reference/**',
+                'reference/**',
+              ],
+              // minting-dxBTC contradicts the dxBTC status elsewhere in the docs;
+              // kept out of the LLM files until the content fix lands.
+              // diesel is `unlisted: true` (hidden from nav, search and sitemap,
+              // URL kept), and this plugin does not read `unlisted`. The plugin
+              // runs for the default locale only, so the zh-Hans copy never
+              // reaches the LLM files.
+              ignoreFiles: ['tokens/minting-dxBTC.mdx', 'tokens-economics/diesel.md'],
+              customLLMFiles: [
+                {
+                  filename: 'llms-api.txt',
+                  includePatterns: ['api-reference/**'],
+                  fullContent: true,
+                  title: 'SUBFROST API, CLI and SDK reference',
+                  description: 'JSON-RPC, REST, Lua, mempool, orderbook and alkanes-cli reference.',
+                },
+              ],
+            },
+          ] satisfies PluginConfig,
+        ]
+      : []),
   ],
   
 };

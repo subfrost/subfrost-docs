@@ -2,7 +2,7 @@
 title: Orderbook REST
 sidebar_label: REST API
 sidebar_position: 2
-description: REST endpoints for orderbook markets, market snapshots, single orders, and the admin ingest path.
+description: REST endpoints for orderbook markets, market snapshots, and single orders.
 ---
 
 # Orderbook REST
@@ -61,28 +61,9 @@ curl "https://mainnet.subfrost.io/v4/YOUR_API_KEY/orderbook/order/lending/clx123
 
 Returns the normalized order envelope, or `404` if unknown.
 
-## `POST /orderbook/ingest` (admin only)
-
-The change-data-capture write path. **Requires an admin API key** (an account
-flagged `admin` in the key store). This is how Subfrost's own app mirrors order
-writes into the book; most integrators only ever read. Accepts a single
-Debezium-style change event or a JSON array of them; republishes each to the
-durable stream.
-
-```bash
-curl -X POST "https://mainnet.subfrost.io/v4/YOUR_ADMIN_API_KEY/orderbook/ingest" \
-  -H "Content-Type: application/json" \
-  -d '{"op":"c","source":{"table":"orbital_listings"},"after":{ /* row */ }}'
-# → 202 { "status": "queued", "events": 1 }
-```
-
-A non-admin key receives `403`.
-
 ## Errors
 
 | Status | Meaning |
 |--------|---------|
 | `401` | invalid / inactive API key |
-| `403` | admin key required (ingest) |
 | `404` | order not found |
-| `503` | ingest temporarily unavailable |

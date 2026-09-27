@@ -74,5 +74,4 @@ Bitcoin 矿工只收 BTC。手续费就是一笔交易所有输入的价值减�
 ## 接下来可以看看
 
 - [用 DIESEL 支付手续费](../using-subfrost/pay-fees-in-diesel)：如何在钱包中使用它。
-- [DIESEL](../tokens-economics/diesel)：这个代币本身。
 - [Alkanes 元协议](./alkanes)：DIESEL 付款是如何承载在一笔 Bitcoin 交易中的。
