@@ -34,7 +34,7 @@ https://mainnet.subfrost.io/v4/YOUR_API_KEY/orderbook
 
 Authentication is the same as the rest of the platform: the API key is a path
 segment (see [Authentication](../getting-started/authentication)). Reads accept any active
-key; the CDC ingest endpoint requires an admin key.
+key.
 
 ## Market model
 

@@ -107,5 +107,4 @@ It is paid into a protocol treasury on-chain. [How DIESEL Fees Work](../protocol
 ## Next steps
 
 - [How DIESEL Fees Work](../protocol/diesel-fees): the design behind this feature.
-- [DIESEL](../tokens-economics/diesel): what DIESEL is and how it is issued.
 - [Wallets](./wallets): sending, receiving and managing your balances.

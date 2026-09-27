@@ -1,0 +1,121 @@
+# Cloudflare Pages redirects (https://developers.cloudflare.com/pages/configuration/redirects/).
+# These replace @docusaurus/plugin-client-redirects, which served a 200 page
+# with a meta refresh; crawlers and AI fetchers now get a real HTTP 301.
+#
+# The site is built with `trailingSlash: false`, so every target has no
+# trailing slash. Cloudflare matches the source path literally, so each legacy
+# source is listed both without and with a trailing slash. Static rules come
+# first; the splat rules stay at the bottom, as Cloudflare recommends.
+#
+# Why these paths moved (from the old plugin-client-redirects block in
+# docusaurus.config.ts; see its git history):
+# - /: the old docs root page was removed on 2026-07-28.
+# - /subfrost-networking/*: section removed on 2026-07-29; no equivalent page.
+# - /tokens/frBTC-roadmap: merged into the frBTC overview on 2026-07-29.
+# - /subfrost-app/*, /introduction/*, /key-components/proof-of-stake and
+#   /reference/*-cli-reference: legacy tree retired in the 2026-07 restructure.
+
+# Docs root (English)
+/                                                                        /start-here/what-is-subfrost                     301
+
+# Docs root (Chinese)
+/zh-Hans                                                                 /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/                                                                /zh-Hans/start-here/what-is-subfrost             301
+
+# Legacy URLs (English)
+/tokens/frBTC-roadmap                                                    /tokens/frBTC-overview                           301
+/tokens/frBTC-roadmap/                                                   /tokens/frBTC-overview                           301
+/subfrost-networking/introduction-to-subp2p                              /start-here/what-is-subfrost                     301
+/subfrost-networking/introduction-to-subp2p/                             /start-here/what-is-subfrost                     301
+/subfrost-networking/subrelay                                            /start-here/what-is-subfrost                     301
+/subfrost-networking/subrelay/                                           /start-here/what-is-subfrost                     301
+/subfrost-networking/subproxy                                            /start-here/what-is-subfrost                     301
+/subfrost-networking/subproxy/                                           /start-here/what-is-subfrost                     301
+/subfrost-networking/subtun                                              /start-here/what-is-subfrost                     301
+/subfrost-networking/subtun/                                             /start-here/what-is-subfrost                     301
+/subfrost-networking/gossipsub-and-encrypted-communication               /start-here/what-is-subfrost                     301
+/subfrost-networking/gossipsub-and-encrypted-communication/              /start-here/what-is-subfrost                     301
+/subfrost-networking/building-microservices-on-subp2p                    /start-here/what-is-subfrost                     301
+/subfrost-networking/building-microservices-on-subp2p/                   /start-here/what-is-subfrost                     301
+/subfrost-app/fire-vault                                                 /using-subfrost/fire-vault                       301
+/subfrost-app/fire-vault/                                                /using-subfrost/fire-vault                       301
+/subfrost-app/futures                                                    /using-subfrost/futures                          301
+/subfrost-app/futures/                                                   /using-subfrost/futures                          301
+/subfrost-app/lending                                                    /using-subfrost/lending                          301
+/subfrost-app/lending/                                                   /using-subfrost/lending                          301
+/subfrost-app/swap                                                       /using-subfrost/swap                             301
+/subfrost-app/swap/                                                      /using-subfrost/swap                             301
+/subfrost-app/wallet                                                     /using-subfrost/wallets                          301
+/subfrost-app/wallet/                                                    /using-subfrost/wallets                          301
+/subfrost-app/vaults                                                     /using-subfrost/fire-vault                       301
+/subfrost-app/vaults/                                                    /using-subfrost/fire-vault                       301
+/subfrost-app/overview                                                   /start-here/get-started                          301
+/subfrost-app/overview/                                                  /start-here/get-started                          301
+/introduction/subfrost-app-overview                                      /start-here/get-started                          301
+/introduction/subfrost-app-overview/                                     /start-here/get-started                          301
+/introduction/technical-overview                                         /start-here/key-concepts                         301
+/introduction/technical-overview/                                        /start-here/key-concepts                         301
+/introduction/subfrost-api-docs                                          /api-reference/getting-started/overview          301
+/introduction/subfrost-api-docs/                                         /api-reference/getting-started/overview          301
+/key-components/proof-of-stake                                           /protocol/signing-and-keys                       301
+/key-components/proof-of-stake/                                          /protocol/signing-and-keys                       301
+/reference/subfrost-cli-reference                                        /api-reference/cli-sdk/overview                  301
+/reference/subfrost-cli-reference/                                       /api-reference/cli-sdk/overview                  301
+/reference/subfrost-node-cli-reference                                   /api-reference/cli-sdk/overview                  301
+/reference/subfrost-node-cli-reference/                                  /api-reference/cli-sdk/overview                  301
+/reference/subrail-cli-reference                                         /api-reference/cli-sdk/overview                  301
+/reference/subrail-cli-reference/                                        /api-reference/cli-sdk/overview                  301
+
+# Legacy URLs (Chinese)
+/zh-Hans/tokens/frBTC-roadmap                                            /zh-Hans/tokens/frBTC-overview                   301
+/zh-Hans/tokens/frBTC-roadmap/                                           /zh-Hans/tokens/frBTC-overview                   301
+/zh-Hans/subfrost-networking/introduction-to-subp2p                      /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/introduction-to-subp2p/                     /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/subrelay                                    /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/subrelay/                                   /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/subproxy                                    /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/subproxy/                                   /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/subtun                                      /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/subtun/                                     /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/gossipsub-and-encrypted-communication       /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/gossipsub-and-encrypted-communication/      /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/building-microservices-on-subp2p            /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/building-microservices-on-subp2p/           /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-app/fire-vault                                         /zh-Hans/using-subfrost/fire-vault               301
+/zh-Hans/subfrost-app/fire-vault/                                        /zh-Hans/using-subfrost/fire-vault               301
+/zh-Hans/subfrost-app/futures                                            /zh-Hans/using-subfrost/futures                  301
+/zh-Hans/subfrost-app/futures/                                           /zh-Hans/using-subfrost/futures                  301
+/zh-Hans/subfrost-app/lending                                            /zh-Hans/using-subfrost/lending                  301
+/zh-Hans/subfrost-app/lending/                                           /zh-Hans/using-subfrost/lending                  301
+/zh-Hans/subfrost-app/swap                                               /zh-Hans/using-subfrost/swap                     301
+/zh-Hans/subfrost-app/swap/                                              /zh-Hans/using-subfrost/swap                     301
+/zh-Hans/subfrost-app/wallet                                             /zh-Hans/using-subfrost/wallets                  301
+/zh-Hans/subfrost-app/wallet/                                            /zh-Hans/using-subfrost/wallets                  301
+/zh-Hans/subfrost-app/vaults                                             /zh-Hans/using-subfrost/fire-vault               301
+/zh-Hans/subfrost-app/vaults/                                            /zh-Hans/using-subfrost/fire-vault               301
+/zh-Hans/subfrost-app/overview                                           /zh-Hans/start-here/get-started                  301
+/zh-Hans/subfrost-app/overview/                                          /zh-Hans/start-here/get-started                  301
+/zh-Hans/introduction/subfrost-app-overview                              /zh-Hans/start-here/get-started                  301
+/zh-Hans/introduction/subfrost-app-overview/                             /zh-Hans/start-here/get-started                  301
+/zh-Hans/introduction/technical-overview                                 /zh-Hans/start-here/key-concepts                 301
+/zh-Hans/introduction/technical-overview/                                /zh-Hans/start-here/key-concepts                 301
+/zh-Hans/introduction/subfrost-api-docs                                  /zh-Hans/api-reference/getting-started/overview  301
+/zh-Hans/introduction/subfrost-api-docs/                                 /zh-Hans/api-reference/getting-started/overview  301
+/zh-Hans/key-components/proof-of-stake                                   /zh-Hans/protocol/signing-and-keys               301
+/zh-Hans/key-components/proof-of-stake/                                  /zh-Hans/protocol/signing-and-keys               301
+/zh-Hans/reference/subfrost-cli-reference                                /zh-Hans/api-reference/cli-sdk/overview          301
+/zh-Hans/reference/subfrost-cli-reference/                               /zh-Hans/api-reference/cli-sdk/overview          301
+/zh-Hans/reference/subfrost-node-cli-reference                           /zh-Hans/api-reference/cli-sdk/overview          301
+/zh-Hans/reference/subfrost-node-cli-reference/                          /zh-Hans/api-reference/cli-sdk/overview          301
+/zh-Hans/reference/subrail-cli-reference                                 /zh-Hans/api-reference/cli-sdk/overview          301
+/zh-Hans/reference/subrail-cli-reference/                                /zh-Hans/api-reference/cli-sdk/overview          301
+
+# The removed SUBFROST Networking section root (a splat needs something after the slash)
+/subfrost-networking                                                     /start-here/what-is-subfrost                     301
+/subfrost-networking/                                                    /start-here/what-is-subfrost                     301
+/zh-Hans/subfrost-networking                                             /zh-Hans/start-here/what-is-subfrost             301
+/zh-Hans/subfrost-networking/                                            /zh-Hans/start-here/what-is-subfrost             301
+
+# Any other page of the removed SUBFROST Networking section (splat rules last)
+/subfrost-networking/*                                                   /start-here/what-is-subfrost                     301
+/zh-Hans/subfrost-networking/*                                           /zh-Hans/start-here/what-is-subfrost             301

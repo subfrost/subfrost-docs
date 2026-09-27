@@ -74,5 +74,4 @@ If you build a wallet or app on Bitcoin and would like to let your users pay fee
 ## Where to go next
 
 - [Pay Fees in DIESEL](../using-subfrost/pay-fees-in-diesel): how to use it in the wallet.
-- [DIESEL](../tokens-economics/diesel): the token itself.
 - [Alkanes Metaprotocol](./alkanes): how the DIESEL payment is carried in a Bitcoin transaction.

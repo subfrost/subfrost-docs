@@ -2,6 +2,7 @@
 title: DIESEL
 sidebar_label: DIESEL
 sidebar_position: 2
+unlisted: true
 description: DIESEL 是 SUBFROST 的原生发行代币，随 Bitcoin 自身的出块节奏在链上发行。
 ---
 

@@ -15,7 +15,7 @@ A short glossary to get you oriented. Each item links to a deeper page where one
 
 - **frBTC.** Your Bitcoin, made programmable. frBTC is BTC atomically wrapped 1:1 into a token that works with on-chain apps and settles natively on Bitcoin.
 
-- **DIESEL.** The protocol's native emission. Every Bitcoin block emits the same amount of DIESEL as new bitcoin (3.125 today) on the same halving schedule. See [DIESEL](../tokens-economics/diesel) for the numbers and who receives it.
+- **DIESEL.** The protocol's native emission. Every Bitcoin block emits the same amount of DIESEL as new bitcoin (3.125 today) on the same halving schedule.
 
 - **FIRE.** FIRE is the Alkanes governance token. It rewards people who provide liquidity to the DIESEL/frBTC pool, and is powered by staking and bonding. It is how active participants earn a share of the protocol and, over time, help govern it.
 
