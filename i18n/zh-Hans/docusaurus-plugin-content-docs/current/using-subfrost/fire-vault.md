@@ -7,7 +7,7 @@ description: 质押流动性以赚取 FIRE，或通过债券以折扣价购买 F
 
 # FIRE Vault
 
-**FIRE** 是 Alkanes 的治理与奖励代币。它奖励为 [DIESEL / frBTC 资金池](./pools-liquidity)提供流动性的用户，获取方式有两种：**质押（staking）**你的流动性，或**债券认购（bonding）**。
+**FIRE** 是 Alkanes 治理代币。它还奖励为 [DIESEL / frBTC 资金池](./pools-liquidity)提供流动性的用户，获取方式有两种：**质押（staking）**你的流动性，或**债券认购（bonding）**。
 
 没有预挖（premine）。所有存在的 FIRE 都是由协议发行的，FIRE 退出流通的唯一方式是向国库赎回。
 

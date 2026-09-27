@@ -39,11 +39,11 @@ See [Installation](../api-reference/cli-sdk/installation) for prerequisites, PAT
 # Create a new wallet
 alkanes-cli wallet create
 
-# Or import an existing mnemonic
-alkanes-cli wallet import
+# Or restore a wallet from an existing mnemonic phrase
+alkanes-cli wallet create "<MNEMONIC>"
 
-# Show your address so you can fund it
-alkanes-cli wallet receive
+# Show your receive address (first taproot address) so you can fund it
+alkanes-cli wallet addresses p2tr:0
 ```
 
 Fund the address from a signet faucet before deploying. See [Wallet Commands](../api-reference/cli-sdk/wallet) for the rest of the wallet surface.
@@ -134,8 +134,8 @@ alkanes-cli -p signet alkanes execute "[2,1,1]" \
   --fee-rate 10 \
   -y
 
-# Read the counter (opcode 2), a view call that costs nothing
-alkanes-cli -p signet alkanes view "[2,1]" "2"
+# Read the counter (opcode 2) by simulating the call, which costs nothing
+alkanes-cli -p signet alkanes simulate "2:1:2"
 ```
 
 Read calls are free and do not touch the chain: they run against indexer state. Write calls are Bitcoin transactions and pay a fee.

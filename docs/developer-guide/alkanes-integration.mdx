@@ -5,7 +5,7 @@ sidebar_position: 2
 
 # Alkanes Integration
 
-The Alkanes CLI (`alkanes`) is the primary command-line tool for interacting with the Alkanes metaprotocol on Bitcoin. It provides commands for wallet management, token operations, contract deployment, and querying the network.
+The Alkanes CLI (`alkanes-cli`) is the primary command-line tool for interacting with the Alkanes metaprotocol on Bitcoin. It provides commands for wallet management, token operations, contract deployment, and querying the network.
 
 ## Installation
 
@@ -17,7 +17,7 @@ cd alkanes-rs
 cargo build --release
 ```
 
-The binary will be available at `target/release/alkanes`.
+The binary will be available at `target/release/alkanes-cli`.
 
 ## Global Options
 
@@ -37,7 +37,7 @@ All commands support these global options:
 ### Create a Wallet
 
 ```bash
-alkanes wallet create
+alkanes-cli wallet create
 ```
 
 Creates a new wallet with a 12-word mnemonic phrase. Store this phrase securely.
@@ -45,15 +45,15 @@ Creates a new wallet with a 12-word mnemonic phrase. Store this phrase securely.
 ### List Addresses
 
 ```bash
-alkanes wallet addresses --range 0:5
+alkanes-cli wallet addresses p2tr:0-5
 ```
 
-Shows wallet addresses. Use range notation `start:end` to specify which addresses to display.
+Shows wallet addresses. Pass one or more positional range specs of the form `TYPE:START-END` (for example `p2tr:0-5` or `p2sh:0-500`) to choose which addresses to display. With no range, it shows the first 5 addresses of each type for the current network.
 
 ### Check Balance
 
 ```bash
-alkanes wallet balance
+alkanes-cli wallet balance
 ```
 
 Displays BTC and token balances for your wallet.
@@ -61,7 +61,7 @@ Displays BTC and token balances for your wallet.
 ### List UTXOs
 
 ```bash
-alkanes wallet utxos
+alkanes-cli wallet utxos
 ```
 
 Lists all unspent transaction outputs in your wallet.
@@ -71,7 +71,7 @@ Lists all unspent transaction outputs in your wallet.
 ### Wrap BTC to frBTC
 
 ```bash
-alkanes alkanes wrap-btc <AMOUNT> \
+alkanes-cli alkanes wrap-btc <AMOUNT> \
   --to <RECIPIENT_ADDRESS> \
   --from <YOUR_ADDRESS> \
   --change <CHANGE_ADDRESS> \
@@ -79,11 +79,11 @@ alkanes alkanes wrap-btc <AMOUNT> \
   -y
 ```
 
-Wraps native BTC to frBTC tokens. The `-y` flag auto-confirms the transaction.
+Wraps native BTC to frBTC tokens. `<AMOUNT>` is an integer amount in satoshis (the example below wraps 1000000 sats = 0.01 BTC), and `--to` is required. The `-y` flag auto-confirms the transaction.
 
 **Example:**
 ```bash
-alkanes alkanes wrap-btc 0.01 \
+alkanes-cli alkanes wrap-btc 1000000 \
   --to bc1p... \
   --from bc1q... \
   --change bc1q... \
@@ -94,13 +94,13 @@ alkanes alkanes wrap-btc 0.01 \
 ### Check Token Balance
 
 ```bash
-alkanes alkanes getbalance --address <ADDRESS>
+alkanes-cli alkanes getbalance <ADDRESS>
 ```
 
 ### View Pending Unwraps
 
 ```bash
-alkanes alkanes unwrap --block-tag latest
+alkanes-cli alkanes unwrap --block-tag latest
 ```
 
 Shows pending frBTC unwrap requests waiting to be processed.
@@ -108,14 +108,13 @@ Shows pending frBTC unwrap requests waiting to be processed.
 ### Execute Custom Transactions
 
 ```bash
-alkanes alkanes execute \
+alkanes-cli alkanes execute <PROTOSTONES> \
   --inputs <REQUIREMENTS> \
   --to <ADDRESSES> \
-  --protostones <SPECS> \
   -y
 ```
 
-For advanced users building custom Alkanes transactions.
+For advanced users building custom Alkanes transactions. Protostone specs are positional arguments, not a flag.
 
 **Input format:**
 - `B:amount` — Bitcoin amount in sats
@@ -124,7 +123,7 @@ For advanced users building custom Alkanes transactions.
 ### Inspect Contracts
 
 ```bash
-alkanes alkanes inspect <OUTPOINT> --disasm --meta
+alkanes-cli alkanes inspect <OUTPOINT> --disasm --meta
 ```
 
 Disassemble and inspect contract bytecode.
@@ -132,10 +131,10 @@ Disassemble and inspect contract bytecode.
 ### Simulate Transactions
 
 ```bash
-alkanes alkanes simulate <TX_HEX>
+alkanes-cli alkanes simulate 32:0:103
 ```
 
-Simulate an Alkanes transaction without broadcasting.
+Simulate a contract call without broadcasting anything. The argument is `BLOCK:TX:OPCODE[:ARG...]`; this example calls opcode 103 (Get Signer, see the table below) on the frBTC contract `{32, 0}`.
 
 ## Bitcoin RPC Commands
 
@@ -143,16 +142,16 @@ Direct Bitcoin Core RPC access:
 
 ```bash
 # Get block count
-alkanes bitcoind getblockcount
+alkanes-cli bitcoind getblockcount
 
 # Get raw transaction
-alkanes bitcoind getrawtransaction <TXID>
+alkanes-cli bitcoind getrawtransaction <TXID>
 
 # Decode transaction
-alkanes bitcoind decoderawtransaction <TX_HEX>
+alkanes-cli bitcoind decoderawtransaction <TX_HEX>
 
 # Send transaction
-alkanes bitcoind sendrawtransaction <TX_HEX>
+alkanes-cli bitcoind sendrawtransaction <TX_HEX>
 ```
 
 ## Esplora Commands
@@ -161,16 +160,16 @@ Query Esplora API:
 
 ```bash
 # Get address info
-alkanes esplora address <ADDRESS>
+alkanes-cli esplora address <ADDRESS>
 
 # Get address UTXOs
-alkanes esplora address-utxo <ADDRESS>
+alkanes-cli esplora address-utxo <ADDRESS>
 
 # Get transaction
-alkanes esplora tx <TXID>
+alkanes-cli esplora tx <TXID>
 
 # Fee estimates
-alkanes esplora fee-estimates
+alkanes-cli esplora fee-estimates
 ```
 
 ## Transaction Options
@@ -207,14 +206,14 @@ Skip confirmation prompts:
 | frBTC Contract | `{32, 0}` | Block 32, Transaction 0 |
 | Wrap Opcode | `77` | frBTC exchange function |
 | Unwrap Opcode | `78` | frBTC unwrap function |
-| Get Signer Opcode | `103` | Query signer address |
+| Get Signer Opcode | `103` | Query signer public key |
 | Genesis Block | `880000` | Mainnet genesis |
 
 ## Getting Help
 
 ```bash
-alkanes --help
-alkanes <COMMAND> --help
+alkanes-cli --help
+alkanes-cli <COMMAND> --help
 ```
 
 For issues and contributions: [kungfuflex/alkanes-rs](https://github.com/kungfuflex/alkanes-rs)

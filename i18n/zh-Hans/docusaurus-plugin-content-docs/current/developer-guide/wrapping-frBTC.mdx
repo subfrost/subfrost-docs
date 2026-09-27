@@ -63,7 +63,7 @@ frBTC 合约通过操作码暴露以下方法：
 ### 使用 CLI 包装
 
 ```bash
-alkanes alkanes wrap-btc <AMOUNT> \
+alkanes-cli alkanes wrap-btc <AMOUNT> \
   --to <RECIPIENT_ADDRESS> \
   --from <YOUR_ADDRESS> \
   --change <CHANGE_ADDRESS> \
@@ -71,10 +71,12 @@ alkanes alkanes wrap-btc <AMOUNT> \
   -y
 ```
 
-**示例：包装 0.01 BTC**
+`<AMOUNT>` 为以聪为单位的整数金额，而不是以 BTC 为单位。
+
+**示例：包装 0.01 BTC（1000000 聪）**
 
 ```bash
-alkanes alkanes wrap-btc 0.01 \
+alkanes-cli alkanes wrap-btc 1000000 \
   --to bc1p... \
   --from bc1q... \
   --change bc1q... \
@@ -87,10 +89,9 @@ alkanes alkanes wrap-btc 0.01 \
 用于自定义交易：
 
 ```bash
-alkanes alkanes execute \
+alkanes-cli alkanes execute "[32,0,77]:v1:v1" \
   --inputs "B:1000000" \
-  --to "<SIGNER_ADDR>,bc1p..." \
-  --protostones "[32,0,77]:v1:v1" \
+  --to <SIGNER_ADDR> bc1p... \
   -y
 ```
 
@@ -122,7 +123,7 @@ SUBFROST 签名者监控解包请求，并协作签署一笔 Bitcoin 交易，�
 由于粉尘限制和交易手续费，存在最低解包金额：
 
 ```bash
-alkanes subfrost minimum-unwrap \
+alkanes-cli subfrost minimum-unwrap \
   --fee-rate <SAT_PER_VB> \
   --premium 0.001
 ```
@@ -169,7 +170,7 @@ Protostone {
 ### frBTC 余额
 
 ```bash
-alkanes alkanes getbalance --address <YOUR_ADDRESS>
+alkanes-cli alkanes getbalance <YOUR_ADDRESS>
 ```
 
 ### 待处理的解包
@@ -177,7 +178,7 @@ alkanes alkanes getbalance --address <YOUR_ADDRESS>
 查看待处理的解包请求：
 
 ```bash
-alkanes alkanes unwrap --block-tag latest
+alkanes-cli alkanes unwrap --block-tag latest
 ```
 
 ## 安全模型
@@ -215,18 +216,18 @@ alkanes alkanes unwrap --block-tag latest
 
 ```bash
 # 1. 如需要，创建钱包
-alkanes wallet create
+alkanes-cli wallet create
 
 # 2. 查看您的地址
-alkanes wallet addresses --range 0:3
+alkanes-cli wallet addresses p2tr:0-3
 
 # 3. 向您的钱包充入 BTC（外部步骤）
 
 # 4. 查询余额
-alkanes wallet balance
+alkanes-cli wallet balance
 
-# 5. 包装 0.01 BTC
-alkanes alkanes wrap-btc 0.01 \
+# 5. 包装 0.01 BTC（金额以聪为单位：1000000）
+alkanes-cli alkanes wrap-btc 1000000 \
   --to bc1p... \
   --from bc1q... \
   --change bc1q... \
@@ -234,7 +235,7 @@ alkanes alkanes wrap-btc 0.01 \
   -y
 
 # 6. 验证 frBTC 余额
-alkanes alkanes getbalance --address bc1p...
+alkanes-cli alkanes getbalance bc1p...
 ```
 
 ## 关键参数

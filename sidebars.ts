@@ -51,13 +51,10 @@ const sidebars: SidebarsConfig = {
           id: 'tokens/frUSD-overview',
           label: 'frUSD - Stablecoin on BTC',
         },
-        {
-          type: 'doc',
-          id: 'tokens/dxBTC-overview',
-          label: 'dxBTC - Yield-bearing BTC',
-        },
+        // Label comes from the page's sidebar_label (both locales), which carries "(planned)".
+        'tokens/dxBTC-overview',
         // No explicit label: this page carries its own `sidebar_label` in both
-        // locales ("dxBTC - Minting/Burning" and "dxBTC - 铸造/销毁"), and the
+        // locales ("dxBTC - Minting/Burning (planned)" and "dxBTC - 铸造/销毁（规划中）"), and the
         // frontmatter wins over a label set here, so an override would be dead
         // weight that reads as if it were in force.
         'tokens/minting-dxBTC',

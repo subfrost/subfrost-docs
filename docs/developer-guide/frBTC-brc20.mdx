@@ -236,12 +236,12 @@ uint256 signetId = FrBTCLib.SIGNET_CHAIN_ID;    // 0x425243323073
 
 ## CLI Commands
 
-Use the `alkanes` CLI with the `brc20-prog` subcommand to interact with FR-BTC:
+Use `alkanes-cli` with the `brc20-prog` subcommand to interact with FR-BTC. Every `<AMOUNT>` below is an integer amount in satoshis.
 
 ### Wrap BTC
 
 ```bash
-alkanes brc20-prog wrap-btc <AMOUNT> \
+alkanes-cli brc20-prog wrap-btc <AMOUNT> \
   --from <ADDRESSES> \
   -y
 ```
@@ -249,7 +249,7 @@ alkanes brc20-prog wrap-btc <AMOUNT> \
 ### Unwrap FR-BTC
 
 ```bash
-alkanes brc20-prog unwrap-btc <AMOUNT> \
+alkanes-cli brc20-prog unwrap-btc <AMOUNT> \
   --vout <OUTPUT_INDEX> \
   --to <YOUR_BTC_ADDRESS> \
   -y
@@ -260,7 +260,7 @@ alkanes brc20-prog unwrap-btc <AMOUNT> \
 Atomically wrap BTC and call a contract:
 
 ```bash
-alkanes brc20-prog wrap-and-execute2 <AMOUNT> \
+alkanes-cli brc20-prog wrap-and-execute2 <AMOUNT> \
   --target 0x<CONTRACT_ADDRESS> \
   --signature "deposit()" \
   -y
@@ -268,20 +268,22 @@ alkanes brc20-prog wrap-and-execute2 <AMOUNT> \
 
 ### Check Balance
 
+`<ADDRESS>` is a positional, 0x-prefixed BRC2.0 (EVM) address.
+
 ```bash
-alkanes brc20-prog get-balance --address <ADDRESS>
+alkanes-cli brc20-prog get-balance <ADDRESS>
 ```
 
 ### Get Signer Address
 
 ```bash
-alkanes brc20-prog signer-address
+alkanes-cli brc20-prog signer-address
 ```
 
 ### View Pending Unwraps
 
 ```bash
-alkanes brc20-prog unwrap
+alkanes-cli brc20-prog unwrap
 ```
 
 ## Security Considerations

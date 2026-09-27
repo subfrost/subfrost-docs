@@ -30,7 +30,7 @@ alkanes-cli -p mainnet \
   --brc20-prog-rpc-url https://mainnet.subfrost.io/v4/jsonrpc/brc20-prog \
   --wallet-file ~/.alkanes/wallet.json \
   --passphrase "your-passphrase" \
-  brc20-prog deploy ./out/MyContract.sol/MyContract.json \
+  brc20-prog deploy-contract ./out/MyContract.sol/MyContract.json \
   --fee-rate 10
 ```
 
@@ -40,12 +40,11 @@ Useful flags:
 |------|-------------|
 | `--from <addresses>` | Addresses to source UTXOs from |
 | `--change <address>` | Change address |
-| `--use-activation` | Use the three-transaction activation pattern |
-| `--mempool-indexer` | Trace pending UTXOs through the mempool |
+| `--no-activation` | Skip the activation transaction (use the two-transaction commit/reveal pattern) |
 | `--trace` | Enable transaction tracing |
 | `--mine` | Mine a block after broadcasting (regtest only) |
 
-A deploy is carried by a Bitcoin inscription with a commit-then-reveal flow. The optional `--use-activation` adds a third activation transaction. If any of your UTXOs carry inscriptions, the tooling automatically inserts a split transaction first, moving the inscribed sats to a safe output before spending clean sats for the commit, and broadcasts the bundle atomically.
+A deploy is carried by a Bitcoin inscription with a commit-then-reveal flow. By default the tooling also sends an activation transaction, a third transaction after the commit and reveal; pass `--no-activation` to skip it and use only the two-transaction commit/reveal pattern. If any of your UTXOs carry inscriptions, the tooling automatically inserts a split transaction first, moving the inscribed sats to a safe output before spending clean sats for the commit, and broadcasts the bundle atomically.
 
 ## Calling a contract
 
@@ -57,7 +56,7 @@ alkanes-cli -p mainnet \
   --brc20-prog-rpc-url https://mainnet.subfrost.io/v4/jsonrpc/brc20-prog \
   --wallet-file ~/.alkanes/wallet.json \
   --passphrase "your-passphrase" \
-  brc20-prog transact 0xYourContract "transfer(address,uint256)" 0xRecipient,1000 \
+  brc20-prog transact --address 0xYourContract --signature "transfer(address,uint256)" --calldata "0xRecipient,1000" \
   --fee-rate 10
 
 # Read-only (eth_call): raw calldata
@@ -66,24 +65,25 @@ alkanes-cli -p mainnet \
   brc20-prog call --to 0xYourContract --data 0x70a08231...
 ```
 
-`transact` takes a human-readable function signature and comma-separated arguments, so you do not encode the calldata by hand. `call` takes raw ABI-encoded data, mirroring `eth_call`.
+`transact` takes a human-readable function signature (`--signature`) and comma-separated arguments (`--calldata`), so you do not encode the calldata by hand. `call` takes raw ABI-encoded data, mirroring `eth_call`.
 
 ## Wrapping BTC into a contract call
 
-`wrap-btc` wraps BTC to frBTC and calls a target contract in the same flow, so a user can go from native BTC to a contract interaction in one step:
+`wrap-and-execute2` wraps BTC to frBTC and calls a target contract in the same flow, so a user can go from native BTC to a contract interaction in one step. `--signature` names the function to call on `--target`; pass its arguments as comma-separated values with `--calldata` (empty by default, so `deposit()` needs none):
 
 ```bash
 alkanes-cli -p mainnet \
   --brc20-prog-rpc-url https://mainnet.subfrost.io/v4/jsonrpc/brc20-prog \
   --wallet-file ~/.alkanes/wallet.json \
   --passphrase "your-passphrase" \
-  brc20-prog wrap-btc 100000 \
+  brc20-prog wrap-and-execute2 100000 \
   --target 0xYourContract \
   --signature "deposit()" \
-  --calldata "" \
   --fee-rate 10 \
   -y
 ```
+
+To wrap BTC to frBTC without calling a contract, use `brc20-prog wrap-btc <AMOUNT> --from <ADDRESSES>` instead.
 
 ## Reading state
 

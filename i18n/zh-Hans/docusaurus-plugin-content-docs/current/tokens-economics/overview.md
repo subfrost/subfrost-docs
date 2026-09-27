@@ -13,9 +13,9 @@ SUBFROST 经济体系建立在几种相互增强的原生资产之上。本页�
 
 - **frBTC** 是基础资产。它是你的 Bitcoin 以 1:1 比例包装成的可编程链上形式。其他一切都以它计价。参见 [包装与解包 BTC](../using-subfrost/wrap-unwrap-frbtc) 和 [frBTC 锚定与托管](../protocol/frbtc-peg-and-custody)。
 - **DIESEL** 是协议的原生发行代币，随真实的 Bitcoin 出块过程在链上发行。参见 [DIESEL](./diesel)。
-- **FIRE** 是奖励与治理代币。它通过质押（staking）和债券（bonds），奖励那些为 DIESEL / frBTC 资金池提供流动性的人。参见 [FIRE Vault](../using-subfrost/fire-vault)。
+- **FIRE** 是 Alkanes 治理代币。它通过质押（staking）和债券（bonds），奖励那些为 DIESEL / frBTC 资金池提供流动性的人。参见 [FIRE Vault](../using-subfrost/fire-vault)。
 - **dxBTC**（规划中）是一种生息（yield-bearing）形式的 Bitcoin。
-- **FUEL**（规划中）是协议的治理代币。
+- **FUEL**（规划中）是 SUBFROST 协议治理代币。
 
 ## 它们如何组合在一起
 
@@ -30,7 +30,7 @@ SUBFROST 经济体系建立在几种相互增强的原生资产之上。本页�
 ## 已上线 vs. 规划中
 
 - **已上线：** frBTC（包装/解包、兑换）、DIESEL（链上发行）、FIRE（质押与债券）、frUSD（原生于 Bitcoin 的稳定币，与 frBTC 成对交易）。
-- **规划中：** dxBTC（收益金库）、FUEL（治理代币）。
+- **规划中：** dxBTC（收益金库）、FUEL（SUBFROST 协议治理代币）。
 
 ## 接下来可以看看
 

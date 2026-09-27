@@ -42,9 +42,9 @@ Schnorr signatures are a powerful cryptographic tool that provides a number of a
 
 SUBFROST uses Schnorr signatures extensively throughout the protocol. The `schnorrkel` crate is used to provide the core Schnorr signature functionality.
 
-### `frBTC` and `dxBTC` Tokens
+### `frBTC` (and the planned `dxBTC`)
 
-The `frBTC` and `dxBTC` tokens are both secured by Schnorr signatures. When a user wants to mint `frBTC` tokens, they must first lock up their BTC in a Bitcoin address that is controlled by the SUBFROST signer set. The private key for this address is a Schnorr key that is held by the signers.
+The `frBTC` token is secured by Schnorr signatures, and `dxBTC`, once launched, will be secured the same way. When a user wants to mint `frBTC` tokens, they must first lock up their BTC in a Bitcoin address that is controlled by the SUBFROST signer set. The private key for this address is a Schnorr key that is held by the signers.
 
 When a user wants to redeem their `frBTC` tokens for BTC, they must submit a request to the SUBFROST network. The SUBFROST signers will then use their Schnorr key to sign a Bitcoin transaction that sends the BTC to the user's address.
 
@@ -52,4 +52,4 @@ When a user wants to redeem their `frBTC` tokens for BTC, they must submit a req
 
 The `schnorrkel` crate is a pure-Rust implementation of Schnorr signatures. It provides a simple and easy-to-use API for creating and verifying Schnorr signatures.
 
-The `subfrost-core` crate uses the `schnorrkel` crate to implement the FROST and ROAST signing protocols. The `schnorrkel` crate is also used to create the Schnorr signatures that are used to secure the `frBTC` and `dxBTC` tokens.
+The `subfrost-core` crate uses the `schnorrkel` crate to implement the FROST and ROAST signing protocols. The `schnorrkel` crate is also used to create the Schnorr signatures that are used to secure the `frBTC` token (and, once launched, the planned `dxBTC` token).

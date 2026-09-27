@@ -37,11 +37,11 @@ export PATH="$PWD/target/release:$PATH"
 # 创建一个新钱包
 alkanes-cli wallet create
 
-# 或导入已有的助记词
-alkanes-cli wallet import
+# 或通过已有的助记词恢复钱包
+alkanes-cli wallet create "<MNEMONIC>"
 
-# 显示你的地址以便充值
-alkanes-cli wallet receive
+# 显示你的收款地址（第一个 taproot 地址）以便充值
+alkanes-cli wallet addresses p2tr:0
 ```
 
 在部署前，从 signet 水龙头给该地址充值。
@@ -132,8 +132,8 @@ alkanes-cli -p signet alkanes execute "[2,1,1]" \
   --fee-rate 10 \
   -y
 
-# 读取计数器（opcode 2），这是一次不花费任何费用的 view 调用
-alkanes-cli -p signet alkanes view "[2,1]" "2"
+# 通过模拟调用读取计数器（opcode 2），不花费任何费用
+alkanes-cli -p signet alkanes simulate "2:1:2"
 ```
 
 读取调用是免费的，且不会触及链上状态：它们针对索引器状态运行。写入调用是 Bitcoin 交易，需要支付费用。

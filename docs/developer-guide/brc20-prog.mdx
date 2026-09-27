@@ -85,21 +85,19 @@ forge build
 
 ### 3. Deploy to Bitcoin
 
-Using the alkanes CLI:
+Using `alkanes-cli`:
 
 ```bash
-alkanes brc20-prog deploy \
-  --foundry-json out/MyToken.sol/MyToken.json \
+alkanes-cli brc20-prog deploy-contract out/MyToken.sol/MyToken.json \
   --from bc1p... \
   --change bc1p... \
-  --fee-rate 30 \
-  --use-activation
+  --fee-rate 30
 ```
 
 The CLI will output:
 - **Commit txid**: The funding transaction
 - **Reveal txid**: The inscription transaction
-- **Activation txid**: The activation transaction (if `--use-activation` used)
+- **Activation txid**: The activation transaction (sent by default; pass `--no-activation` to skip it)
 - **Contract address**: The deployed contract's address
 
 ## Calling Contract Functions
@@ -125,10 +123,10 @@ BRC2.0 uses standard Ethereum ABI encoding for function calls:
 ### Making a Call
 
 ```bash
-alkanes brc20-prog call \
-  --contract 0x1234567890abcdef1234567890abcdef12345678 \
-  --function "transfer(address,uint256)" \
-  --args "0xrecipient...,1000000000000000000" \
+alkanes-cli brc20-prog transact \
+  --address 0x1234567890abcdef1234567890abcdef12345678 \
+  --signature "transfer(address,uint256)" \
+  --calldata "0xrecipient...,1000000000000000000" \
   --from bc1p... \
   --fee-rate 30
 ```
@@ -148,11 +146,12 @@ FR-BTC is the flagship BRC2.0 application—a trustless BTC wrapper that mints F
 ### Example: Wrapping BTC
 
 ```bash
-alkanes brc20-prog frbtc wrap \
-  --amount 0.01 \
+alkanes-cli brc20-prog wrap-btc 1000000 \
   --from bc1q... \
   --fee-rate 30
 ```
+
+The amount is an integer in satoshis (1000000 sats = 0.01 BTC).
 
 ## Cross-Protocol Interoperability
 

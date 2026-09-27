@@ -13,9 +13,9 @@ The SUBFROST economy is built on a few native assets that reinforce each other. 
 
 - **frBTC** is the base. It is your Bitcoin wrapped 1:1 into a programmable, on-chain form. Everything else is denominated against it. See [Wrap & Unwrap BTC](../using-subfrost/wrap-unwrap-frbtc) and [frBTC Peg & Custody](../protocol/frbtc-peg-and-custody).
 - **DIESEL** is the protocol's native emission, issued on-chain in step with real Bitcoin block production. See [DIESEL](./diesel).
-- **FIRE** is the rewards and governance token. It rewards the people who provide liquidity to the DIESEL / frBTC pool, through staking and bonds. See [FIRE Vault](../using-subfrost/fire-vault).
+- **FIRE** is the Alkanes governance token. It rewards the people who provide liquidity to the DIESEL / frBTC pool, through staking and bonds. See [FIRE Vault](../using-subfrost/fire-vault).
 - **dxBTC** (planned) is a yield-bearing form of Bitcoin.
-- **FUEL** (planned) is the protocol's governance token.
+- **FUEL** (planned) is the SUBFROST protocol governance token.
 
 ## How they fit together
 
@@ -30,7 +30,7 @@ Because DIESEL's issuance is anchored to Bitcoin's own block production (see [DI
 ## Live vs. planned
 
 - **Live:** frBTC (wrap/unwrap, swaps), DIESEL (on-chain emission), FIRE (staking and bonds), frUSD (the Bitcoin-native stablecoin, trading against frBTC).
-- **Planned:** dxBTC (yield vaults), FUEL (governance token).
+- **Planned:** dxBTC (yield vaults), FUEL (the SUBFROST protocol governance token).
 
 ## Where to go next
 

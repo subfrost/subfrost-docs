@@ -1,31 +1,20 @@
 ---
-sidebar_label: dxBTC - Minting/Burning
+sidebar_label: dxBTC - Minting/Burning (planned)
+description: "dxBTC minting and burning are planned and not live yet: the intended flow from BTC to frBTC to dxBTC and back."
 ---
 
-# Minting & Burning dxBTC
-## `dxBTC` in `subfrost-cli`
+# dxBTC Minting and Burning
 
-The `subfrost-cli` provides a set of commands for minting and burning `dxBTC`. These commands allow you to:
+:::info Planned
+dxBTC is planned and not live. Minting and burning `dxBTC` are not available yet, and there is no public command for them today. The `subfrost-cli` commands this page used to describe are retired and not available.
+:::
 
-*   **Mint `dxBTC`:** The `subfrost-cli mint-dx-btc` command allows you to mint `dxBTC` by locking up `frBTC`.
-*   **Burn `dxBTC`:** The `subfrost-cli burn-dx-btc` command allows you to burn `dxBTC` and redeem `frBTC`.
+## Intended Flow
 
 ### Minting `dxBTC`
 
-Here is an example of how to use the `subfrost-cli` to mint `dxBTC`:
-
-```bash
-subfrost-cli mint-dx-btc --amount 1.0
-```
-
-This command will lock up 1.0 `frBTC` and mint an equivalent amount of `dxBTC` to your Bitcoin address.
+Once dxBTC launches, a deposit will first become `frBTC`. Minting will then lock up that `frBTC` in the dxBTC alkane and mint `dxBTC` to your Bitcoin address.
 
 ### Burning `dxBTC`
 
-Here is an example of how to use the `subfrost-cli` to burn `dxBTC`:
-
-```bash
-subfrost-cli burn-dx-btc --amount 1.0
-```
-
-This command will burn 1.0 `dxBTC` and unlock an equivalent amount of `frBTC` to your Bitcoin address.
+Burning will burn your `dxBTC` and unlock `frBTC` to your Bitcoin address, which you will then be able to unwrap to BTC.

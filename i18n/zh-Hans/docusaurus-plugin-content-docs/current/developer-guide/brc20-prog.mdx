@@ -85,21 +85,19 @@ forge build
 
 ### 3. 部署到 Bitcoin
 
-使用 alkanes CLI：
+使用 `alkanes-cli`：
 
 ```bash
-alkanes brc20-prog deploy \
-  --foundry-json out/MyToken.sol/MyToken.json \
+alkanes-cli brc20-prog deploy-contract out/MyToken.sol/MyToken.json \
   --from bc1p... \
   --change bc1p... \
-  --fee-rate 30 \
-  --use-activation
+  --fee-rate 30
 ```
 
 CLI 将输出：
 - **Commit txid**：资金交易
 - **Reveal txid**：铭文交易
-- **Activation txid**：激活交易（如果使用了 `--use-activation`）
+- **Activation txid**：激活交易（默认发送；传入 `--no-activation` 可跳过）
 - **Contract address**：已部署合约的地址
 
 ## 调用合约函数
@@ -125,10 +123,10 @@ BRC2.0 使用标准的以太坊 ABI 编码进行函数调用：
 ### 发起调用
 
 ```bash
-alkanes brc20-prog call \
-  --contract 0x1234567890abcdef1234567890abcdef12345678 \
-  --function "transfer(address,uint256)" \
-  --args "0xrecipient...,1000000000000000000" \
+alkanes-cli brc20-prog transact \
+  --address 0x1234567890abcdef1234567890abcdef12345678 \
+  --signature "transfer(address,uint256)" \
+  --calldata "0xrecipient...,1000000000000000000" \
   --from bc1p... \
   --fee-rate 30
 ```
@@ -148,11 +146,12 @@ FR-BTC 是 BRC2.0 的旗舰应用——一个无需信任的 BTC 包装器，可
 ### 示例：包装 BTC
 
 ```bash
-alkanes brc20-prog frbtc wrap \
-  --amount 0.01 \
+alkanes-cli brc20-prog wrap-btc 1000000 \
   --from bc1q... \
   --fee-rate 30
 ```
+
+金额为以聪为单位的整数（1000000 聪 = 0.01 BTC）。
 
 ## 跨协议互操作性
 

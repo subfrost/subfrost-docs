@@ -30,7 +30,7 @@ alkanes-cli -p mainnet \
   --brc20-prog-rpc-url https://mainnet.subfrost.io/v4/jsonrpc/brc20-prog \
   --wallet-file ~/.alkanes/wallet.json \
   --passphrase "your-passphrase" \
-  brc20-prog deploy ./out/MyContract.sol/MyContract.json \
+  brc20-prog deploy-contract ./out/MyContract.sol/MyContract.json \
   --fee-rate 10
 ```
 
@@ -40,12 +40,11 @@ alkanes-cli -p mainnet \
 |------|-------------|
 | `--from <addresses>` | 用于获取 UTXO 的来源地址 |
 | `--change <address>` | 找零地址 |
-| `--use-activation` | 使用三笔交易的激活模式 |
-| `--mempool-indexer` | 在内存池中追踪待处理的 UTXO |
+| `--no-activation` | 跳过激活交易（使用两笔交易的 commit/reveal 模式） |
 | `--trace` | 启用交易追踪 |
 | `--mine` | 广播后挖出一个区块（仅限 regtest） |
 
-一次部署是通过一次采用先提交后揭示（commit-then-reveal）流程的 Bitcoin 铭文来完成的。可选的 `--use-activation` 会额外增加第三笔激活交易。如果你的某些 UTXO 携带铭文，工具链会自动先插入一笔拆分交易，将带铭文的聪（sats）移到一个安全的输出中，然后再用干净的聪来支付 commit 交易，并将整个交易组作为一个整体原子广播。
+一次部署是通过一次采用先提交后揭示（commit-then-reveal）流程的 Bitcoin 铭文来完成的。默认情况下，工具链还会在 commit 和 reveal 之后发送第三笔交易，即激活交易；传入 `--no-activation` 可跳过这笔交易，仅使用两笔交易的 commit/reveal 模式。如果你的某些 UTXO 携带铭文，工具链会自动先插入一笔拆分交易，将带铭文的聪（sats）移到一个安全的输出中，然后再用干净的聪来支付 commit 交易，并将整个交易组作为一个整体原子广播。
 
 ## 调用合约
 
@@ -57,7 +56,7 @@ alkanes-cli -p mainnet \
   --brc20-prog-rpc-url https://mainnet.subfrost.io/v4/jsonrpc/brc20-prog \
   --wallet-file ~/.alkanes/wallet.json \
   --passphrase "your-passphrase" \
-  brc20-prog transact 0xYourContract "transfer(address,uint256)" 0xRecipient,1000 \
+  brc20-prog transact --address 0xYourContract --signature "transfer(address,uint256)" --calldata "0xRecipient,1000" \
   --fee-rate 10
 
 # 只读调用（eth_call）：原始 calldata
@@ -66,24 +65,25 @@ alkanes-cli -p mainnet \
   brc20-prog call --to 0xYourContract --data 0x70a08231...
 ```
 
-`transact` 接受一个人类可读的函数签名和以逗号分隔的参数，因此你无需手动编码 calldata。`call` 接受原始的 ABI 编码数据，与 `eth_call` 的行为一致。
+`transact` 接受一个人类可读的函数签名（`--signature`）和以逗号分隔的参数（`--calldata`），因此你无需手动编码 calldata。`call` 接受原始的 ABI 编码数据，与 `eth_call` 的行为一致。
 
 ## 将 BTC 包装进一次合约调用
 
-`wrap-btc` 会在同一个流程中将 BTC 包装为 frBTC 并调用目标合约，让用户可以一步之内从原生 BTC 直接完成一次合约交互：
+`wrap-and-execute2` 会在同一个流程中将 BTC 包装为 frBTC 并调用目标合约，让用户可以一步之内从原生 BTC 直接完成一次合约交互。`--signature` 指定要在 `--target` 上调用的函数；函数参数通过 `--calldata` 以逗号分隔的形式传入（默认为空，因此 `deposit()` 无需传参）：
 
 ```bash
 alkanes-cli -p mainnet \
   --brc20-prog-rpc-url https://mainnet.subfrost.io/v4/jsonrpc/brc20-prog \
   --wallet-file ~/.alkanes/wallet.json \
   --passphrase "your-passphrase" \
-  brc20-prog wrap-btc 100000 \
+  brc20-prog wrap-and-execute2 100000 \
   --target 0xYourContract \
   --signature "deposit()" \
-  --calldata "" \
   --fee-rate 10 \
   -y
 ```
+
+如果只想将 BTC 包装为 frBTC 而不调用合约，请改用 `brc20-prog wrap-btc <AMOUNT> --from <ADDRESSES>`。
 
 ## 读取状态
 
