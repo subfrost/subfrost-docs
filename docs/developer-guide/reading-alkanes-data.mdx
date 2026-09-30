@@ -1,0 +1,174 @@
+---
+title: Reading Alkanes data from Bitcoin
+sidebar_label: Reading Alkanes Data
+sidebar_position: 6
+description: How to extract Alkanes activity straight from raw Bitcoin transactions, using the open-source pipeline behind subfrost.io/metrics.
+---
+
+# Reading Alkanes data from Bitcoin
+
+Alkanes has no chain of its own. Every Alkanes action is an ordinary Bitcoin transaction carrying a message in its `OP_RETURN`, so anyone with block data can extract Alkanes activity without trusting an API.
+
+This page walks through the open-source pipeline that produces the numbers on [subfrost.io/metrics](https://subfrost.io/metrics). Every piece is public:
+
+| Repository | What it does |
+|---|---|
+| [`alkanes-opreturn-decoder`](https://github.com/Vdto88/alkanes-opreturn-decoder) | Decodes one transaction from its raw hex, offline: Runestone, protostones, and the Alkanes cellpack. |
+| [`alkanes-opreturn-scanner`](https://github.com/Vdto88/alkanes-opreturn-scanner) | Runs the decoder over whole blocks fetched from an Esplora API and writes one row per day. |
+| [`alkanes-opreturn-indexer`](https://github.com/Vdto88/alkanes-opreturn-indexer) | A metashrew indexer that classifies every block natively, including block weight. |
+| [`alkanes-opreturn-stats`](https://github.com/Vdto88/alkanes-opreturn-stats) | The published daily dataset, [`history.csv`](https://vdto88.github.io/alkanes-opreturn-stats/history.csv). |
+| [`kungfuflex/alkanes-rs`](https://github.com/kungfuflex/alkanes-rs) | The canonical Alkanes implementation. The decoder is ported from it and tested against it. |
+| [`kungfuflex/metashrew`](https://github.com/kungfuflex/metashrew) | The indexer framework that executes Alkanes against Bitcoin blocks. |
+
+## The message and the outcome
+
+A raw transaction tells you what it **asked for**: which contract, which method, which arguments, which tokens to move. It does **not** tell you what **happened**: whether the call reverted, how much was minted, the resulting balances, or the id of a newly created token. Those exist only after the contracts' WebAssembly runs, in block order, from Alkanes activation at block 880,000.
+
+| You want | Where it comes from |
+|---|---|
+| Alkanes transaction counts, contracts and methods called, `OP_RETURN` bytes, block weight | Block data. Decoder, scanner and indexer. |
+| Fees | The values of the spent outputs. Esplora reports each transaction's `fee`; a block's total is its coinbase minus the subsidy. |
+| Success or revert, amounts, balances, new token ids, contract state | Execution. Run [metashrew](../build/indexing-with-metashrew) with the Alkanes indexer. |
+
+Every Alkanes figure on `/metrics` comes from block data, not from execution. The only off-chain input is the BTC price.
+
+## Decoding a transaction
+
+An Alkanes message is packed inside a [Runes Runestone](https://docs.ordinals.com/runes/specification.html):
+
+1. **Find the Runestone.** It is the first output whose script starts with `OP_RETURN OP_13` (`6a5d`). The payload is a list of LEB128 integers in tag/value pairs, as the Runes spec defines.
+2. **Read the Protocol field, tag `16383`.** This is where protostones live (`ff7f` in LEB128). Their packing is specified in the [protorune Protocol Messages](https://github.com/kungfuflex/protorune/wiki/Protocol-Messages) page. A protostone with `protocol_tag = 1` is Alkanes.
+3. **Unpack the cellpack.** A contract call carries a list of LEB128 integers, `[block, tx, opcode, ...inputs]`: the target contract id, the method, then its arguments. See [Alkanes Metaprotocol](../protocol/alkanes).
+
+A DIESEL mint is a call to contract `2:0` with opcode `77`. Here is one from block 969,334, decoded with the decoder:
+
+```bash
+git clone https://github.com/Vdto88/alkanes-opreturn-decoder
+cd alkanes-opreturn-decoder && npm install
+npx tsx src/cli.ts 232fadebe5f68d6a8ae1fec3e83e5a7ffe4319a313862fd2674bf18a741acf30
+```
+
+```text
+OP_RETURN (vout 1): 6a5d1214011400ff7f818cec82d08bc0a88281d215
+── Protostone #0 (Alkanes) ──
+  protocol_tag: 1
+  pointer: 0   refund: 0
+  edicts: (none)
+  cellpack: target 2:0, opcode 77, inputs []
+  summary: Alkanes call to 2:0, opcode 77.
+```
+
+The same script also carries `14 01 14 00`: Runes tag `20` (mint) for rune `1:0`, UNCOMMON•GOODS. Most DIESEL mints carry that Runes mint too, which is why the dataset tracks both.
+
+Given a txid, the decoder first fetches the raw transaction from mempool.space. Pass `--rawtx <hex>` instead to decode with no network access at all.
+
+## Scanning blocks
+
+The scanner fetches each block's transactions from an Esplora API, classifies every transaction with the decoder, and aggregates per block. It reads the output scripts, each transaction's `fee`, and the block's `mediantime` and `tx_count`. Two sources work today: `mempool` ([mempool.space](https://mempool.space), no key) and `subfrost` (the SUBFROST gateway, with a key); the third option in the code, `alkanode`, no longer answers. Another Esplora means adding it to the `Source` type and to `REST_BASE` in `src/esplora.ts`.
+
+```bash
+git clone https://github.com/Vdto88/alkanes-opreturn-scanner
+git clone https://github.com/Vdto88/alkanes-opreturn-decoder opreturn-decoder
+cd alkanes-opreturn-scanner && npm install
+npm run scan -- --source mempool --from 969334 --to 969334
+```
+
+The report opens with the coverage and the raw counts (excerpt):
+
+```text
+Coverage: blocks 969334–969334 (1 blocks)
+  tx=4591  OP_RETURN=2654  Alkanes=2589  decode-fail=0
+```
+
+For that same block, the canonical Alkanes indexer reports execution traces for 2,588 distinct transactions, so the two methods agree to within one transaction.
+
+A block that still fails to fetch after retries is skipped with a warning on stderr, and the exit code stays 0. Check the `Coverage` line before trusting a total: on long runs mempool.space throttles hard enough that blocks fail and get skipped, and a lower `--concurrency` helps.
+
+Useful flags: `--from/--to` for a height range, `--blocks N` for the latest N blocks, `--sample K` to read one block in K, `--concurrency N` for parallel pages. The daily job runs `tools/snapshot.ts` for a sampled row of today, then rescans the previous day block by block (`--sample 1`) and merges it with `tools/seed-history.ts --merge`.
+
+How a transaction is classified:
+
+- **OP_RETURN**: any output whose script starts with `6a`. The coinbase counts; its witness commitment is an `OP_RETURN` that is never Alkanes.
+- **Alkanes**: a Runestone output holds at least one protostone with `protocol_tag = 1`. A call that later reverts still counts: it was mined and it carried an Alkanes message.
+- **DIESEL mint**: an Alkanes cellpack targeting `2:0` with opcode `77`.
+- **Bytes**: the full script size of the `OP_RETURN` outputs.
+- **Day**: each block is dated by its Esplora `mediantime`, in UTC.
+
+## Counting every block with metashrew
+
+The scanner pages through Esplora, which is slow for full history and cannot measure block weight. The indexer classifies inside metashrew instead, at native speed over every block, reusing the canonical decoding from `alkanes-rs`. For each height it stores one record: transaction counts, Alkanes and DIESEL counts, `OP_RETURN` bytes, total fees, total and Alkanes weight, and UNCOMMON•GOODS mints. It differs from the scanner in four ways:
+
+- it skips the coinbase, so its `OP_RETURN` counts and bytes leave out the witness commitment;
+- it reads the Runestone the way `alkanes-rs` does (`Runestone::decipher`), where the scanner decodes every `6a5d` output;
+- for an Alkanes transaction it counts the bytes of all its `OP_RETURN` outputs as Alkanes bytes, where the scanner counts only the `6a5d` ones;
+- it dates each block by its header time, not the median time.
+
+Build the indexer to WebAssembly (it pins `alkanes-rs` as a git dependency) and run the host tests against a real block:
+
+```bash
+git clone https://github.com/Vdto88/alkanes-opreturn-indexer
+cd alkanes-opreturn-indexer
+rustup target add wasm32-unknown-unknown
+cargo build --locked --release --target wasm32-unknown-unknown
+bash tools/fetch-fixture.sh 954830 && cargo test --locked --release
+```
+
+The build needs `protoc` and a `clang` that can target wasm32 on the `PATH`. On macOS, Apple's clang cannot: point `CC_wasm32_unknown_unknown` and `AR_wasm32_unknown_unknown` at a Homebrew LLVM `clang` and `llvm-ar`.
+
+Then build `rockshrew-mono` from `alkanes-rs` at commit `888f4fe6` (the exact commands are in the [indexer README](https://github.com/Vdto88/alkanes-opreturn-indexer#run)) and serve the indexer against a Bitcoin RPC. This build reads its port from the `PORT` environment variable:
+
+```bash
+PORT=8080 rockshrew-mono --daemon-rpc-url <bitcoin-rpc-url> \
+  --indexer target/wasm32-unknown-unknown/release/opreturn_indexer.wasm \
+  --db-path db --start-block 880000
+```
+
+Read the records back with the `stats_range` view; the [indexer README](https://github.com/Vdto88/alkanes-opreturn-indexer#read) gives its input format, a `curl` example, and the exporters that fold records into daily rows.
+
+In production, the [`census.yml` workflow](https://github.com/Vdto88/alkanes-opreturn-scanner/blob/master/.github/workflows/census.yml) does this every day. It indexes from block 951,535 onward (heights 880,000 to 951,534 come from a frozen snapshot in the indexer's `data/` folder), rewrites `blockspace-daily.json` from the snapshot plus the live database, and commits it. Its Bitcoin RPC comes from the `CENSUS_RPC_URL` secret, so a fork has to set its own. The scanner's `daily.yml` then merges those columns into `history.csv` and publishes it.
+
+## The daily dataset
+
+[`history.csv`](https://vdto88.github.io/alkanes-opreturn-stats/history.csv) has one row per UTC day since 2025-01-20 (block 880,000) and is updated once a day. Parse it by column name: new columns are only ever appended.
+
+**Where the rows come from.** Days from 2025-01-20 to 2026-06-26 were backfilled from the indexer, through its exporter. From 2026-06-27 on, the daily scanner writes the count, byte and fee columns, and the indexer adds its six.
+
+| Columns | Source | Meaning |
+|---|---|---|
+| `date`, `fromHeight`, `toHeight`, `blocksScanned` | scanner (indexer before 2026-06-27) | The UTC day and the blocks it covers. |
+| `totalTx`, `txWithOpReturn`, `txAlkanes`, `dieselMints` | scanner (indexer before 2026-06-27) | Raw transaction counts for the day. |
+| `opReturnBytes`, `runestoneBytes`, `alkanesBytes` | scanner (indexer before 2026-06-27) | Script bytes of `OP_RETURN` outputs, of Runestones, and of Alkanes Runestones. |
+| `feeTotalSats`, `feeAlkanesSats`, `feeOpReturnSats` | scanner (indexer before 2026-06-27) | Fees paid by all, Alkanes, and `OP_RETURN` transactions. |
+| `btcUsd` | CoinGecko | BTC price for the day. |
+| `weightTotal`, `weightAlkanes` | indexer | Block weight (WU), total and Alkanes only. |
+| `ugMints`, `dieselUg` | indexer | UNCOMMON•GOODS mints, and the DIESEL mints that also carry one. |
+| `txAlkRunestone`, `txPureRunes` | indexer | Alkanes and non-Alkanes Runestone transactions, **scaled to a 144-block day** (`count / blocks × 144`, rounded). |
+
+Things to know before aggregating:
+
+- **The latest row can be a partial day.** When `date` is today (UTC), it covers only the blocks mined so far.
+- **Backfilled rows follow the indexer's rules.** Their `txWithOpReturn` and `opReturnBytes` leave out the coinbase, their days follow header time, and their Runestones are read with `Runestone::decipher` (see the differences above). Their `feeAlkanesSats` and `feeOpReturnSats` are estimates: a sampled fee share rescaled to the day's fee total, and 0 on a few early days that had no sample.
+- **The two column groups can cover slightly different blocks.** The scanner dates blocks by median time and the indexer by header time, so around midnight a block can fall on different days.
+- **The scaled columns are estimates.** Use `txAlkanes` for raw counts. Indexer cells are left empty (not `0`) when there is no value, so parse them as optional.
+- **Coverage is not perfect.** Row boundaries skip about 330 blocks out of roughly 89,000 (under 0.4%), so full-history totals are a slight undercount. A day whose full rescan failed keeps its sampled row, with `blocksScanned` below `toHeight - fromHeight + 1`.
+
+Where the two tools run independently (2026-06-27 to 2026-09-29, 95 days), the scanner's Alkanes count per block is within 0.5% of the indexer's, with a median daily difference of 0.02%.
+
+## Example: total Alkanes transactions
+
+```python
+import csv, io, urllib.request
+
+url = "https://vdto88.github.io/alkanes-opreturn-stats/history.csv"
+rows = list(csv.DictReader(io.StringIO(urllib.request.urlopen(url).read().decode())))
+rows = [r for r in rows if r["date"] <= "2026-09-29"]  # drop today's partial row
+
+print("Alkanes transactions:", sum(int(r["txAlkanes"]) for r in rows))
+print("of which DIESEL mints:", sum(int(r["dieselMints"]) for r in rows))
+```
+
+This gives **97,352,249** Alkanes transactions from activation through 2026-09-29, of which 92,898,799 were DIESEL mints. Move the cutoff date to count through any other day.
+
+## Going further: outcomes and state
+
+To see what each transaction did, and not only what it asked for, run the Alkanes indexer yourself: metashrew executes `alkanes.wasm` against your own Bitcoin node and answers view functions such as `trace` (the execution of one protostone, by outpoint) and `simulate`. Because the indexer is deterministic, your node reaches the same state as every other. See [Indexing with metashrew](../build/indexing-with-metashrew), [`alkanes-rs`](https://github.com/kungfuflex/alkanes-rs) and [`metashrew`](https://github.com/kungfuflex/metashrew).

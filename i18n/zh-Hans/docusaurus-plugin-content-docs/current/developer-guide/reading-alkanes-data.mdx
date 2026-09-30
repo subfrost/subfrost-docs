@@ -1,0 +1,174 @@
+---
+title: 从 Bitcoin 读取 Alkanes 数据
+sidebar_label: 读取 Alkanes 数据
+sidebar_position: 6
+description: 如何借助支撑 subfrost.io/metrics 的开源流水线，直接从原始 Bitcoin 交易中提取 Alkanes 活动。
+---
+
+# 从 Bitcoin 读取 Alkanes 数据
+
+Alkanes 没有属于自己的链。每一个 Alkanes 操作都是一笔普通的 Bitcoin 交易，在其 `OP_RETURN` 中携带一条消息，因此任何拥有区块数据的人都可以提取 Alkanes 活动，而无需信任某个 API。
+
+本页介绍生成 [subfrost.io/metrics](https://subfrost.io/metrics) 上各项数字的开源流水线。其中每个组件都是公开的：
+
+| 仓库 | 作用 |
+|---|---|
+| [`alkanes-opreturn-decoder`](https://github.com/Vdto88/alkanes-opreturn-decoder) | 从原始十六进制数据离线解码单笔交易：Runestone、protostone 以及 Alkanes cellpack。 |
+| [`alkanes-opreturn-scanner`](https://github.com/Vdto88/alkanes-opreturn-scanner) | 对从 Esplora API 获取的整个区块运行解码器，并为每天写入一行。 |
+| [`alkanes-opreturn-indexer`](https://github.com/Vdto88/alkanes-opreturn-indexer) | 一个 metashrew 索引器，以原生方式对每个区块进行分类统计，也包括区块 weight。 |
+| [`alkanes-opreturn-stats`](https://github.com/Vdto88/alkanes-opreturn-stats) | 已发布的每日数据集 [`history.csv`](https://vdto88.github.io/alkanes-opreturn-stats/history.csv)。 |
+| [`kungfuflex/alkanes-rs`](https://github.com/kungfuflex/alkanes-rs) | Alkanes 的权威实现。解码器由它移植而来，并以它为基准进行测试。 |
+| [`kungfuflex/metashrew`](https://github.com/kungfuflex/metashrew) | 针对 Bitcoin 区块执行 Alkanes 的索引器框架。 |
+
+## 消息与结果
+
+一笔原始交易告诉你它**请求了什么**：调用哪个合约、哪个方法、哪些参数、转移哪些代币。它**不会**告诉你**实际发生了什么**：调用是否回滚（revert）、铸造了多少、最终余额，或新创建代币的 id。这些信息只有在合约的 WebAssembly 按区块顺序、从区块 880,000 的 Alkanes 激活开始运行之后才会存在。
+
+| 你想要的 | 数据来源 |
+|---|---|
+| Alkanes 交易数量、被调用的合约与方法、`OP_RETURN` 字节数、区块 weight | 区块数据。解码器、扫描器与索引器。 |
+| 手续费 | 被花费输出的金额。Esplora 会报告每笔交易的 `fee`；一个区块的手续费总额等于其 coinbase 减去区块补贴。 |
+| 成功或回滚、数量、余额、新代币 id、合约状态 | 执行。使用 Alkanes 索引器运行 [metashrew](../build/indexing-with-metashrew)。 |
+
+`/metrics` 上的所有 Alkanes 数字都取自区块数据，而不是执行结果；唯一来自链下的输入是 BTC 价格。
+
+## 解码一笔交易
+
+Alkanes 消息被打包在一个 [Runes Runestone](https://docs.ordinals.com/runes/specification.html) 之中：
+
+1. **找到 Runestone。** 它是第一个脚本以 `OP_RETURN OP_13`（`6a5d`）开头的输出。其负载是一串按 tag/value 成对排列的 LEB128 整数，由 Runes 规范定义。
+2. **读取 Protocol 字段，即 tag `16383`。** protostone 就存放在这里（LEB128 编码为 `ff7f`）。其打包方式见 [protorune Protocol Messages](https://github.com/kungfuflex/protorune/wiki/Protocol-Messages) 页面。`protocol_tag = 1` 的 protostone 即为 Alkanes。
+3. **解开 cellpack。** 一次合约调用携带一串 LEB128 整数 `[block, tx, opcode, ...inputs]`：目标合约 id、方法，然后是其参数。参见 [Alkanes 元协议](../protocol/alkanes)。
+
+DIESEL 铸造（mint）是对合约 `2:0` 的调用，操作码为 `77`。下面是区块 969,334 中的一笔，用解码器解码：
+
+```bash
+git clone https://github.com/Vdto88/alkanes-opreturn-decoder
+cd alkanes-opreturn-decoder && npm install
+npx tsx src/cli.ts 232fadebe5f68d6a8ae1fec3e83e5a7ffe4319a313862fd2674bf18a741acf30
+```
+
+```text
+OP_RETURN (vout 1): 6a5d1214011400ff7f818cec82d08bc0a88281d215
+── Protostone #0 (Alkanes) ──
+  protocol_tag: 1
+  pointer: 0   refund: 0
+  edicts: (none)
+  cellpack: target 2:0, opcode 77, inputs []
+  summary: Alkanes call to 2:0, opcode 77.
+```
+
+同一个脚本还携带 `14 01 14 00`：即 Runes tag `20`（mint），铸造 rune `1:0`，也就是 UNCOMMON•GOODS。大多数 DIESEL 铸造也同时携带这个 Runes 铸造，这就是数据集同时跟踪两者的原因。
+
+给定 txid 时，解码器会先从 mempool.space 获取原始交易。改为传入 `--rawtx <hex>`，即可在完全不访问网络的情况下解码。
+
+## 扫描区块
+
+扫描器从 Esplora API 获取每个区块的交易，用解码器对每笔交易分类，并按区块汇总。它读取输出脚本、每笔交易的 `fee`，以及区块的 `mediantime` 和 `tx_count`。目前可用的数据源有两个：`mempool`（[mempool.space](https://mempool.space)，无需密钥）和 `subfrost`（SUBFROST 网关，需要密钥）；代码中的第三个选项 `alkanode` 已不再响应。要使用其他 Esplora，需要把它添加到 `src/esplora.ts` 中的 `Source` 类型和 `REST_BASE`。
+
+```bash
+git clone https://github.com/Vdto88/alkanes-opreturn-scanner
+git clone https://github.com/Vdto88/alkanes-opreturn-decoder opreturn-decoder
+cd alkanes-opreturn-scanner && npm install
+npm run scan -- --source mempool --from 969334 --to 969334
+```
+
+报告开头是覆盖范围和原始计数（节选）：
+
+```text
+Coverage: blocks 969334–969334 (1 blocks)
+  tx=4591  OP_RETURN=2654  Alkanes=2589  decode-fail=0
+```
+
+对于同一个区块，权威的 Alkanes 索引器报告了 2,588 笔不同交易的执行轨迹（trace），因此两种方法的结果相差不超过一笔交易。
+
+如果某个区块在重试之后仍然获取失败，它会被跳过，并在 stderr 上输出一条警告，而退出码仍为 0。在信任某个总数之前，请先检查 `Coverage` 这一行：长时间运行时，mempool.space 的限流会严重到让区块获取失败并被跳过，调低 `--concurrency` 会有帮助。
+
+常用标志：`--from/--to` 指定高度范围，`--blocks N` 取最新的 N 个区块，`--sample K` 每 K 个区块读取一个，`--concurrency N` 并行获取分页。每日任务先运行 `tools/snapshot.ts`，为今天生成一行抽样数据，然后逐个区块（`--sample 1`）重新扫描前一天，并用 `tools/seed-history.ts --merge` 将结果合并进来。
+
+一笔交易的分类方式：
+
+- **OP_RETURN**：任何脚本以 `6a` 开头的输出。coinbase 也计入；其见证承诺（witness commitment）是一个 `OP_RETURN`，但永远不是 Alkanes。
+- **Alkanes**：某个 Runestone 输出中至少包含一个 `protocol_tag = 1` 的 protostone。之后回滚的调用仍然计入：它已被打包进区块，并且携带了 Alkanes 消息。
+- **DIESEL 铸造**：目标为 `2:0`、操作码为 `77` 的 Alkanes cellpack。
+- **字节数**：`OP_RETURN` 输出的完整脚本大小。
+- **日期**：每个区块按其 Esplora `mediantime` 确定日期，采用 UTC。
+
+## 用 metashrew 统计每个区块
+
+扫描器通过 Esplora 逐页读取，对于完整历史来说很慢，而且无法测量区块 weight。索引器则改为在 metashrew 内部进行分类，以原生速度遍历每个区块，并复用 `alkanes-rs` 的权威解码。对于每个高度，它存储一条记录：交易数量、Alkanes 与 DIESEL 数量、`OP_RETURN` 字节数、总手续费、总 weight 与 Alkanes weight，以及 UNCOMMON•GOODS 铸造数。它与扫描器有四点不同：
+
+- 它跳过 coinbase，因此其 `OP_RETURN` 数量和字节数不包含见证承诺；
+- 它按 `alkanes-rs` 的方式读取 Runestone（`Runestone::decipher`），而扫描器会解码每一个 `6a5d` 输出；
+- 对于一笔 Alkanes 交易，它把该交易所有 `OP_RETURN` 输出的字节都计为 Alkanes 字节，而扫描器只计入 `6a5d` 输出；
+- 它按区块头时间确定每个区块的日期，而不是按中位时间。
+
+将索引器构建为 WebAssembly（它以 git 依赖的形式固定了 `alkanes-rs` 的版本），并针对一个真实区块运行宿主测试：
+
+```bash
+git clone https://github.com/Vdto88/alkanes-opreturn-indexer
+cd alkanes-opreturn-indexer
+rustup target add wasm32-unknown-unknown
+cargo build --locked --release --target wasm32-unknown-unknown
+bash tools/fetch-fixture.sh 954830 && cargo test --locked --release
+```
+
+构建需要 `PATH` 中有 `protoc`，以及一个能以 wasm32 为目标的 `clang`。在 macOS 上，Apple 的 clang 做不到：请把 `CC_wasm32_unknown_unknown` 和 `AR_wasm32_unknown_unknown` 分别指向 Homebrew LLVM 的 `clang` 和 `llvm-ar`。
+
+然后构建 `rockshrew-mono`，来源为 `alkanes-rs` 的提交 `888f4fe6`（确切命令见[索引器 README](https://github.com/Vdto88/alkanes-opreturn-indexer#run)），并针对一个 Bitcoin RPC 提供索引器服务。这个构建从环境变量 `PORT` 读取端口：
+
+```bash
+PORT=8080 rockshrew-mono --daemon-rpc-url <bitcoin-rpc-url> \
+  --indexer target/wasm32-unknown-unknown/release/opreturn_indexer.wasm \
+  --db-path db --start-block 880000
+```
+
+用 `stats_range` view 读回这些记录；[索引器 README](https://github.com/Vdto88/alkanes-opreturn-indexer#read) 给出了它的输入格式、一个 `curl` 示例，以及把记录汇总为按天数据行的导出器。
+
+在生产环境中，[`census.yml` 工作流](https://github.com/Vdto88/alkanes-opreturn-scanner/blob/master/.github/workflows/census.yml)每天执行这一流程。它从区块 951,535 起进行索引（高度 880,000 到 951,534 来自索引器 `data/` 文件夹中的一个冻结快照），用该快照加上实时数据库重写 `blockspace-daily.json`，并提交该文件。它的 Bitcoin RPC 来自 secret `CENSUS_RPC_URL`，因此 fork 需要设置自己的 RPC。随后，扫描器的 `daily.yml` 会把这些列合并进 `history.csv` 并发布。
+
+## 每日数据集
+
+[`history.csv`](https://vdto88.github.io/alkanes-opreturn-stats/history.csv) 自 2025-01-20（区块 880,000）起每个 UTC 日一行，每天更新一次。请按列名解析：新列只会追加在末尾。
+
+**数据行的来源。** 2025-01-20 至 2026-06-26 的各天数据由索引器通过其导出器回填。从 2026-06-27 起，由每日扫描器写入计数、字节和手续费各列，索引器再补充它自己的六列。
+
+| 列 | 来源 | 含义 |
+|---|---|---|
+| `date`, `fromHeight`, `toHeight`, `blocksScanned` | 扫描器（2026-06-27 之前为索引器） | UTC 日期及其覆盖的区块。 |
+| `totalTx`, `txWithOpReturn`, `txAlkanes`, `dieselMints` | 扫描器（2026-06-27 之前为索引器） | 当天的原始交易数量。 |
+| `opReturnBytes`, `runestoneBytes`, `alkanesBytes` | 扫描器（2026-06-27 之前为索引器） | `OP_RETURN` 输出、Runestone 以及 Alkanes Runestone 的脚本字节数。 |
+| `feeTotalSats`, `feeAlkanesSats`, `feeOpReturnSats` | 扫描器（2026-06-27 之前为索引器） | 所有交易、Alkanes 交易以及 `OP_RETURN` 交易支付的手续费。 |
+| `btcUsd` | CoinGecko | 当天的 BTC 价格。 |
+| `weightTotal`, `weightAlkanes` | 索引器 | 区块 weight（WU），总量以及仅 Alkanes 部分。 |
+| `ugMints`, `dieselUg` | 索引器 | UNCOMMON•GOODS 铸造数，以及同时携带该铸造的 DIESEL 铸造数。 |
+| `txAlkRunestone`, `txPureRunes` | 索引器 | Alkanes 与非 Alkanes 的 Runestone 交易数，**按每天 144 个区块折算**（`count / blocks × 144`，四舍五入）。 |
+
+汇总之前需要了解的几点：
+
+- **最新一行可能是不完整的一天。** 当 `date` 是今天（UTC）时，它只覆盖到目前为止已挖出的区块。
+- **回填的数据行遵循索引器的规则。** 它们的 `txWithOpReturn` 和 `opReturnBytes` 不包含 coinbase，日期按区块头时间确定，Runestone 用 `Runestone::decipher` 读取（见上文列出的差异）。它们的 `feeAlkanesSats` 和 `feeOpReturnSats` 是估算值：由抽样得到的手续费占比按当天的手续费总额换算而来；少数早期日子没有样本，这两列为 0。
+- **两组列覆盖的区块可能略有不同。** 扫描器按中位时间确定区块日期，索引器则按区块头时间，因此在午夜前后，同一个区块可能被归入不同的日期。
+- **折算列是估算值。** 原始数量请使用 `txAlkanes`。没有值时，索引器的单元格留空（而不是 `0`），因此请将其作为可选值解析。
+- **覆盖并不完美。** 行与行的边界在大约 89,000 个区块中跳过了约 330 个（不到 0.4%），因此全历史总数会略微偏低。如果某一天的完整重扫失败，该天会保留其抽样行，此时 `blocksScanned` 小于 `toHeight - fromHeight + 1`。
+
+在两个工具各自独立运行的时段（2026-06-27 至 2026-09-29，共 95 天），扫描器每个区块的 Alkanes 数量与索引器相差不超过 0.5%，每日差异的中位数为 0.02%。
+
+## 示例：Alkanes 交易总数
+
+```python
+import csv, io, urllib.request
+
+url = "https://vdto88.github.io/alkanes-opreturn-stats/history.csv"
+rows = list(csv.DictReader(io.StringIO(urllib.request.urlopen(url).read().decode())))
+rows = [r for r in rows if r["date"] <= "2026-09-29"]  # drop today's partial row
+
+print("Alkanes transactions:", sum(int(r["txAlkanes"]) for r in rows))
+print("of which DIESEL mints:", sum(int(r["dieselMints"]) for r in rows))
+```
+
+由此得出，自激活至 2026-09-29 共有 **97,352,249** 笔 Alkanes 交易，其中 92,898,799 笔是 DIESEL 铸造。调整截止日期，即可统计截至其他任意一天的数量。
+
+## 更进一步：结果与状态
+
+要查看每笔交易实际做了什么，而不仅仅是它请求了什么，请自己运行 Alkanes 索引器：metashrew 会针对你自己的 Bitcoin 节点执行 `alkanes.wasm`，并回答诸如 `trace`（按 outpoint 查询单个 protostone 的执行过程）和 `simulate` 之类的 view 函数。由于索引器是确定性的，你的节点会达到与其他所有节点相同的状态。参见[用 metashrew 做索引](../build/indexing-with-metashrew)、[`alkanes-rs`](https://github.com/kungfuflex/alkanes-rs) 和 [`metashrew`](https://github.com/kungfuflex/metashrew)。
