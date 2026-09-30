@@ -2,54 +2,429 @@
 title: 从 Bitcoin 读取 Alkanes 数据
 sidebar_label: 读取 Alkanes 数据
 sidebar_position: 6
-description: 如何借助支撑 subfrost.io/metrics 的开源流水线，直接从原始 Bitcoin 交易中提取 Alkanes 活动。
+description: 如何从 Bitcoin 中取得 Alkanes 数据（运行 Alkanes 索引器、用自己的程序索引 /traces 数据源，或解码每笔交易中的消息），以及这些数据的含义。
 ---
 
 # 从 Bitcoin 读取 Alkanes 数据
 
-Alkanes 没有属于自己的链。每一个 Alkanes 操作都是一笔普通的 Bitcoin 交易，在其 `OP_RETURN` 中携带一条消息，因此任何拥有区块数据的人都可以提取 Alkanes 活动，而无需信任某个 API。
+Alkanes 是 Bitcoin 上的智能合约系统。它没有属于自己的链：每一个 Alkanes 操作都是一笔普通的 Bitcoin 交易，在其 `OP_RETURN` 中携带一条消息；而状态（余额、合约存储、代币供应量）由一个索引器从区块 880,000 开始逐块重放这些消息计算得出。任何拥有 Bitcoin 区块数据的人都可以复现这一状态，而无需信任某个 API。
 
-本页介绍生成 [subfrost.io/metrics](https://subfrost.io/metrics) 上各项数字的开源流水线。其中每个组件都是公开的：
+本页回答三个问题：[需要准备什么](#what-you-need-to-set-up)、[如何提取 Alkanes 数据](#how-to-extract-alkanes-data)，以及[这些数据的含义](#what-the-data-means)。
+
+## 开始之前 {#before-you-start}
+
+- **Bitcoin Core 节点（`bitcoind`）**：一个通过 RPC 提供原始区块的 Bitcoin 全节点。索引器从它读取区块。[Bitcoin Core](https://bitcoincore.org)
+- **`OP_RETURN` 与 Runestone**：`OP_RETURN` 输出承载的是数据而不是币。Runestone 是 Runes 协议的 `OP_RETURN` 格式（以 `OP_RETURN OP_13` 开头），Alkanes 消息就放在它里面。[Runes 规范](https://docs.ordinals.com/runes/specification.html)
+- **Protostone**：打包在 Runestone 协议字段中的一条消息。protocol tag 为 `1` 的 protostone 就是 Alkanes 消息。[Protostone 与 cellpack](../protocol/alkanes#protostone-与-cellpack)
+- **Cellpack**：protostone 中的合约调用，是一串整数 `[block, tx, opcode, ...inputs]`：调用哪个合约、哪个方法、哪些参数。[Protostone 与 cellpack](../protocol/alkanes#protostone-与-cellpack)
+- **Alkanes 索引器（`alkanes.wasm`）**：Alkanes 协议本身，由 `kungfuflex/alkanes-rs` 编译为 WebAssembly。它执行每一条消息，并保存由此产生的状态。[alkanes-rs](https://github.com/kungfuflex/alkanes-rs)
+- **metashrew 与 `rockshrew-mono`**：metashrew 是一个框架，它在每个 Bitcoin 区块上运行索引器程序，并保存程序写入的内容。`rockshrew-mono` 是它的单一二进制文件：索引器、数据库和 JSON-RPC 服务器合为一体。[用 metashrew 做索引](../build/indexing-with-metashrew)
+- **AlkaneId**：合约或代币的地址，写作 `block:tx`。`2:0` 是 DIESEL，`32:0` 是 [frBTC](../tokens/frBTC-overview)。
+- **Trace（执行轨迹）**：一个 protostone 执行过程的记录：它发起的调用、转入和转出的代币、写入的存储，以及是否成功。[读懂一条 trace](#reading-a-trace)
+- **View 函数**：由索引器程序通过 `metashrew_view` JSON-RPC 方法回答的只读查询。[`metashrew_*` 参考](../api-reference/json-rpc/metashrew)
+- **`/traces` 数据源**：SUBFROST 的一个端点，提供附带该区块全部 Alkanes trace 的 Bitcoin 区块，使程序无需运行任何合约即可索引执行结果。[路径 2](#path-2-index-from-the-traces-feed)
+- **alspo 程序**：SUBFROST 自己的 metashrew 程序，从 `/traces` 数据源索引 Alkanes 状态。SUBFROST 浏览器同样读取这个数据源。
+- **SUBFROST API key**：SUBFROST 托管端点（包括 `/traces`）所用的密钥。[API Keys](../api-reference/platform/api-keys)
+
+## 需要准备什么 {#what-you-need-to-set-up}
+
+有三条路径。它们的区别在于你能得到什么，以及你需要运行什么。
+
+| | 路径 1：运行 Alkanes 索引器 | 路径 2：索引 `/traces` 数据源 | 路径 3：解码消息 |
+|---|---|---|---|
+| **得到** | 完整的 Alkanes 状态：余额、存储、trace、所有 view 函数 | 每个区块的执行结果（trace），按你的方式索引 | 每笔交易请求了什么，而不是实际发生了什么 |
+| **Bitcoin 节点** | 你自己的 `bitcoind` | 不需要 | 任意原始交易来源 |
+| **另外需要** | Rust、`protoc`、支持 wasm32 的 `clang`、大容量磁盘 | 一个 SUBFROST API key，以及用来构建程序的 Rust | Node.js |
+| **起点** | 区块 880,000，然后按顺序处理每个区块 | 任意高度 | 任意交易 |
+
+**路径 1，完整状态：**
+
+- **一个 Bitcoin Core 节点**，已同步超过区块 880,000，启用 RPC，并保存从 880,000 起的每个区块（裁剪到该高度以下的节点无法提供这些区块）。`rockshrew-mono` 只发起三种 RPC 调用：`getblockcount`、`getblockhash` 和 `getblock`。
+- **版本匹配。** [alkanes-rs README](https://github.com/kungfuflex/alkanes-rs#running-against-mainnet) 把 alkanes-rs `v2.2.1-rc.4` 与 metashrew `v9.0.5-rc.14` 固定配套，并提醒版本不匹配可能产生分叉的状态。
+- **通过 rustup 安装的 Rust。** alkanes-rs 在其 `rust-toolchain.toml` 中固定了 Rust 1.86.0，rustup 会在第一次构建时自动安装该编译器以及 `wasm32-unknown-unknown` 目标。metashrew 使用 stable 版 Rust 构建。
+- `PATH` 中需要有 **`protoc`**（Protocol Buffers 编译器），以及一个**能以 wasm32 为目标的 `clang`**。在 macOS 上，Apple 的 clang 做不到：请安装 Homebrew 的 `llvm`，并把 `CC_wasm32_unknown_unknown` 和 `AR_wasm32_unknown_unknown` 分别指向它的 `clang` 和 `llvm-ar`。
+- **metashrew 的构建工具**，因为它要编译 RocksDB。在 macOS 上，Xcode 命令行工具就足够了。在 Debian 上，仓库自带的 `docker/Dockerfile.indexer` 会安装 `build-essential` 和 `libclang-dev`。
+- **磁盘与时间。** 索引会随链增长：SUBFROST 发布的主网索引快照在 2026 年 6 月 2 日压缩后为 377 GB，这还不包括 Bitcoin 链本身。从 880,000 开始同步需要数天量级的时间。
+
+**路径 2，`/traces` 数据源：** 不需要 Bitcoin 节点。你需要一个 SUBFROST API key（想先试试的话，`https://mainnet.subfrost.io/v4/jsonrpc/traces` 无需 key 也会应答），带 `wasm32-unknown-unknown` 目标的 Rust 以及与上面相同的 `protoc` 和 `clang` 来构建你的程序，还需要 `rockshrew-mono` 来运行它。只读取单个区块的话，只需要 Python 3 和 `protoc`。
+
+**路径 3，只看消息：** Node.js，以及来自你的节点、mempool.space 或其他 Esplora API 的原始交易。
+
+## 如何提取 Alkanes 数据 {#how-to-extract-alkanes-data}
+
+### 路径 1：运行 Alkanes 索引器 {#path-1-run-the-alkanes-indexer}
+
+构建索引器程序：
+
+```bash
+git clone https://github.com/kungfuflex/alkanes-rs
+cd alkanes-rs
+git checkout v2.2.1-rc.4
+cargo build --release --target wasm32-unknown-unknown --features mainnet -p alkanes
+```
+
+这会生成 `target/wasm32-unknown-unknown/release/alkanes.wasm`（约 7.8 MB）。README 中这条命令的末尾带有 `--locked`，但在这个 tag 上它会失败：该 tag 的 `Cargo.lock` 仍把工作区自身的 crate 记为 `2.2.1-rc.3`。去掉这个参数后，cargo 只会改写这些版本号。
+
+构建 metashrew：
+
+```bash
+git clone https://github.com/kungfuflex/metashrew
+cd metashrew
+git checkout v9.0.5-rc.14
+cargo build --release -p rockshrew-mono
+./target/release/rockshrew-mono --version
+```
+
+```text
+rockshrew-mono 9.0.5-rc.14
+```
+
+从 Alkanes 激活高度开始，针对你的节点运行：
+
+```bash
+~/metashrew/target/release/rockshrew-mono \
+  --daemon-rpc-url http://localhost:8332 \
+  --auth <user>:<password> \
+  --indexer ~/alkanes-rs/target/wasm32-unknown-unknown/release/alkanes.wasm \
+  --db-path ~/.metashrew \
+  --start-block 880000 \
+  --host 127.0.0.1 \
+  --port 8080
+```
+
+- **保留 `--start-block 880000`。** 没有它，索引会从区块 0 开始。
+- **停止后重启是安全的。** 重启后会从最后一个已提交的区块之后继续。
+- **只信任可靠的 RPC 来源。** 启动时它会提示 SPV 校验已关闭：它会把每个区块体与节点报告的哈希进行核对，但不验证工作量证明。请只把 `--daemon-rpc-url` 指向你信任的节点。
+- **view 的内存下限。** 当机器的可用内存低于 `--view-memory-floor-mb`（默认 8,192 MB）时，所有 view 都会返回 `View runtime unavailable: system memory pressure`，而索引照常进行。在内存较小的机器上，请调低这个下限（`--view-memory-floor-mb 0` 会关闭这项检查）。
+- **不用节点快速试一试。** SUBFROST 网关也应答这三种 RPC 调用：`--daemon-rpc-url https://mainnet.subfrost.io/v4/<your-api-key>`，不需要 `--auth`。它是有[速率限制](../api-reference/platform/rate-limits)的共享基础设施，所以完整同步应当在你自己的节点上进行。
+- **从快照开始。** 除了从 880,000 开始索引，你也可以从 SUBFROST 的数据库快照开始：参见[快照下载](../api-reference/platform/snapshots)，并核对它所对应的版本是否与你的一致。2026 年 9 月 30 日时，该文件为 377 GB，最后修改于 2026 年 6 月 2 日。
+
+区块进入索引后，就可以查询节点了。`metashrew_height` 返回最后一个已索引的区块：
+
+```bash
+curl -s -X POST http://127.0.0.1:8080 -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"metashrew_height","params":[]}'
+```
+
+```text
+{"id":1,"jsonrpc":"2.0","result":"880115"}
+```
+
+读取通过 `metashrew_view` 进行，参数是 view 名称、十六进制编码的 protobuf 输入和一个区块标签。`trace` view 返回单个 protostone 的执行过程。它的输入是一条 `Outpoint` 消息：字节 `0a 20`、按内部字节序排列的 32 字节 txid（即显示的 txid 反转过来）、字节 `10`，再加上 vout。对于 protostone，vout 是虚拟的：在一笔有 `n` 个输出的交易中，第一个 protostone 的编号是 `n + 1`，下一个是 `n + 2`，依此类推。Alkanes 历史上第一次 DIESEL 铸造，即区块 880,004 中的交易 `0f8b4333…a411744d`，有三个输出，所以它的 protostone 是 vout 4：
+
+```bash
+TXID=0f8b433391e245856668e8c204e0e56081677a380cadddc8ad58b6e8a411744d
+INPUT=0a20$(python3 -c "print(bytes.fromhex('$TXID')[::-1].hex())")1004
+curl -s -X POST http://127.0.0.1:8080 -H 'content-type: application/json' \
+  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"metashrew_view\",\"params\":[\"trace\",\"0x$INPUT\",\"latest\"]}" \
+  | python3 -c "import json,sys; print(json.load(sys.stdin)['result'][2:])" | xxd -r -p > trace.bin
+protoc -I alkanes-rs/crates/alkanes-support/proto --decode=alkanes.AlkanesTrace alkanes.proto < trace.bin
+```
+
+结果是一条 `AlkanesTrace` protobuf，定义在 [`alkanes.proto`](https://github.com/kungfuflex/alkanes-rs/blob/v2.2.1-rc.4/crates/alkanes-support/proto/alkanes.proto) 中。解码输出的末尾（调用的退出部分）如下：
+
+```text
+    response {
+      alkanes {
+        id {
+          block {
+            lo: 2
+          }
+          tx {
+          }
+        }
+        value {
+          lo: 312500000
+        }
+      }
+      storage {
+        key: "/seen/\204m\r\000\000\000\000\000"
+        value: "\001\000\000\000"
+      }
+      storage {
+        key: "/totalsupply"
+        value: " \037\377\236\004(\000\000\000\000\000\000\000\000\000\000"
+      }
+    }
+    fuel_used: 139101
+  }
+}
+```
+
+在托管网关上发起同样的调用，返回的 trace 逐字节相同，只有 `fuel_used` 例外：从 `v2.2.1-rc.4` 起的索引器会记录它，而托管的 trace 中没有这个字段。[读懂一条 trace](#reading-a-trace) 解释了每一个字段。
+
+### 路径 2：从 `/traces` 数据源建立索引 {#path-2-index-from-the-traces-feed}
+
+Alkanes 索引器必须先执行自区块 880,000 以来的每一次合约调用，才能回答任何查询。如果你需要的是执行结果（谁调用了什么、哪些代币发生了转移、哪些调用回滚了），`/traces` 数据源会随每个区块把这些结果交给你：
+
+```text
+https://mainnet.subfrost.io/v4/<your-api-key>/traces
+```
+
+它应答 `rockshrew-mono` 使用的三种 Bitcoin Core 调用：`getblockcount`、`getblockhash` 和 `getblock`。它返回的是真实区块，只是在 coinbase 交易末尾多追加了一个输出：一个 `OP_RETURN`，推入标记 `ASP0`，后面跟着一条 protobuf `AlkanesBlockTraceEvent`，其中包含该区块中每个 protostone 的 trace。区块头没有改动，因此区块哈希依然一致。没有 Alkanes 活动的区块也带有这个标记，只是负载为空。读取这个数据源的程序从不重新执行合约，因此可以从任意高度开始。SUBFROST 的 alspo 程序和浏览器都是这样工作的。
+
+**不用 Rust 读取一个区块。** 下面的脚本从数据源获取一个区块并输出其负载，再由 `protoc` 解码。网关会对 Python 默认的 `User-Agent` 返回 HTTP 403，所以脚本会自带一个。
+
+<details>
+<summary>traces_payload.py（Python 3，仅用标准库）</summary>
+
+```python
+#!/usr/bin/env python3
+"""Print the Alkanes trace payload that the /traces feed embeds in a block.
+
+usage: traces_payload.py <traces-url> <height> > block.bin
+Writes protobuf(AlkanesBlockTraceEvent) to stdout; decode it with protoc.
+"""
+import json, sys, urllib.request
+
+def rpc(url, method, params):
+    body = json.dumps({"jsonrpc": "1.0", "id": 1, "method": method, "params": params}).encode()
+    # the gateway refuses Python's default User-Agent with a 403
+    req = urllib.request.Request(url, body, {"content-type": "application/json",
+                                             "user-agent": "alkanes-traces-example"})
+    return json.load(urllib.request.urlopen(req, timeout=120))["result"]
+
+def varint(b, i):
+    n = b[i]
+    if n < 0xfd: return n, i + 1
+    size = {0xfd: 2, 0xfe: 4, 0xff: 8}[n]
+    return int.from_bytes(b[i + 1:i + 1 + size], "little"), i + 1 + size
+
+def coinbase_outputs(block):
+    i = 80                                   # skip the block header
+    _, i = varint(block, i)                  # transaction count
+    i += 4                                   # coinbase version
+    if block[i] == 0 and block[i + 1] == 1:  # segwit marker and flag
+        i += 2
+    n_in, i = varint(block, i)
+    for _ in range(n_in):
+        i += 36                              # previous outpoint
+        size, i = varint(block, i)
+        i += size + 4                        # scriptSig and sequence
+    n_out, i = varint(block, i)
+    for _ in range(n_out):
+        i += 8                               # value
+        size, i = varint(block, i)
+        yield block[i:i + size]
+        i += size
+
+def pushed_data(script):
+    """Concatenate the pushes after OP_RETURN (the feed uses one push)."""
+    i, data = 1, b""
+    while i < len(script):
+        op = script[i]
+        if op <= 75: size, i = op, i + 1
+        elif op == 76: size, i = script[i + 1], i + 2
+        elif op == 77: size, i = int.from_bytes(script[i + 1:i + 3], "little"), i + 3
+        elif op == 78: size, i = int.from_bytes(script[i + 1:i + 5], "little"), i + 5
+        else: return b""
+        data += script[i:i + size]
+        i += size
+    return data
+
+url, height = sys.argv[1], int(sys.argv[2])
+block = bytes.fromhex(rpc(url, "getblock", [rpc(url, "getblockhash", [height]), 0]))
+payload = None
+for script in coinbase_outputs(block):
+    if script[:1] == b"\x6a":
+        data = pushed_data(script)
+        if data.startswith(b"ASP0"):
+            payload = data[4:]               # the last match wins
+if payload is None:
+    sys.exit(f"block {height}: no ASP0 output in the coinbase")
+sys.stdout.buffer.write(payload)
+```
+
+</details>
+
+```bash
+python3 traces_payload.py https://mainnet.subfrost.io/v4/<your-api-key>/traces 880004 > block.bin
+protoc -I alkanes-rs/crates/alkanes-support/proto \
+  --decode=alkanes.AlkanesBlockTraceEvent alkanes.proto < block.bin
+```
+
+区块 880,004 中只有一个事件：即路径 1 中展示的那条 trace，后面跟着它发生的位置。
+
+```text
+  outpoint {
+    txid: "Mt\021\244\350\266X\255\310\335\255\0148zg\201`\345\340\004\302\350hf\205E\342\2213C\213\017"
+    vout: 4
+  }
+  txindex: 2105
+}
+```
+
+**用你自己的程序建立索引。** metashrew 程序是一个编译为 wasm32 的 Rust crate。它导出 `_start`（每个区块调用一次，传入高度和原始区块），以及任意数量的 view 函数。下面这个程序为每个区块保存运行了多少个 protostone，以及其中有多少个回滚：
+
+<details>
+<summary>Cargo.toml 与 src/lib.rs</summary>
+
+```toml
+[package]
+name = "trace-count"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+metashrew-core = { git = "https://github.com/kungfuflex/metashrew", tag = "v9.0.5-rc.14" }
+metashrew-support = { git = "https://github.com/kungfuflex/metashrew", tag = "v9.0.5-rc.14" }
+bitcoin = "0.32"
+prost = "0.12"
+```
+
+```rust
+//! A metashrew program that reads the /traces feed and stores, per block,
+//! how many protostones ran and how many of them reverted.
+use bitcoin::opcodes::all::OP_RETURN;
+use bitcoin::script::Instruction;
+use bitcoin::Block;
+use metashrew_core::{flush, get, input, set};
+use metashrew_support::compat::export_bytes;
+use metashrew_support::utils::{consensus_decode, consume_sized_int, consume_to_end};
+use prost::Message;
+use std::io::Cursor;
+use std::sync::Arc;
+
+// The part of alkanes.proto this program reads (same field numbers).
+#[derive(Clone, PartialEq, Message)]
+struct AlkanesBlockTraceEvent {
+    #[prost(message, repeated, tag = "1")]
+    events: Vec<AlkanesBlockEvent>,
+}
+#[derive(Clone, PartialEq, Message)]
+struct AlkanesBlockEvent {
+    #[prost(message, optional, tag = "1")]
+    traces: Option<AlkanesTrace>,
+}
+#[derive(Clone, PartialEq, Message)]
+struct AlkanesTrace {
+    #[prost(message, repeated, tag = "1")]
+    events: Vec<AlkanesTraceEvent>,
+}
+#[derive(Clone, PartialEq, Message)]
+struct AlkanesTraceEvent {
+    #[prost(message, optional, tag = "2")]
+    exit_context: Option<AlkanesExitContext>,
+}
+#[derive(Clone, PartialEq, Message)]
+struct AlkanesExitContext {
+    #[prost(int32, tag = "1")]
+    status: i32, // 0 = SUCCESS, 1 = FAILURE
+}
+
+/// The feed appends one coinbase output: OP_RETURN, then "ASP0" + protobuf.
+fn trace_payload(block: &Block) -> Option<Vec<u8>> {
+    let coinbase = block.txdata.first()?;
+    let mut found = None;
+    for out in &coinbase.output {
+        let mut ops = out.script_pubkey.instructions();
+        if !matches!(ops.next(), Some(Ok(Instruction::Op(op))) if op == OP_RETURN) {
+            continue;
+        }
+        let mut data = Vec::new();
+        for op in ops {
+            if let Ok(Instruction::PushBytes(bytes)) = op {
+                data.extend_from_slice(bytes.as_bytes());
+            }
+        }
+        if let Some(payload) = data.strip_prefix(b"ASP0") {
+            found = Some(payload.to_vec()); // the last match wins
+        }
+    }
+    found
+}
+
+#[no_mangle]
+pub fn _start() {
+    let mut data = Cursor::new(input());
+    let height = consume_sized_int::<u32>(&mut data).unwrap();
+    let block: Block = consensus_decode(&mut Cursor::new(consume_to_end(&mut data).unwrap())).unwrap();
+    let event = trace_payload(&block)
+        .map(|payload| AlkanesBlockTraceEvent::decode(payload.as_slice()).unwrap())
+        .unwrap_or_default();
+
+    // A trace ends with the exit of the outermost call: its status is the outcome.
+    let reverted = |e: &AlkanesBlockEvent| {
+        let last = e.traces.as_ref().and_then(|t| t.events.last());
+        last.and_then(|ev| ev.exit_context.as_ref()).map_or(false, |x| x.status == 1)
+    };
+    let traces = event.events.len() as u32;
+    let reverts = event.events.iter().filter(|e| reverted(e)).count() as u32;
+
+    let mut value = traces.to_le_bytes().to_vec();
+    value.extend_from_slice(&reverts.to_le_bytes());
+    set(Arc::new(format!("/count/{height}").into_bytes()), Arc::new(value));
+    flush();
+}
+
+/// View: input is a block height (u32, little-endian). Returns 8 bytes:
+/// traces then reverts, both u32 little-endian.
+#[no_mangle]
+pub fn count() -> i32 {
+    let mut data = Cursor::new(input());
+    let _tip = consume_sized_int::<u32>(&mut data).unwrap(); // prepended by the runtime
+    let height = consume_sized_int::<u32>(&mut data).unwrap();
+    export_bytes(get(Arc::new(format!("/count/{height}").into_bytes())).as_ref().clone())
+}
+```
+
+</details>
+
+构建它，并从任意高度开始针对数据源运行：
+
+```bash
+cargo build --release --target wasm32-unknown-unknown
+~/metashrew/target/release/rockshrew-mono \
+  --daemon-rpc-url https://mainnet.subfrost.io/v4/<your-api-key>/traces \
+  --indexer target/wasm32-unknown-unknown/release/trace_count.wasm \
+  --db-path ./db \
+  --start-block 969330 \
+  --port 8080
+```
+
+然后查询区块 969,334。view 的输入是小端序 `u32` 形式的高度（`0x76ca0e00`）；运行时会在每个 view 输入前加上当前高度，所以 `count` 会先读掉一个 `u32`，再读取被查询的那个：
+
+```bash
+curl -s -X POST http://127.0.0.1:8080 -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"metashrew_view","params":["count","0x76ca0e00","latest"]}'
+```
+
+```text
+{"id":1,"jsonrpc":"2.0","result":"0x440a000000000000"}
+```
+
+这是两个小端序 `u32` 值：`0x0a44` = 2,628 个 protostone 被执行，0 个回滚。它们来自 2,588 笔交易：其中 40 笔各携带了两个 protostone。
+
+### 路径 3：解码交易中的消息 {#path-3-decode-the-message-in-the-transaction}
+
+即使不执行任何东西，一笔原始交易仍然能告诉你它请求了什么。Alkanes 消息被打包在一个 [Runes Runestone](https://docs.ordinals.com/runes/specification.html) 之中：
+
+1. **找到 Runestone。** 它是第一个脚本以 `OP_RETURN OP_13`（`6a5d`）开头的输出。其负载是一串按 tag/value 成对排列的 LEB128 整数，由 Runes 规范定义。
+2. **读取 Protocol 字段，即 tag `16383`**（LEB128 编码为 `ff7f`）。protostone 就存放在这里；其打包方式见 [protorune Protocol Messages](https://github.com/kungfuflex/protorune/wiki/Protocol-Messages) 页面。`protocol_tag = 1` 的 protostone 即为 Alkanes。
+3. **解开 cellpack**，它是一串 LEB128 整数 `[block, tx, opcode, ...inputs]`：目标合约、方法，然后是参数。参见 [Alkanes 元协议](../protocol/alkanes)。
+
+支撑 [subfrost.io/metrics](https://subfrost.io/metrics) 的开源流水线会大规模地完成这项工作：
 
 | 仓库 | 作用 |
 |---|---|
-| [`alkanes-opreturn-decoder`](https://github.com/Vdto88/alkanes-opreturn-decoder) | 从原始十六进制数据离线解码单笔交易：Runestone、protostone 以及 Alkanes cellpack。 |
+| [`alkanes-opreturn-decoder`](https://github.com/Vdto88/alkanes-opreturn-decoder) | 从原始十六进制数据离线解码单笔交易：Runestone、protostone 以及 Alkanes cellpack。由 `alkanes-rs` 移植而来，并以它为基准进行测试。 |
 | [`alkanes-opreturn-scanner`](https://github.com/Vdto88/alkanes-opreturn-scanner) | 对从 Esplora API 获取的整个区块运行解码器，并为每天写入一行。 |
-| [`alkanes-opreturn-indexer`](https://github.com/Vdto88/alkanes-opreturn-indexer) | 一个 metashrew 索引器，以原生方式对每个区块进行分类统计，也包括区块 weight。 |
+| [`alkanes-opreturn-indexer`](https://github.com/Vdto88/alkanes-opreturn-indexer) | 一个 metashrew 程序，以原生方式对每个区块进行分类统计，并测量区块 weight。它读取普通区块，不运行任何合约。 |
 | [`alkanes-opreturn-stats`](https://github.com/Vdto88/alkanes-opreturn-stats) | 已发布的每日数据集 [`history.csv`](https://vdto88.github.io/alkanes-opreturn-stats/history.csv)。 |
-| [`kungfuflex/alkanes-rs`](https://github.com/kungfuflex/alkanes-rs) | Alkanes 的权威实现。解码器由它移植而来，并以它为基准进行测试。 |
-| [`kungfuflex/metashrew`](https://github.com/kungfuflex/metashrew) | 针对 Bitcoin 区块执行 Alkanes 的索引器框架。 |
 
-## 消息与结果
-
-一笔原始交易告诉你它**请求了什么**：调用哪个合约、哪个方法、哪些参数、转移哪些代币。它**不会**告诉你**实际发生了什么**：调用是否回滚（revert）、铸造了多少、最终余额，或新创建代币的 id。这些信息只有在合约的 WebAssembly 按区块顺序、从区块 880,000 的 Alkanes 激活开始运行之后才会存在。
-
-| 你想要的 | 数据来源 |
-|---|---|
-| Alkanes 交易数量、被调用的合约与方法、`OP_RETURN` 字节数、区块 weight | 区块数据。解码器、扫描器与索引器。 |
-| 手续费 | 被花费输出的金额。Esplora 会报告每笔交易的 `fee`；一个区块的手续费总额等于其 coinbase 减去区块补贴。 |
-| 成功或回滚、数量、余额、新代币 id、合约状态 | 执行。使用 Alkanes 索引器运行 [metashrew](../build/indexing-with-metashrew)。 |
-
-`/metrics` 上的所有 Alkanes 数字都取自区块数据，而不是执行结果；唯一来自链下的输入是 BTC 价格。
-
-## 解码一笔交易
-
-Alkanes 消息被打包在一个 [Runes Runestone](https://docs.ordinals.com/runes/specification.html) 之中：
-
-1. **找到 Runestone。** 它是第一个脚本以 `OP_RETURN OP_13`（`6a5d`）开头的输出。其负载是一串按 tag/value 成对排列的 LEB128 整数，由 Runes 规范定义。
-2. **读取 Protocol 字段，即 tag `16383`。** protostone 就存放在这里（LEB128 编码为 `ff7f`）。其打包方式见 [protorune Protocol Messages](https://github.com/kungfuflex/protorune/wiki/Protocol-Messages) 页面。`protocol_tag = 1` 的 protostone 即为 Alkanes。
-3. **解开 cellpack。** 一次合约调用携带一串 LEB128 整数 `[block, tx, opcode, ...inputs]`：目标合约 id、方法，然后是其参数。参见 [Alkanes 元协议](../protocol/alkanes)。
-
-DIESEL 铸造（mint）是对合约 `2:0` 的调用，操作码为 `77`。下面是区块 969,334 中的一笔，用解码器解码：
+下面再看一次第一次 DIESEL 铸造，这次看的是消息。它是对合约 `2:0` 的调用，opcode 为 `77`：
 
 ```bash
 git clone https://github.com/Vdto88/alkanes-opreturn-decoder
 cd alkanes-opreturn-decoder && npm install
-npx tsx src/cli.ts 232fadebe5f68d6a8ae1fec3e83e5a7ffe4319a313862fd2674bf18a741acf30
+npx tsx src/cli.ts 0f8b433391e245856668e8c204e0e56081677a380cadddc8ad58b6e8a411744d
 ```
 
 ```text
-OP_RETURN (vout 1): 6a5d1214011400ff7f818cec82d08bc0a88281d215
+OP_RETURN (vout 1): 6a5d0eff7f818cec82d08bc0a88281d215
 ── Protostone #0 (Alkanes) ──
   protocol_tag: 1
   pointer: 0   refund: 0
@@ -58,78 +433,102 @@ OP_RETURN (vout 1): 6a5d1214011400ff7f818cec82d08bc0a88281d215
   summary: Alkanes call to 2:0, opcode 77.
 ```
 
-同一个脚本还携带 `14 01 14 00`：即 Runes tag `20`（mint），铸造 rune `1:0`，也就是 UNCOMMON•GOODS。大多数 DIESEL 铸造也同时携带这个 Runes 铸造，这就是数据集同时跟踪两者的原因。
+给定一个 txid 时，解码器会先从 mempool.space 获取原始交易。改为传入 `--rawtx <hex>`，即可完全不联网地解码。
 
-给定 txid 时，解码器会先从 mempool.space 获取原始交易。改为传入 `--rawtx <hex>`，即可在完全不访问网络的情况下解码。
+扫描器对每笔交易应用以下规则：
 
-## 扫描区块
-
-扫描器从 Esplora API 获取每个区块的交易，用解码器对每笔交易分类，并按区块汇总。它读取输出脚本、每笔交易的 `fee`，以及区块的 `mediantime` 和 `tx_count`。目前可用的数据源有两个：`mempool`（[mempool.space](https://mempool.space)，无需密钥）和 `subfrost`（SUBFROST 网关，需要密钥）；代码中的第三个选项 `alkanode` 已不再响应。要使用其他 Esplora，需要把它添加到 `src/esplora.ts` 中的 `Source` 类型和 `REST_BASE`。
-
-```bash
-git clone https://github.com/Vdto88/alkanes-opreturn-scanner
-git clone https://github.com/Vdto88/alkanes-opreturn-decoder opreturn-decoder
-cd alkanes-opreturn-scanner && npm install
-npm run scan -- --source mempool --from 969334 --to 969334
-```
-
-报告开头是覆盖范围和原始计数（节选）：
-
-```text
-Coverage: blocks 969334–969334 (1 blocks)
-  tx=4591  OP_RETURN=2654  Alkanes=2589  decode-fail=0
-```
-
-对于同一个区块，权威的 Alkanes 索引器报告了 2,588 笔不同交易的执行轨迹（trace），因此两种方法的结果相差不超过一笔交易。
-
-如果某个区块在重试之后仍然获取失败，它会被跳过，并在 stderr 上输出一条警告，而退出码仍为 0。在信任某个总数之前，请先检查 `Coverage` 这一行：长时间运行时，mempool.space 的限流会严重到让区块获取失败并被跳过，调低 `--concurrency` 会有帮助。
-
-常用标志：`--from/--to` 指定高度范围，`--blocks N` 取最新的 N 个区块，`--sample K` 每 K 个区块读取一个，`--concurrency N` 并行获取分页。每日任务先运行 `tools/snapshot.ts`，为今天生成一行抽样数据，然后逐个区块（`--sample 1`）重新扫描前一天，并用 `tools/seed-history.ts --merge` 将结果合并进来。
-
-一笔交易的分类方式：
-
-- **OP_RETURN**：任何脚本以 `6a` 开头的输出。coinbase 也计入；其见证承诺（witness commitment）是一个 `OP_RETURN`，但永远不是 Alkanes。
-- **Alkanes**：某个 Runestone 输出中至少包含一个 `protocol_tag = 1` 的 protostone。之后回滚的调用仍然计入：它已被打包进区块，并且携带了 Alkanes 消息。
-- **DIESEL 铸造**：目标为 `2:0`、操作码为 `77` 的 Alkanes cellpack。
+- **OP_RETURN**：任何脚本以 `6a` 开头的输出。coinbase 也计入；它的见证承诺是一个 `OP_RETURN`，但永远不是 Alkanes。
+- **Alkanes**：某个 Runestone 输出中至少包含一个 `protocol_tag = 1` 的 protostone。之后回滚的调用仍然计入：它已被打包进区块，并携带了 Alkanes 消息。
+- **DIESEL 铸造**：以 `2:0` 为目标、opcode 为 `77` 的 Alkanes cellpack。
 - **字节数**：`OP_RETURN` 输出的完整脚本大小。
 - **日期**：每个区块按其 Esplora `mediantime` 确定日期，采用 UTC。
 
-## 用 metashrew 统计每个区块
+在区块 969,334 上，扫描器统计到 2,589 笔 Alkanes 交易，比有 trace 的 2,588 笔多一笔。如果某个区块在重试后仍获取失败，它会被跳过并在 stderr 上给出警告，而退出码仍为 0，所以在相信一个总数之前，请先检查报告中的 `Coverage` 行。各参数和每日任务请见各仓库的 README。
 
-扫描器通过 Esplora 逐页读取，对于完整历史来说很慢，而且无法测量区块 weight。索引器则改为在 metashrew 内部进行分类，以原生速度遍历每个区块，并复用 `alkanes-rs` 的权威解码。对于每个高度，它存储一条记录：交易数量、Alkanes 与 DIESEL 数量、`OP_RETURN` 字节数、总手续费、总 weight 与 Alkanes weight，以及 UNCOMMON•GOODS 铸造数。它与扫描器有四点不同：
+## 这些数据的含义 {#what-the-data-means}
 
-- 它跳过 coinbase，因此其 `OP_RETURN` 数量和字节数不包含见证承诺；
-- 它按 `alkanes-rs` 的方式读取 Runestone（`Runestone::decipher`），而扫描器会解码每一个 `6a5d` 输出；
-- 对于一笔 Alkanes 交易，它把该交易所有 `OP_RETURN` 输出的字节都计为 Alkanes 字节，而扫描器只计入 `6a5d` 输出；
-- 它按区块头时间确定每个区块的日期，而不是按中位时间。
+### 消息与结果 {#the-message-and-the-outcome}
 
-将索引器构建为 WebAssembly（它以 git 依赖的形式固定了 `alkanes-rs` 的版本），并针对一个真实区块运行宿主测试：
+一笔原始交易告诉你它**请求了什么**：调用哪个合约、哪个方法、哪些参数、转移哪些代币。它**不会**告诉你**实际发生了什么**：调用是否回滚（revert）、铸造了多少、最终余额，或新创建代币的 id。这些信息只有在合约从区块 880,000 起按区块顺序运行之后才会存在。
 
-```bash
-git clone https://github.com/Vdto88/alkanes-opreturn-indexer
-cd alkanes-opreturn-indexer
-rustup target add wasm32-unknown-unknown
-cargo build --locked --release --target wasm32-unknown-unknown
-bash tools/fetch-fixture.sh 954830 && cargo test --locked --release
-```
+| 你想要的 | 数据来源 |
+|---|---|
+| Alkanes 交易数量、被调用的合约与方法、`OP_RETURN` 字节数、区块 weight | 消息。[路径 3](#path-3-decode-the-message-in-the-transaction)。 |
+| 手续费 | 被花费输出的金额。Esplora 会报告每笔交易的 `fee`；一个区块的手续费总额等于其 coinbase 减去区块补贴。 |
+| 成功或回滚、转移的代币、新代币 id | 执行。来自[路径 1](#path-1-run-the-alkanes-indexer) 或[路径 2](#path-2-index-from-the-traces-feed) 的 trace。 |
+| 余额、合约存储，以及任何 view 函数能回答的内容 | 执行后的状态。[路径 1](#path-1-run-the-alkanes-indexer)。 |
 
-构建需要 `PATH` 中有 `protoc`，以及一个能以 wasm32 为目标的 `clang`。在 macOS 上，Apple 的 clang 做不到：请把 `CC_wasm32_unknown_unknown` 和 `AR_wasm32_unknown_unknown` 分别指向 Homebrew LLVM 的 `clang` 和 `llvm-ar`。
+### 读懂一条 trace {#reading-a-trace}
 
-然后构建 `rockshrew-mono`，来源为 `alkanes-rs` 的提交 `888f4fe6`（确切命令见[索引器 README](https://github.com/Vdto88/alkanes-opreturn-indexer#run)），并针对一个 Bitcoin RPC 提供索引器服务。这个构建从环境变量 `PORT` 读取端口：
+托管网关通过 `alkanes_trace` 以易读的 JSON 形式提供同一条 trace。注意它要求 txid 采用内部字节序（反转后的）：如果用显示的 txid，它会返回一个空列表。
 
 ```bash
-PORT=8080 rockshrew-mono --daemon-rpc-url <bitcoin-rpc-url> \
-  --indexer target/wasm32-unknown-unknown/release/opreturn_indexer.wasm \
-  --db-path db --start-block 880000
+curl -s -X POST https://mainnet.subfrost.io/v4/<your-api-key> -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"alkanes_trace","params":[{"txid":"4d7411a4e8b658adc8ddad0c387a678160e5e004c2e868668545e29133438b0f","vout":4}]}'
 ```
 
-用 `stats_range` view 读回这些记录；[索引器 README](https://github.com/Vdto88/alkanes-opreturn-indexer#read) 给出了它的输入格式、一个 `curl` 示例，以及把记录汇总为按天数据行的导出器。
+第一次 DIESEL 铸造的结果（已重新排版）：
 
-在生产环境中，[`census.yml` 工作流](https://github.com/Vdto88/alkanes-opreturn-scanner/blob/master/.github/workflows/census.yml)每天执行这一流程。它从区块 951,535 起进行索引（高度 880,000 到 951,534 来自索引器 `data/` 文件夹中的一个冻结快照），用该快照加上实时数据库重写 `blockspace-daily.json`，并提交该文件。它的 Bitcoin RPC 来自 secret `CENSUS_RPC_URL`，因此 fork 需要设置自己的 RPC。随后，扫描器的 `daily.yml` 会把这些列合并进 `history.csv` 并发布。
+```json
+[
+  {
+    "event": "invoke",
+    "data": {
+      "type": "call",
+      "context": {
+        "myself": { "block": "2", "tx": "0" },
+        "caller": { "block": "0", "tx": "0" },
+        "inputs": ["77", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
+        "incomingAlkanes": [],
+        "vout": 4
+      },
+      "fuel": 100000000
+    }
+  },
+  {
+    "event": "return",
+    "data": {
+      "status": "success",
+      "response": {
+        "alkanes": [{ "id": { "block": "2", "tx": "0" }, "value": "312500000" }],
+        "storage": [
+          { "key": "/seen/846d0d0000000000", "value": "0x01000000" },
+          { "key": "/totalsupply", "value": "0x201fff9e042800000000000000000000" }
+        ],
+        "data": "0x"
+      }
+    }
+  }
+]
+```
 
-## 每日数据集
+| 字段 | 本例 | 含义 |
+|---|---|---|
+| `invoke` | 第一个事件 | 一次调用开始。当一个合约调用另一个合约时，内部会出现嵌套的 `invoke` / `return` 对。 |
+| `type` | `call` | 调用方式：`call`、`delegatecall` 或 `staticcall`。 |
+| `myself` | `2:0` | 正在运行的合约：DIESEL。 |
+| `caller` | `0:0` | 调用者。`0:0` 表示交易本身，而不是另一个合约。 |
+| `inputs` | `77`，然后是若干 0 | opcode 及其参数。77 是 DIESEL 的铸造；cellpack 没有参数（解码器显示 `inputs []`）。 |
+| `incomingAlkanes` | 无 | 转入这次调用的 alkanes。 |
+| `vout` | `4` | 该 protostone 的虚拟 vout。 |
+| `fuel` | `100000000` | 分配给这次调用的计算预算。 |
+| `return` | 最后一个事件 | 调用结束。最后一个 `return` 就是整个 protostone 的结果。 |
+| `status` | `success` | `success` 或 `revert`。 |
+| `response.alkanes` | `2:0` 的 312,500,000 | 调用交还的 alkanes：这里是新铸造的 DIESEL，以基本单位计。 |
+| `response.storage` | 两个键 | 合约写入的存储。`/seen/` 加上小端序 `u64` 形式的高度（`846d0d…` = 880,004），以及小端序 `u128` 形式的 `/totalsupply`：44,000,312,500,000，即这次铸造后的供应量。 |
+| `response.data` | `0x` | 返回给调用者的字节。此处为空。 |
 
-[`history.csv`](https://vdto88.github.io/alkanes-opreturn-stats/history.csv) 自 2025-01-20（区块 880,000）起每个 UTC 日一行，每天更新一次。请按列名解析：新列只会追加在末尾。
+当调用失败时，`status` 为 `revert`，`data` 携带错误信息：`0x08c379a0` 后跟一段 UTF-8 文本。例如，区块 969,340 中一次回滚的调用返回 `ALKANES: revert: Error: slippage: tokens below minimum`。部署合约时会多出一个 create 事件（protobuf 中为 `create_alkane`），其中带有新 alkane 的 id。
+
+在路径 1 和路径 2 的 protobuf 形式中，同样的字段以 `alkanes.proto` 中的名称出现（`enter_context`、`exit_context`、`incoming_alkanes`）。值为 0 的字段会被省略，因此 `tx {}` 表示 `tx = 0`，而没有 `status` 行的退出表示成功。每个 128 位数字都是一个 `uint128 { lo, hi }` 对。
+
+### AlkaneId {#alkaneids}
+
+每个合约和代币都由一个 AlkaneId（`block:tx`）来寻址：`2:0` 是 DIESEL，`32:0` 是 frBTC。新合约在其部署被执行时才获得 id，因此新创建代币的 id 来自执行结果（其 trace 中的 create 事件，或一个 view 函数），而不是来自部署它的那条消息。
+
+### 每日数据集 {#the-daily-dataset}
+
+`/metrics` 上的所有 Alkanes 数字都取自区块数据，而不是执行结果；唯一来自链下的输入是 BTC 价格。[`history.csv`](https://vdto88.github.io/alkanes-opreturn-stats/history.csv) 自 2025-01-20（区块 880,000）起每个 UTC 日一行，每天更新一次。请按列名解析：新列只会追加在末尾。
 
 **数据行的来源。** 2025-01-20 至 2026-06-26 的各天数据由索引器通过其导出器回填。从 2026-06-27 起，由每日扫描器写入计数、字节和手续费各列，索引器再补充它自己的六列。
 
@@ -147,14 +546,14 @@ PORT=8080 rockshrew-mono --daemon-rpc-url <bitcoin-rpc-url> \
 汇总之前需要了解的几点：
 
 - **最新一行可能是不完整的一天。** 当 `date` 是今天（UTC）时，它只覆盖到目前为止已挖出的区块。
-- **回填的数据行遵循索引器的规则。** 它们的 `txWithOpReturn` 和 `opReturnBytes` 不包含 coinbase，日期按区块头时间确定，Runestone 用 `Runestone::decipher` 读取（见上文列出的差异）。它们的 `feeAlkanesSats` 和 `feeOpReturnSats` 是估算值：由抽样得到的手续费占比按当天的手续费总额换算而来；少数早期日子没有样本，这两列为 0。
+- **回填的数据行遵循索引器的规则。** 它们的 `txWithOpReturn` 和 `opReturnBytes` 不包含 coinbase，日期按区块头时间确定，Runestone 用 `alkanes-rs` 的 `Runestone::decipher` 读取，并且把一笔 Alkanes 交易的所有 `OP_RETURN` 字节都计入 `alkanesBytes`（扫描器只计入其 `6a5d` 输出）。它们的 `feeAlkanesSats` 和 `feeOpReturnSats` 是估算值：由抽样得到的手续费占比按当天的手续费总额换算而来；少数早期日子没有样本，这两列为 0。
 - **两组列覆盖的区块可能略有不同。** 扫描器按中位时间确定区块日期，索引器则按区块头时间，因此在午夜前后，同一个区块可能被归入不同的日期。
 - **折算列是估算值。** 原始数量请使用 `txAlkanes`。没有值时，索引器的单元格留空（而不是 `0`），因此请将其作为可选值解析。
 - **覆盖并不完美。** 行与行的边界在大约 89,000 个区块中跳过了约 330 个（不到 0.4%），因此全历史总数会略微偏低。如果某一天的完整重扫失败，该天会保留其抽样行，此时 `blocksScanned` 小于 `toHeight - fromHeight + 1`。
 
 在两个工具各自独立运行的时段（2026-06-27 至 2026-09-29，共 95 天），扫描器每个区块的 Alkanes 数量与索引器相差不超过 0.5%，每日差异的中位数为 0.02%。
 
-## 示例：Alkanes 交易总数
+用数据集统计 Alkanes 交易总数：
 
 ```python
 import csv, io, urllib.request
@@ -169,6 +568,9 @@ print("of which DIESEL mints:", sum(int(r["dieselMints"]) for r in rows))
 
 由此得出，自激活至 2026-09-29 共有 **97,352,249** 笔 Alkanes 交易，其中 92,898,799 笔是 DIESEL 铸造。调整截止日期，即可统计截至其他任意一天的数量。
 
-## 更进一步：结果与状态
+## 更进一步 {#going-further}
 
-要查看每笔交易实际做了什么，而不仅仅是它请求了什么，请自己运行 Alkanes 索引器：metashrew 会针对你自己的 Bitcoin 节点执行 `alkanes.wasm`，并回答诸如 `trace`（按 outpoint 查询单个 protostone 的执行过程）和 `simulate` 之类的 view 函数。由于索引器是确定性的，你的节点会达到与其他所有节点相同的状态。参见[用 metashrew 做索引](../build/indexing-with-metashrew)、[`alkanes-rs`](https://github.com/kungfuflex/alkanes-rs) 和 [`metashrew`](https://github.com/kungfuflex/metashrew)。
+- [用 metashrew 做索引](../build/indexing-with-metashrew)：索引器及其 view 函数如何工作。
+- [`metashrew_*` 参考](../api-reference/json-rpc/metashrew) 与 [`alkanes_*` 参考](../api-reference/json-rpc/alkanes)：每个 view 及其输入。
+- [`kungfuflex/alkanes-rs`](https://github.com/kungfuflex/alkanes-rs)：Alkanes 的权威实现，其中包括 `alkanes.proto`。
+- [`kungfuflex/metashrew`](https://github.com/kungfuflex/metashrew)：索引器框架，`crates/metashrew-minimal` 中有一个最小示例程序。
