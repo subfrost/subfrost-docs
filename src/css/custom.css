@@ -937,6 +937,8 @@ html[data-theme='dark'] .pagination-nav__link:hover {
 .sf-chain { font-size: 10px; letter-spacing: .14em; font-weight: 600; }
 .sf-chain-eth { fill: #3b7cc4; }
 .sf-chain-btc { fill: #c07a1e; }
+.sf-chain-bnb { fill: #a8820a; }
+html[data-theme='dark'] .sf-chain-bnb { fill: #f0b90b; }
 .sf-divide { stroke: #dfe8f1; stroke-width: 1px; stroke-dasharray: 4 5; }
 .sf-line { stroke: #8aa7bf; stroke-width: 1.5px; fill: none; }
 .sf-line-soft { stroke: #b9cee1; stroke-dasharray: 4 4; }
