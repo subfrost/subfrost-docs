@@ -44,7 +44,12 @@ rockshrew-mono \
 
 `--start-block 880000` is the Alkanes genesis height, so the node skips the pre-genesis chain. Syncing from there still takes on the order of days.
 
-To skip the full sync, bootstrap from a **published snapshot**: point `--repo` at a snapshot base URL and the node downloads the state and catches up to the tip in hours. SUBFROST serves snapshots from `https://cdn.subfrost.io/snapshots/`. Business-tier accounts can also pull the raw database directly over [rsync](../api-reference/platform/rsync) instead of `--repo`.
+To skip the full sync, bootstrap from existing state. There are two different mechanisms, and they are easy to confuse:
+
+- **The published tarball.** SUBFROST serves `https://cdn.subfrost.io/snapshots/latest.tar.gz`, a gzipped copy of a healthy indexer's whole `/data` directory. You extract it into your database path yourself and start `rockshrew-mono` with no `--start-block`; it reads the height out of the database and resumes. Check its size and `Last-Modified` before you commit to it — see [Snapshot Download](../api-reference/platform/snapshots) for the procedure and the current figures.
+- **`--repo <base-url>`.** metashrew's own incremental repo sync, which expects an `index.json` at that base listing per-interval WASM and diff files. A node publishes such a repo with `--snapshot-directory` and `--snapshot-interval`. The SUBFROST CDN path is **not** a `--repo` base: it holds the tarball, not an `index.json`.
+
+Business-tier accounts can also pull the raw database over [rsync](../api-reference/platform/rsync).
 
 ## Building your own indexer WASM
 

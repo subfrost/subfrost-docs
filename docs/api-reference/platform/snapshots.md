@@ -2,7 +2,7 @@
 title: Snapshot Download
 sidebar_label: Snapshot Download
 sidebar_position: 7
-description: Bootstrap a metashrew RocksDB index from the public daily mainnet snapshot instead of indexing from genesis.
+description: Bootstrap a metashrew RocksDB index from the public mainnet snapshot tarball instead of indexing from genesis.
 ---
 
 # Snapshot Download
@@ -12,19 +12,32 @@ snapshot rather than indexed from genesis. For mainnet that is the
 difference between hours and weeks.
 
 The snapshot is the verbatim contents of a healthy mainnet metashrew
-indexer's `/data` directory, tarred and gzipped, refreshed daily.
-Extract it into a fresh metashrew data directory and start
-`rockshrew-mono`: it picks up from the snapshot's tip and resumes
-forward from there.
+indexer's `/data` directory, tarred and gzipped. Extract it into a
+fresh metashrew data directory and start `rockshrew-mono`: it picks up
+from the snapshot's tip and resumes forward from there.
+
+`latest.tar.gz` is republished in place, so **check its size and age
+before you plan a transfer** rather than trusting a figure in this
+page. One `HEAD` tells you both:
+
+```bash
+curl -sIL https://cdn.subfrost.io/snapshots/latest.tar.gz \
+  | grep -iE 'content-length|last-modified|x-goog-hash'
+```
 
 ## URL
 
 - **Mainnet**: `https://cdn.subfrost.io/snapshots/latest.tar.gz`
 
 The CDN redirects to a public GCS bucket; the tarball is served with
-HTTP/2, range-request support, and no auth. Size is approximately
-80–120 GB depending on the height (the snapshot grows roughly
-linearly with chain tip).
+HTTP/2, range-request support, and no auth. **It is large.** Measured
+on 2026-10-01, `content-length` was 377,371,555,210 bytes — 377 GB
+(352 GiB) compressed. Plan the transfer from your own `HEAD`, not from
+that number.
+
+Bucket listing is not public, so `latest.tar.gz` is the only object you
+can discover from outside. There is no index of dated snapshots to
+browse.
 
 Signet and regtest are not currently published as public snapshots;
 those chains sync from scratch in minutes to hours anyway.
@@ -72,9 +85,13 @@ the snapshot's tip, and resumes forward from that height + 1.
 ## Streamed extraction (no tmp file, no double disk usage)
 
 The default `curl | tar` pipeline above is already streamed:
-nothing is written to disk except the final RocksDB files. For a
-100 GB tarball expanding to ~120 GB of RocksDB, that means you need
-about 130 GB of disk space, not 250 GB.
+nothing is written to disk except the final RocksDB files. So you need
+room for the expanded database, not for the tarball as well — but the
+expanded database is larger than the download. At the size measured
+above, budget well over 400 GB of free space on the target filesystem
+and check it before you start, because a pipeline that fills the disk
+three hundred gigabytes in leaves you with a partial RocksDB and
+nothing to resume from.
 
 For the most reliable transfer (slower links, automatic retries,
 parallel reads), use the `gcloud` CLI directly against the underlying
@@ -116,14 +133,22 @@ then the snapshot is intact and you are at the snapshot's tip.
 
 ## How current is the snapshot?
 
-`latest.tar.gz` is refreshed daily from a healthy mainnet indexer
-pod. By the time you download it, the live chain has advanced 100–200
-blocks past the snapshot's tip; `rockshrew-mono` will catch up
-automatically in a few minutes once your bitcoind is reachable.
+Read `Last-Modified` on the object and assume nothing else. The
+snapshot is not on a guaranteed refresh schedule: when this page was
+last checked (2026-10-01) `latest.tar.gz` carried
+`Last-Modified: Tue, 02 Jun 2026 02:58:15 GMT`, four months behind the
+tip.
 
-If you need a snapshot pinned to a specific historical height (for
-incident replay or forensic analysis), contact support. We retain a
-small rolling set of dated snapshots in the same bucket.
+That is still a working bootstrap — `rockshrew-mono` resumes from
+`__INTERNAL/height` and indexes forward on its own — but the catch-up
+is proportional to the gap, so a four-month-old snapshot means roughly
+seventeen thousand blocks to index before you are at the tip, not the
+few minutes a same-day snapshot would cost. Size that before you
+commit to the approach, and compare it against indexing the tail
+yourself.
+
+If you need a snapshot pinned to a specific height, or a fresher one
+than the object currently carries, contact support.
 
 ## Kubernetes bootstrap pattern
 
@@ -189,8 +214,9 @@ If you have an indexer that ran an older wasm past a known
 hardfork height and is now divergent, the cheapest fix is **NOT** the
 snapshot. It is the [reorg endpoint](./reorg), which
 forces a targeted rollback to one block before the fork. The
-snapshot would re-download ~100 GB; the reorg endpoint costs a few
-hundred HTTP requests plus a re-index of the affected range.
+snapshot would re-download the whole 377 GB object; the reorg endpoint
+costs a few hundred HTTP requests plus a re-index of the affected
+range.
 
 Use the snapshot for: fresh installs, disaster recovery,
 horizontally scaling out a new replica.
@@ -204,10 +230,14 @@ new wasm.
 - **Snapshot version vs binary version must match.** Bootstrapping a
   v2.1 binary from a v2.2 snapshot will not work; the on-disk schema
   is a runtime contract of the indexer wasm.
-- **One-way transfer.** Plan for the full size: ~120 GB ingress to
-  your node, plus the same amount of free local disk during
-  extraction. Streamed extraction (the pipelines shown above) means
-  you don't need 2x the space.
+- **One-way transfer.** Plan for the full size, measured from your own
+  `HEAD` rather than from this page, plus free local disk for the
+  expanded database during extraction. Streamed extraction (the
+  pipelines shown above) means you don't need room for both the
+  tarball and the database.
+- **Check the vintage.** `Last-Modified` has been months behind the
+  tip. The bootstrap still works, but the catch-up index is
+  proportional to the gap.
 - **Public, unauthenticated.** Anyone can download. Don't put
   sensitive data in the same bucket.
 
