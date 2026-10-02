@@ -34,7 +34,7 @@ Alkanes 是 Bitcoin 上的智能合约系统。它没有属于自己的链：每
 |---|---|---|---|
 | **得到** | 完整的 Alkanes 状态：余额、存储、trace、所有 view 函数 | 每个区块的执行结果（trace），按你的方式索引 | 每笔交易请求了什么，而不是实际发生了什么 |
 | **Bitcoin 节点** | 你自己的 `bitcoind` | 不需要 | 任意原始交易来源 |
-| **另外需要** | Rust、`protoc`、支持 wasm32 的 `clang`、大容量磁盘 | 一个 SUBFROST API key，以及用来构建程序的 Rust | Node.js |
+| **另外需要** | Rust、`protoc`、支持 wasm32 的 `clang`、大容量磁盘 | 一个 SUBFROST API key、带 wasm32 目标的 Rust、支持 wasm32 的 `clang`、`rockshrew-mono` | Node.js |
 | **起点** | 区块 880,000，然后按顺序处理每个区块 | 任意高度 | 任意交易 |
 
 **路径 1，完整状态：**
@@ -44,9 +44,9 @@ Alkanes 是 Bitcoin 上的智能合约系统。它没有属于自己的链：每
 - **通过 rustup 安装的 Rust。** alkanes-rs 在其 `rust-toolchain.toml` 中固定了 Rust 1.86.0，rustup 会在第一次构建时自动安装该编译器以及 `wasm32-unknown-unknown` 目标。metashrew 使用 stable 版 Rust 构建。
 - `PATH` 中需要有 **`protoc`**（Protocol Buffers 编译器），以及一个**能以 wasm32 为目标的 `clang`**。在 macOS 上，Apple 的 clang 做不到：请安装 Homebrew 的 `llvm`，并把 `CC_wasm32_unknown_unknown` 和 `AR_wasm32_unknown_unknown` 分别指向它的 `clang` 和 `llvm-ar`。
 - **metashrew 的构建工具**，因为它要编译 RocksDB。在 macOS 上，Xcode 命令行工具就足够了。在 Debian 上，仓库自带的 `docker/Dockerfile.indexer` 会安装 `build-essential` 和 `libclang-dev`。
-- **磁盘与时间。** 索引会随链增长：SUBFROST 发布的主网索引快照在 2026 年 6 月 2 日压缩后为 377 GB，这还不包括 Bitcoin 链本身。从 880,000 开始同步需要数天量级的时间。
+- **磁盘与时间。** 索引会随链增长：SUBFROST 发布的主网索引快照最后更新于 2026 年 6 月 2 日，压缩后为 377 GB，这还不包括 Bitcoin 链本身。[用 metashrew 做索引](../build/indexing-with-metashrew)指出，从 880,000 开始同步需要数天量级的时间。
 
-**路径 2，`/traces` 数据源：** 不需要 Bitcoin 节点。你需要一个 SUBFROST API key（想先试试的话，`https://mainnet.subfrost.io/v4/jsonrpc/traces` 无需 key 也会应答），带 `wasm32-unknown-unknown` 目标的 Rust 以及与上面相同的 `protoc` 和 `clang` 来构建你的程序，还需要 `rockshrew-mono` 来运行它。只读取单个区块的话，只需要 Python 3 和 `protoc`。
+**路径 2，`/traces` 数据源：** 不需要 Bitcoin 节点。你需要一个 SUBFROST API key（想先试试的话，`https://mainnet.subfrost.io/v4/jsonrpc/traces` 无需 key 也会应答），带 `wasm32-unknown-unknown` 目标的 Rust 以及与上面相同的 `protoc` 和 `clang` 来构建你的程序，还需要 `rockshrew-mono` 来运行它（按[路径 1](#path-1-run-the-alkanes-indexer) 的方法构建）。只读取单个区块的话，只需要 Python 3、`protoc`，以及 alkanes-rs 检出中的 `alkanes.proto`（见路径 1 的第一个命令块）。
 
 **路径 3，只看消息：** Node.js，以及来自你的节点、mempool.space 或其他 Esplora API 的原始交易。
 
@@ -57,6 +57,7 @@ Alkanes 是 Bitcoin 上的智能合约系统。它没有属于自己的链：每
 构建索引器程序：
 
 ```bash
+cd ~
 git clone https://github.com/kungfuflex/alkanes-rs
 cd alkanes-rs
 git checkout v2.2.1-rc.4
@@ -68,6 +69,7 @@ cargo build --release --target wasm32-unknown-unknown --features mainnet -p alka
 构建 metashrew：
 
 ```bash
+cd ~
 git clone https://github.com/kungfuflex/metashrew
 cd metashrew
 git checkout v9.0.5-rc.14
@@ -93,11 +95,11 @@ rockshrew-mono 9.0.5-rc.14
 ```
 
 - **保留 `--start-block 880000`。** 没有它，索引会从区块 0 开始。
-- **停止后重启是安全的。** 重启后会从最后一个已提交的区块之后继续。
+- **停止与重启。** 按 Ctrl-C 停止时会输出一条 tokio panic 信息（`Cannot drop a runtime in a context where blocking is not allowed`），但已提交的区块会保留，重启后会从最后一个已提交的区块之后继续。
 - **只信任可靠的 RPC 来源。** 启动时它会提示 SPV 校验已关闭：它会把每个区块体与节点报告的哈希进行核对，但不验证工作量证明。请只把 `--daemon-rpc-url` 指向你信任的节点。
 - **view 的内存下限。** 当机器的可用内存低于 `--view-memory-floor-mb`（默认 8,192 MB）时，所有 view 都会返回 `View runtime unavailable: system memory pressure`，而索引照常进行。在内存较小的机器上，请调低这个下限（`--view-memory-floor-mb 0` 会关闭这项检查）。
 - **不用节点快速试一试。** SUBFROST 网关也应答这三种 RPC 调用：`--daemon-rpc-url https://mainnet.subfrost.io/v4/<your-api-key>`，不需要 `--auth`。它是有[速率限制](../api-reference/platform/rate-limits)的共享基础设施，所以完整同步应当在你自己的节点上进行。
-- **从快照开始。** 除了从 880,000 开始索引，你也可以从 SUBFROST 的数据库快照开始：参见[快照下载](../api-reference/platform/snapshots)，并核对它所对应的版本是否与你的一致。2026 年 9 月 30 日时，该文件为 377 GB，最后修改于 2026 年 6 月 2 日。
+- **从快照开始。** 除了从 880,000 开始索引，你也可以从 SUBFROST 的数据库快照开始：参见[快照下载](../api-reference/platform/snapshots)。该页面说明快照对应的是 metashrew `v9.0.5-rc.13` 与 alkanes-rs `v2.2.0-rc.5`，而不是上面的版本组合，并要求在使用其他版本引导之前先联系支持。2026 年 9 月 30 日时，该文件为 377 GB，最后修改于 2026 年 6 月 2 日。
 
 区块进入索引后，就可以查询节点了。`metashrew_height` 返回最后一个已索引的区块：
 
@@ -118,7 +120,7 @@ INPUT=0a20$(python3 -c "print(bytes.fromhex('$TXID')[::-1].hex())")1004
 curl -s -X POST http://127.0.0.1:8080 -H 'content-type: application/json' \
   -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"metashrew_view\",\"params\":[\"trace\",\"0x$INPUT\",\"latest\"]}" \
   | python3 -c "import json,sys; print(json.load(sys.stdin)['result'][2:])" | xxd -r -p > trace.bin
-protoc -I alkanes-rs/crates/alkanes-support/proto --decode=alkanes.AlkanesTrace alkanes.proto < trace.bin
+protoc -I ~/alkanes-rs/crates/alkanes-support/proto --decode=alkanes.AlkanesTrace alkanes.proto < trace.bin
 ```
 
 结果是一条 `AlkanesTrace` protobuf，定义在 [`alkanes.proto`](https://github.com/kungfuflex/alkanes-rs/blob/v2.2.1-rc.4/crates/alkanes-support/proto/alkanes.proto) 中。解码输出的末尾（调用的退出部分）如下：
@@ -151,7 +153,7 @@ protoc -I alkanes-rs/crates/alkanes-support/proto --decode=alkanes.AlkanesTrace 
 }
 ```
 
-在托管网关上发起同样的调用，返回的 trace 逐字节相同，只有 `fuel_used` 例外：从 `v2.2.1-rc.4` 起的索引器会记录它，而托管的 trace 中没有这个字段。[读懂一条 trace](#reading-a-trace) 解释了每一个字段。
+在托管网关上发起同样的调用，返回的 trace 相同，只有 `fuel_used` 例外：`v2.2.1-rc.4` 索引器会记录它，而托管的 trace 中没有这个字段。[读懂一条 trace](#reading-a-trace) 解释了每一个字段。
 
 ### 路径 2：从 `/traces` 数据源建立索引 {#path-2-index-from-the-traces-feed}
 
@@ -239,11 +241,11 @@ sys.stdout.buffer.write(payload)
 
 ```bash
 python3 traces_payload.py https://mainnet.subfrost.io/v4/<your-api-key>/traces 880004 > block.bin
-protoc -I alkanes-rs/crates/alkanes-support/proto \
+protoc -I ~/alkanes-rs/crates/alkanes-support/proto \
   --decode=alkanes.AlkanesBlockTraceEvent alkanes.proto < block.bin
 ```
 
-区块 880,004 中只有一个事件：即路径 1 中展示的那条 trace，后面跟着它发生的位置。
+区块 880,004 中只有一个事件：即路径 1 中展示的那条 trace（不含 `fuel_used`），后面跟着它发生的位置。
 
 ```text
   outpoint {
@@ -373,22 +375,24 @@ pub fn count() -> i32 {
 
 </details>
 
-构建它，并从任意高度开始针对数据源运行：
+把这两个文件保存为 `trace-count/Cargo.toml` 和 `trace-count/src/lib.rs`，然后构建程序，并从任意高度开始针对数据源运行。stable 版 Rust 需要先添加一次 wasm32 目标；在 macOS 上还需要设置与上面相同的 `CC_wasm32_unknown_unknown` 和 `AR_wasm32_unknown_unknown`。在笔记本电脑上，请加上 `--view-memory-floor-mb 0`（见路径 1 中关于内存的说明）：
 
 ```bash
+rustup target add wasm32-unknown-unknown
+cd trace-count
 cargo build --release --target wasm32-unknown-unknown
 ~/metashrew/target/release/rockshrew-mono \
   --daemon-rpc-url https://mainnet.subfrost.io/v4/<your-api-key>/traces \
   --indexer target/wasm32-unknown-unknown/release/trace_count.wasm \
   --db-path ./db \
   --start-block 969330 \
-  --port 8080
+  --port 8081
 ```
 
 然后查询区块 969,334。view 的输入是小端序 `u32` 形式的高度（`0x76ca0e00`）；运行时会在每个 view 输入前加上当前高度，所以 `count` 会先读掉一个 `u32`，再读取被查询的那个：
 
 ```bash
-curl -s -X POST http://127.0.0.1:8080 -H 'content-type: application/json' \
+curl -s -X POST http://127.0.0.1:8081 -H 'content-type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"metashrew_view","params":["count","0x76ca0e00","latest"]}'
 ```
 
@@ -504,10 +508,10 @@ curl -s -X POST https://mainnet.subfrost.io/v4/<your-api-key> -H 'content-type: 
 
 | 字段 | 本例 | 含义 |
 |---|---|---|
-| `invoke` | 第一个事件 | 一次调用开始。当一个合约调用另一个合约时，内部会出现嵌套的 `invoke` / `return` 对。 |
+| `invoke` | 第一个事件 | 一次调用开始。当一个合约调用另一个合约时，两者之间会出现嵌套的 `invoke` / `return` 对。 |
 | `type` | `call` | 调用方式：`call`、`delegatecall` 或 `staticcall`。 |
 | `myself` | `2:0` | 正在运行的合约：DIESEL。 |
-| `caller` | `0:0` | 调用者。`0:0` 表示交易本身，而不是另一个合约。 |
+| `caller` | `0:0` | 调用者。protostone 的顶层调用的调用者为 `0:0`；由另一个合约发起的调用会给出那个合约。 |
 | `inputs` | `77`，然后是若干 0 | opcode 及其参数。77 是 DIESEL 的铸造；cellpack 没有参数（解码器显示 `inputs []`）。 |
 | `incomingAlkanes` | 无 | 转入这次调用的 alkanes。 |
 | `vout` | `4` | 该 protostone 的虚拟 vout。 |

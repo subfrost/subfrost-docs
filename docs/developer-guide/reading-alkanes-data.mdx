@@ -34,7 +34,7 @@ There are three ways in. They differ in what you get back and in what you have t
 |---|---|---|---|
 | **You get** | The full Alkanes state: balances, storage, traces, every view function | Execution results (traces) for every block, indexed your way | What each transaction asked for, not what happened |
 | **Bitcoin node** | Your own `bitcoind` | Not needed | Any source of raw transactions |
-| **Also needed** | Rust, `protoc`, a wasm32 `clang`, a large disk | A SUBFROST API key, Rust for your program | Node.js |
+| **Also needed** | Rust, `protoc`, a wasm32 `clang`, a large disk | A SUBFROST API key, Rust with the wasm32 target, a wasm32 `clang`, `rockshrew-mono` | Node.js |
 | **Starts at** | Block 880,000, then every block in order | Any height | Any transaction |
 
 **Path 1, the full state:**
@@ -44,9 +44,9 @@ There are three ways in. They differ in what you get back and in what you have t
 - **Rust through rustup.** alkanes-rs pins Rust 1.86.0 in its `rust-toolchain.toml`, and rustup installs that compiler and the `wasm32-unknown-unknown` target on the first build. metashrew builds with stable Rust.
 - **`protoc`** (the Protocol Buffers compiler) on the `PATH`, and a **`clang` that can target wasm32**. On macOS, Apple's clang cannot: install Homebrew `llvm` and point `CC_wasm32_unknown_unknown` and `AR_wasm32_unknown_unknown` at its `clang` and `llvm-ar`.
 - **Build tools for metashrew**, which compiles RocksDB. On macOS the Xcode command line tools are enough. On Debian, the repository's own `docker/Dockerfile.indexer` installs `build-essential` and `libclang-dev`.
-- **Disk and time.** The index grows with the chain: SUBFROST's published mainnet snapshot of it was 377 GB compressed on 2 June 2026, on top of the Bitcoin chain itself. A sync from 880,000 takes on the order of days.
+- **Disk and time.** The index grows with the chain: SUBFROST's published mainnet snapshot of it, last updated on 2 June 2026, is 377 GB compressed, on top of the Bitcoin chain itself. [Indexing with metashrew](../build/indexing-with-metashrew) puts a sync from 880,000 on the order of days.
 
-**Path 2, the `/traces` feed:** no Bitcoin node. You need a SUBFROST API key (to try it, `https://mainnet.subfrost.io/v4/jsonrpc/traces` answers without one), Rust with the `wasm32-unknown-unknown` target plus the same `protoc` and `clang` as above to build your program, and `rockshrew-mono` to run it. Reading a single block needs only Python 3 and `protoc`.
+**Path 2, the `/traces` feed:** no Bitcoin node. You need a SUBFROST API key (to try it, `https://mainnet.subfrost.io/v4/jsonrpc/traces` answers without one), Rust with the `wasm32-unknown-unknown` target plus the same `protoc` and `clang` as above to build your program, and `rockshrew-mono` to run it (build it as in [Path 1](#path-1-run-the-alkanes-indexer)). Reading a single block needs only Python 3, `protoc`, and `alkanes.proto` from an alkanes-rs checkout (the first command block of Path 1).
 
 **Path 3, the message only:** Node.js, and raw transactions from your node, mempool.space or another Esplora API.
 
@@ -57,6 +57,7 @@ There are three ways in. They differ in what you get back and in what you have t
 Build the indexer program:
 
 ```bash
+cd ~
 git clone https://github.com/kungfuflex/alkanes-rs
 cd alkanes-rs
 git checkout v2.2.1-rc.4
@@ -68,6 +69,7 @@ This writes `target/wasm32-unknown-unknown/release/alkanes.wasm` (about 7.8 MB).
 Build metashrew:
 
 ```bash
+cd ~
 git clone https://github.com/kungfuflex/metashrew
 cd metashrew
 git checkout v9.0.5-rc.14
@@ -93,11 +95,11 @@ Run it against your node, from Alkanes activation:
 ```
 
 - **Keep `--start-block 880000`.** Without it, indexing starts at block 0.
-- **Stopping and restarting is safe.** A restart resumes after the last committed block.
+- **Stopping and restarting.** Ctrl-C ends with a tokio panic message (`Cannot drop a runtime in a context where blocking is not allowed`), but committed blocks are kept and a restart resumes after the last one.
 - **Trust your RPC source.** At startup it warns that SPV validation is off: it checks each block body against the hash the node reports, but it does not verify proof of work. Point `--daemon-rpc-url` only at a node you trust.
 - **Memory floor for views.** While the machine has less available memory than `--view-memory-floor-mb` (8,192 MB by default), every view answers `View runtime unavailable: system memory pressure`. Indexing continues. On a smaller machine, lower the floor (`--view-memory-floor-mb 0` turns the check off).
 - **A quick test without a node.** The SUBFROST gateway answers the same three RPC calls: `--daemon-rpc-url https://mainnet.subfrost.io/v4/<your-api-key>`, with no `--auth`. It is shared infrastructure with [rate limits](../api-reference/platform/rate-limits), so a full sync belongs on your own node.
-- **Starting from a snapshot.** Instead of indexing from 880,000, you can start from SUBFROST's snapshot of the database: see [Snapshot download](../api-reference/platform/snapshots), and check the versions it targets against yours. On 30 September 2026 the file was 377 GB, last modified on 2 June 2026.
+- **Starting from a snapshot.** Instead of indexing from 880,000, you can start from SUBFROST's snapshot of the database: see [Snapshot download](../api-reference/platform/snapshots). That page says the snapshot targets metashrew `v9.0.5-rc.13` with alkanes-rs `v2.2.0-rc.5`, not the pair above, and asks you to contact support before bootstrapping other versions. On 30 September 2026 the file was 377 GB, last modified on 2 June 2026.
 
 Once blocks are in, query the node. `metashrew_height` returns the last indexed block:
 
@@ -118,7 +120,7 @@ INPUT=0a20$(python3 -c "print(bytes.fromhex('$TXID')[::-1].hex())")1004
 curl -s -X POST http://127.0.0.1:8080 -H 'content-type: application/json' \
   -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"metashrew_view\",\"params\":[\"trace\",\"0x$INPUT\",\"latest\"]}" \
   | python3 -c "import json,sys; print(json.load(sys.stdin)['result'][2:])" | xxd -r -p > trace.bin
-protoc -I alkanes-rs/crates/alkanes-support/proto --decode=alkanes.AlkanesTrace alkanes.proto < trace.bin
+protoc -I ~/alkanes-rs/crates/alkanes-support/proto --decode=alkanes.AlkanesTrace alkanes.proto < trace.bin
 ```
 
 The result is an `AlkanesTrace` protobuf, defined in [`alkanes.proto`](https://github.com/kungfuflex/alkanes-rs/blob/v2.2.1-rc.4/crates/alkanes-support/proto/alkanes.proto). The end of the decoded output (the call's exit) reads:
@@ -151,7 +153,7 @@ The result is an `AlkanesTrace` protobuf, defined in [`alkanes.proto`](https://g
 }
 ```
 
-The same call on the hosted gateway returns the same trace, byte for byte, except `fuel_used`: indexers from `v2.2.1-rc.4` on record it, and the hosted trace does not carry it. [Reading a trace](#reading-a-trace) explains every field.
+The same call on the hosted gateway returns the same trace except `fuel_used`: the `v2.2.1-rc.4` indexer records it, and the hosted trace does not carry it. [Reading a trace](#reading-a-trace) explains every field.
 
 ### Path 2: index from the `/traces` feed
 
@@ -239,11 +241,11 @@ sys.stdout.buffer.write(payload)
 
 ```bash
 python3 traces_payload.py https://mainnet.subfrost.io/v4/<your-api-key>/traces 880004 > block.bin
-protoc -I alkanes-rs/crates/alkanes-support/proto \
+protoc -I ~/alkanes-rs/crates/alkanes-support/proto \
   --decode=alkanes.AlkanesBlockTraceEvent alkanes.proto < block.bin
 ```
 
-Block 880,004 holds a single event: the trace shown in Path 1, followed by where it happened.
+Block 880,004 holds a single event: the trace shown in Path 1 (without `fuel_used`), followed by where it happened.
 
 ```text
   outpoint {
@@ -373,22 +375,24 @@ pub fn count() -> i32 {
 
 </details>
 
-Build it and run it against the feed, from any height:
+Save the two files as `trace-count/Cargo.toml` and `trace-count/src/lib.rs`, then build the program and run it against the feed, from any height. Stable Rust needs the wasm32 target added once, and on macOS the same `CC_wasm32_unknown_unknown` and `AR_wasm32_unknown_unknown` as above. On a laptop, add `--view-memory-floor-mb 0` (see the memory note in Path 1):
 
 ```bash
+rustup target add wasm32-unknown-unknown
+cd trace-count
 cargo build --release --target wasm32-unknown-unknown
 ~/metashrew/target/release/rockshrew-mono \
   --daemon-rpc-url https://mainnet.subfrost.io/v4/<your-api-key>/traces \
   --indexer target/wasm32-unknown-unknown/release/trace_count.wasm \
   --db-path ./db \
   --start-block 969330 \
-  --port 8080
+  --port 8081
 ```
 
 Then ask for block 969,334. The view input is the height as a little-endian `u32` (`0x76ca0e00`), and the runtime prepends the current height to every view input, which is why `count` reads one `u32` before the one it was asked for:
 
 ```bash
-curl -s -X POST http://127.0.0.1:8080 -H 'content-type: application/json' \
+curl -s -X POST http://127.0.0.1:8081 -H 'content-type: application/json' \
   -d '{"jsonrpc":"2.0","id":1,"method":"metashrew_view","params":["count","0x76ca0e00","latest"]}'
 ```
 
@@ -504,10 +508,10 @@ The result for the first DIESEL mint, reformatted:
 
 | Field | Here | Meaning |
 |---|---|---|
-| `invoke` | first event | A call starts. When a contract calls another, a nested `invoke` / `return` pair appears inside. |
+| `invoke` | first event | A call starts. When a contract calls another, a nested `invoke` / `return` pair appears between them. |
 | `type` | `call` | How it was called: `call`, `delegatecall` or `staticcall`. |
 | `myself` | `2:0` | The contract that runs: DIESEL. |
-| `caller` | `0:0` | Who called it. `0:0` is the transaction itself, not another contract. |
+| `caller` | `0:0` | Who called it. The top-level call of a protostone has caller `0:0`; a call made by another contract names that contract. |
 | `inputs` | `77`, then zeros | The opcode and its arguments. 77 is DIESEL's mint; the cellpack has no arguments (the decoder shows `inputs []`). |
 | `incomingAlkanes` | none | Alkanes sent into the call. |
 | `vout` | `4` | The protostone's virtual vout. |
