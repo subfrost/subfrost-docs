@@ -1,0 +1,240 @@
+---
+title: SUBMINER-GATE and the DIESEL mint gate
+sidebar_label: SUBMINER-GATE
+description: A proposed DIESEL mint gate that routes a share of every mint into the SUBMINER treasury as TUNDRA collateral — non-upgradeable, timelocked, with a dead-man's switch. Heading for a vote on sigil.vote.
+keywords: [SUBMINER-GATE, DIESEL, mint gate, sigil.vote, governance, alkanes, BTCfi, SUBFROST]
+---
+
+# SUBMINER-GATE
+
+A proposed second source of treasury collateral: a **mint gate** that splits
+each DIESEL mint between the minter and the SUBMINER treasury, where the
+treasury's share becomes collateral it can post to
+[TUNDRA](./tundra).
+
+For DIESEL itself - what it is and how it is emitted - see
+[DIESEL](../tokens-economics/diesel).
+
+:::warning[Nothing on this page is deployed. Written 2026-10-04.]
+Both halves of this mechanism exist as code and neither is live:
+
+| Piece | Where | State |
+|---|---|---|
+| DIESEL mint-gate upgrade | `alkanes-rs`, branch `misha/diesel-gate` on the `Misha-btc` fork | **not merged** into mainline `origin/main` |
+| `subminer-gate` contract | `subminer/alkanes/subminer-gate` | **written, not deployed** — no alkane id |
+| Governance proposal | sigil.vote | **not yet submitted** |
+
+So nothing about DIESEL minting has changed, and nothing on this page affects
+anyone today. If you are reading this long after the date above, check whether
+the ids below have been filled in before assuming any of it happened.
+:::
+
+---
+
+## It is a pure add-on
+
+This is the property that makes the proposal a small one. **Nothing in the
+treasury, the relayer fleet, the keeper or the TUNDRA borrow path knows this
+contract exists**, and all of them keep working unchanged if it is never
+deployed or if its gate is later turned off.
+
+What it adds is a second, *passive* source of treasury DIESEL: the emissions of
+anyone who chooses to mint through it. It is not a tax and it is not a protocol
+change to DIESEL's economics — the minter opts in by naming the gate in their
+own mint call.
+
+---
+
+## How the mechanism works
+
+### The upgrade to DIESEL
+
+On the `misha/diesel-gate` branch, the alkanes genesis alkane — DIESEL,
+[`2:0`](https://explorer.subfrost.io/alkane/2:0) — grows a governance-set "mint
+gate". Its dispatch gains:
+
+| Opcode | Name | Notes |
+|---|---|---|
+| 77 | `Mint` | existing |
+| 78 | `CollectFees` | existing |
+| 79 | `Burn` | existing |
+| **80** | **`SetMintGate`** | names the gate contract, timelocked |
+| **102** | **`GetMintGate`** | audit view — read the live gate |
+
+When a gate is live, freshly minted DIESEL is **forwarded to it** as the
+incoming parcel, and the calldata *following* mint opcode 77 is passed through
+as the gate's cellpack inputs. A user's mint cellpack becomes:
+
+```text
+[2, 0, 77, 1]
+ |  |  |   +-- the gate's opcode (mint-split)
+ |  |  +------ DIESEL's mint opcode
+ +--+--------- DIESEL, 2:0
+```
+
+The user still calls the real DIESEL contract. The gate receives the mint
+without ever subcalling DIESEL back — it holds no standing with DIESEL and never
+calls it. That is the whole integration surface.
+
+### Four safety rails, in DIESEL rather than in the gate
+
+These belong to the genesis alkane, and a reader should not mistake them for the
+gate contract's responsibilities:
+
+1. **The gate opcode must be non-zero.** Calldata is zero-padded on the wire, so
+   a bare mint `[77]` arrives as `[77, 0, 0, …]`. A gate opcode of `0` would be
+   indistinguishable from that padding, so DIESEL forwards **only** when the
+   first forwarded word is non-zero — rather than freezing ordinary minting the
+   moment a gate is set. This is why `mint-split` is opcode **1**.
+2. **Only the minted transfer is forwarded.** Stray tokens a user attaches to
+   their mint are added to the response afterwards and are never handed to the
+   gate.
+3. **A one-week timelock on changes.** `GATE_DELAY = 1008` blocks. A newly set
+   gate does not govern until the delay elapses. Turning the gate *off* — back to
+   `0:0` — is immediate, so the escape hatch is never timelocked.
+4. **A dead-man's switch.** `GATE_TTL = 52560` blocks, about a year. A gate
+   expires back to the default unless governance re-affirms it. **A gate cannot
+   silently outlive governance's attention.**
+
+---
+
+## What `subminer-gate` does
+
+Splits each arriving mint in two: `caller_bp` basis points back to the minter,
+the remainder into the SUBMINER treasury at
+[`2:96782`](https://explorer.subfrost.io/alkane/2:96782).
+
+### Opcodes
+
+| Opcode | Name |
+|---|---|
+| 0 | `initialize` — once only |
+| **1** | **`mint-split`** — the gate entry point |
+| 2 | `set-split` — cFIRE-SIGIL gated |
+| 99 / 100 / 101 | `get-name` / `get-symbol` / `get-total-supply` |
+| 102 | `get-split` |
+| 103 | `get-treasury` |
+| 104 | `get-routed` |
+| 1000 | `get-data` |
+
+99–101 are occupied for compatibility with the ecosystem token ABI that wallets
+and indexers hardcode for any alkane, even though this gate mints no units of
+its own — which is why `get-split` and `get-treasury` begin at 102 rather than
+at the 100 a fresh numbering would have chosen.
+
+### The treasury's share goes through `deposit()`, not an edict
+
+This matters and is not stylistic. The treasury settles `collect()` against its
+**real balance**, while `/deposited` is a lifetime counter that only `deposit()`
+advances. An edict would raise the balance and leave the counter flat — which is
+precisely the stranded-edict signature that comparing `get_held` against
+`get_deposited` exists to detect. Routing through `deposit()` keeps the two in
+lockstep, so that divergence keeps meaning what it is supposed to mean.
+
+### Non-upgradeable by construction
+
+No upgrade opcode. No owner slot. No admin. `initialize` is once-only and fixes
+the DIESEL id, the treasury and the sigil permanently. The only moving part is
+the split, and the only thing that can move it is **possession of the
+cFIRE-SIGIL** at [`4:866`](https://explorer.subfrost.io/alkane/4:866), which
+rides into `set-split` and rides straight back out.
+
+This is deliberate. Whoever could swap this contract's code could redirect every
+future mint that names it, so the ability simply does not exist. Adding an
+upgrade path later would not be a refactor.
+
+---
+
+## The split, and why it cannot be a constant
+
+The proposed opening split is **192 basis points (1.92%) to the minter, 98.08%
+retained as treasury collateral.**
+
+That number is derived rather than chosen. It sets the minter's share so that
+their share, valued at a target DIESEL price, exactly covers the Bitcoin fee
+they paid to mint:
+
+```text
+caller_bp = 10_000 * fee_usd / (price_target * diesel_per_mint)
+```
+
+With the inputs at the time of writing:
+
+| Input | Value | Source |
+|---|---|---|
+| `block_reward` | `5e9 >> (969900 / 210000)` = `5e9 >> 4` = 312,500,000 base units = 3.125 DIESEL | mainnet `ChainConfiguration`; `current_block_reward()` uses the **absolute** Bitcoin height, so DIESEL tracks Bitcoin's subsidy curve |
+| `total_mints` | 100 | taken as "normal circumstances" |
+| `diesel_per_mint` | `(block_reward − diesel_fee) / total_mints` | `diesel_fee` is zero unless total miner fees exceed the block reward, and is capped at half of it — so zero in the ordinary case |
+| `fee_usd` | $0.60 | a ~200 vB all-taproot mint at 3 sat/vB = 600 sats, at BTC $100,000 |
+| `price_target` | $1,000 per DIESEL | target |
+
+```text
+10_000 * 0.60 / (1000 * 3.125/100) = 6_000 / 31.25 = 192
+```
+
+:::danger[A fixed basis point cannot hold the effective price, and this is structural]
+`diesel_per_mint` divides by `total_mints`, so a minter's DIESEL falls as `1/N`
+while the fee they pay stays flat. **The effective price a minter pays therefore
+scales linearly with N.** At this same 192 bp it is roughly $100/DIESEL when 10
+others mint and roughly $2,000 when 200 do.
+
+192 is correct for N=100 and wrong everywhere else. That is the entire reason
+`set-split` exists and is sigil-held rather than frozen at deploy. It must be
+retuned; it should not be trusted to hold on its own.
+:::
+
+---
+
+## Deployment, if the proposal passes
+
+The contract targets reserved slot **1001**, which lands it at `4:1001`.
+Deploying to `[3, n]` places a contract at `4:n`.
+
+```text
+[3, 1001, 0,  2, 0,  2, 96782,  4, 866,  192]
+ |  |     |   |      |          |        |
+ |  |     |   DIESEL treasury   sigil    caller_bp
+ |  |     +-- initialize
+ |  +-------- reserved slot 1001
+ +----------- deploy to a reserved slot
+```
+
+:::note[Each alkane id is two u128 words, not four u64s]
+`initialize` takes each id as **two** `u128` words. The WIT record shows four
+`u64`s, which is not the calling convention — encoding it that way produces a
+cellpack that is wrong in a way the contract cannot report usefully.
+:::
+
+Once deployed, DIESEL governance would call `SetMintGate` (opcode 80) naming
+`4:1001`, and the gate would begin governing 1,008 blocks later.
+
+---
+
+## The governance decision
+
+Setting a mint gate on DIESEL is a change to how the ecosystem's genesis token
+behaves for everyone who opts into it, so it is a governance decision rather than
+an operational one. It is heading for a vote at **[sigil.vote](https://sigil.vote)**,
+the SIGIL DAO front end.
+
+**As of 2026-10-04 no proposal has been submitted**, and no proposal text exists
+in any repository. What a vote would have to decide:
+
+- whether DIESEL should support a mint gate at all — i.e. whether to merge
+  `misha/diesel-gate` into mainline `alkanes-rs`;
+- whether `subminer-gate` specifically should be the gate DIESEL names;
+- the opening `caller_bp`, and who holds the cFIRE-SIGIL that can retune it;
+- how the dead-man's switch gets re-affirmed, and by whom.
+
+The honest framing for a voter: the mechanism is conservatively built — opt-in,
+non-upgradeable, timelocked, with an immediate off switch and an automatic
+expiry — and the split parameter is **known** to be correct only at one
+competition level. A vote for this is a vote to maintain a parameter, not to set
+one and walk away.
+
+---
+
+## Next
+
+- **[SUBMINER overview](./overview)** — the fee market this would fund
+- **[TUNDRA](./tundra)** — what the collateral is for

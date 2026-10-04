@@ -7,6 +7,17 @@ description: How a peer-to-peer loan settles in one Bitcoin transaction, using a
 
 # Lending Protocol
 
+:::danger[This page describes the retired peer-to-peer loan market. Flagged 2026-10-04.]
+The SUBFROST app no longer offers the maker/taker loan market described below.
+Lending and borrowing now settle through **TUNDRA**, a pool-based market: rates
+float with utilisation, interest accrues continuously, and a position can be
+liquidated. None of those three things is true of the mechanism on this page, so
+do not use this page to reason about a loan you hold today.
+
+See [TUNDRA and the recoup loop](../subminer/tundra) for how lending works now. This page is
+kept for the historical design; it has not yet been rewritten.
+:::
+
 If you just want to lend or borrow in the app, read [Lending](../using-subfrost/lending) instead. This page is the mechanism underneath it.
 
 SUBFROST lending is a **peer-to-peer, fixed-term, over-collateralized loan market** for Alkanes tokens, settled in a **single Bitcoin transaction** through a pre-signed PSBT escrow. There is no pooled liquidity and no custodian. A lender and a borrower agree on terms off chain, and one transaction atomically creates the loan, delivers the borrowed tokens, and locks the collateral in a freshly cloned loan contract.

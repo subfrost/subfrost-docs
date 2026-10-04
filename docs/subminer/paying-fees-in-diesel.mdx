@@ -1,0 +1,403 @@
+---
+title: Paying fees in DIESEL - integration guide
+sidebar_label: Fee Integration Guide
+description: The client implementer's guide to SUBMINER — reach the broker, verify a relayer-signed ticket, build the fee protostone, and get a Bitcoin transaction mined without holding BTC.
+keywords: [SUBMINER, DIESEL, Bitcoin, alkanes, protostone, integration, broker, relayer, BTCfi]
+---
+
+# Paying fees in DIESEL
+
+For app authors. This is the client side of SUBMINER: what your wallet, browser
+extension or mobile app has to send, check and refuse so that a user who holds
+DIESEL but no BTC can still get a transaction mined.
+
+For the end-user walkthrough in the extension and Android app see
+[Pay Fees in DIESEL](../using-subfrost/pay-fees-in-diesel), and for the
+mechanism in prose [How DIESEL Fees Work](../protocol/diesel-fees). This
+page is the wire level beneath both.
+
+:::info[Verified against the running fleet on 2026-10-04, Bitcoin block 969,891]
+The routes and payloads below are const tables in the shipped crates and they
+match the deployed service, so code written against them should not need
+reshaping. Confirm the fleet is live before you debug anything else — see
+[§ Step 1](#step-1--ask-what-is-accepted).
+:::
+
+:::warning[`POST /v1/fund` has been exercised once]
+By this repository's own harness, in txid
+`01dc48a1f68faacd1dab9146a240026b7c3ba1a2a96918586ab94aeec2441118`, block
+968,177. **No client outside that repository has ever called it.** Everything
+here is real and deployed, but you would be the second integration ever, and you
+should expect to find things this page does not mention.
+:::
+
+---
+
+## The one-paragraph version
+
+Your app asks a broker for a quote. The broker picks a relayer and returns a
+**ticket signed by that relayer**, naming one specific BTC utxo the relayer will
+contribute as an input, the price DIESEL was struck at, and what the relayer
+must be repaid. Your app builds its own transaction, adds that utxo as an input,
+adds the relayer's change output, and adds a protostone that deposits the user's
+DIESEL into the SUBMINER treasury. It sends the transaction back; the relayer
+simulates it, checks it is repaid, signs **only its own input**, and returns the
+witness. Your app checks the returned transaction is byte-for-byte its own, and
+broadcasts it. The relayer never broadcasts.
+
+The user spends DIESEL. The miner is paid in BTC. Nothing is custodial, and
+nothing is atomic across two transactions, because there is only one.
+
+---
+
+## Reaching the broker
+
+Two routes. The choice between them is a **privacy decision, not a technical
+one**.
+
+### The ordinary way — the public gateway
+
+```sh
+curl https://fr12quta238kx3l4mfd2jnqv6sgsfa87gskm7avzegg66kdcwjqsh5scqqm58.fr.style/v1/tokens
+```
+
+No overlay client, no `.peer` resolution, nothing to install. This is what a
+browser extension or mobile app should do by default.
+
+:::tip[Dial the name with no port]
+The gateway delivers to the peer on **port 80** and ignores any other port
+mapping. The broker's pod forwards `:80` to its internal `:8080` — so `:8080` is
+not a thing you dial from outside, and a request there is refused.
+:::
+
+### The private way — dial a relayer directly
+
+The broker sees every quote request, so it learns which of your users pay fees
+in DIESEL. That is a real privacy cost, and the protocol does not mitigate it.
+What it does instead is make the broker **skippable**: the ticket is signed by
+the relayer, so a client that knows a relayer's `.peer` name gets the same
+ticket with nobody in the middle.
+
+| Service | `.peer` address |
+|---|---|
+| broker | `fr12quta238kx3l4mfd2jnqv6sgsfa87gskm7avzegg66kdcwjqsh5scqqm58.peer` |
+| relayer-0 | `fr1mrpfpxa9wrthxmlqk54dzg7mehkx03dmrt4h3nscms7jhwndhx6sm4zna9.peer` |
+| relayer-1 | `fr1uxk9um7tr0kmwzj727rvrj6halqdqkna8znasn0q8xn3tpwtz4hshnn9rl.peer` |
+| relayer-2 | `fr1xwcn4dm3v22x54vu97jpwfpy7zuzqntg8c8jmdrswt9vguuy4kfqh9d6uw.peer` |
+
+Relayers share a network namespace with their site peer and answer on **both**
+`:80` and `:8080`:
+
+```text
+http://<relayer>.peer:8080/quote      # instead of POST /v1/quote
+http://<relayer>.peer:8080/fund       # instead of POST /v1/fund
+http://<relayer>.peer:8080/status     # capacity, if you are choosing yourself
+```
+
+Do not generalise the port rule in either direction. What a peer exposes is
+whatever listens in its network namespace plus what its rendezvous config maps —
+one port for the broker, two for a relayer. Check the manifest rather than
+assuming.
+
+Going direct means doing the relayer selection the broker would have done:
+healthy, `available_sats >= outlay`, `max_outlay_sats >= outlay`, and not more
+than `max_lag_blocks` behind your view of the tip. **Skipping the lag check is
+how you get a relayer that refuses a transaction it should have accepted.**
+
+### Joining the overlay
+
+Your client needs a subtun0 identity and an entry relay. The fleet's own site
+peer is configured as below, and a client should match it:
+
+```toml
+[transport]
+method = "wss"
+server = "wss-2.asilos.ltd"
+port   = 443
+
+[dht]
+enable    = true
+bootstrap = true
+hops      = ["fr1yg76pekuymzznc8fg2rtnz3sqv36vu9q4vhf6mj6czg9mugsudzqkqsyt3.peer"]
+
+[rendezvous]
+enable           = true
+num_relays       = 1
+circuit_rotation = 3600
+
+[dns]
+listen         = "127.0.0.1:15354"
+bogon_range    = "100.64.0.0/10"
+intercept_tlds = [".peer"]
+```
+
+The DNS interceptor is what makes a `.peer` name resolve at all — it hands out an
+address from the bogon range and routes it over the circuit. Without it you get
+NXDOMAIN and a confusing afternoon.
+
+**Ask for your own identity rather than copying the fleet's.** Two peers
+presenting the same identity is not a thing that degrades gracefully.
+
+:::danger[Three overlay traps, in the order you will hit them]
+**1. "registered with relay" does not mean reachable.** It means the transport
+came up. The line that means traffic can move is the next one:
+
+```text
+INFO subtun0_client: registered with relay              peer_name=fr1mquld…
+INFO subtun0_client::circuit_client: single-hop circuit ready  circuit_id=…
+```
+
+Both must appear. A client that logs the first and not the second is not
+connected, and every request it makes will time out with nothing that looks like
+an error.
+
+**2. Send `Host: <service>`, never the `.peer` name.** The route on the far side
+is host-scoped.
+
+**3. One gateway per peer.** A peer's bogon is bound to a *single* gateway.
+Pointing a second gateway at a peer some other gateway already serves does not
+error — the flow opens, it is logged, and nothing ever comes back. If direct
+dialling hangs with no error on either side, this is why.
+:::
+
+---
+
+## The API
+
+```text
+GET  /v1/tokens     what the fleet accepts, derived from the live directory
+POST /v1/quote      {"fee_target_sats": N}
+POST /v1/fund       the built transaction, for the relayer's witness
+POST /v1/abandon    release a quote you will not use
+GET  /healthz
+```
+
+:::note[`/healthz` proves you reached the broker, not that it can serve you]
+It returns `ok: true` even when no relayer is healthy — deliberately, so an
+ingress does not pull the one service able to explain why the fleet is empty.
+For readiness, read `relayers_healthy`, or call `/v1/tokens`, which advertises
+nothing at all rather than advertising DIESEL and then refusing every request.
+:::
+
+---
+
+## The workflow
+
+### Step 1 — ask what is accepted
+
+```http
+GET /v1/tokens
+```
+
+Cacheable. **Do not hardcode DIESEL's id from this page into a release; read
+it.**
+
+```json
+{
+  "tokens": [{
+    "id":       { "block": "2", "tx": "0" },
+    "symbol":   "DIESEL",
+    "decimals": 8,
+    "treasury": { "block": "2", "tx": "96782" },
+    "margin_bps":         200,
+    "max_fee_sats":       20000,
+    "min_fee_rate_sat_vb": 1,
+    "indicative_price": {
+      "sats_num":         "45045",
+      "sats_den":         "100000000",
+      "struck_at_height": 969888,
+      "source":           "pool:2:77087:med12g12@969888"
+    }
+  }],
+  "fleet": {
+    "relayers_healthy": 3,
+    "capacity_sats":    600000,
+    "relayers": [{
+      "peer_name":       "subminer-relayer-0",
+      "available_sats":  200000,
+      "max_outlay_sats": 20000,
+      "margin_bps":      200,
+      "tip_height":      969891,
+      "healthy":         true,
+      "ticket_pubkey":   "69af690dfa20c90cd79f2758b80f5ba645970c5f189b100915dc00e969168498",
+      "treasury":        { "block": "2", "tx": "96782" }
+    }]
+  },
+  "tip_height": 969891
+}
+```
+
+Three fields repay attention:
+
+- **`treasury`** is the treasury instance your deposit must land in. The broker
+  advertises it only when *every* healthy relayer reports the same one, and omits
+  it when they disagree — a fleet that cannot agree which treasury it enforces
+  must not have one guessed on its behalf.
+- **`fleet.relayers[].ticket_pubkey`** is where step 3 gets its verification key.
+  Read it from here; do not pin it.
+- **`indicative_price`** is the basis a relayer you could be routed to would sign
+  right now. `sats_num / sats_den` is **sats per base unit**, so the value of
+  `1e8` base units is sats per whole DIESEL. The broker reads no price of its
+  own: each relayer publishes the basis its own quote path would strike, and the
+  broker serves the lowest across healthy, current relayers, verbatim. A preview
+  built on it is an **upper bound** — it may overstate the cost, never
+  understate it.
+
+:::danger[`indicative_price: null` is not zero]
+It means no relayer would sign a price now — none healthy and current, every one
+refusing, or a denominator disagreement. Keep handling `null`, and never
+substitute a price you read somewhere else as though the fleet had said it.
+:::
+
+### Step 2 — ask for a quote
+
+```http
+POST /v1/quote
+Content-Type: application/json
+
+{
+  "fee_target_sats": 4200,
+  "token":      { "block": "2", "tx": "0" },
+  "tip_height": 969891
+}
+```
+
+`fee_target_sats` is how much miner fee you need covered. `tip_height` is *your*
+view of the tip, sent so an expiry can be agreed even when the two sides differ
+by a block.
+
+:::danger[Every `u128` on this wire is a decimal string, never a JSON number]
+`AlkaneId.block`, `AlkaneId.tx`, `deposit_opcode`, `min_repay_sats`, and the
+price fields. `serde_json` accepts a number for small values and refuses it for
+large ones, which is the worst possible failure mode: your integration passes
+against a test fixture and fails against a real pool id. One representation,
+always.
+
+**This rule is about the wire and only the wire.** A relayer's own config file
+does not follow it and is not going to — there, `treasury` is an id of strings
+while `min_repay_sats`, `deposit_opcode` and `market` are plain JSON numbers.
+Applying the wire rule to the config file produces a daemon that will not start.
+:::
+
+The response is a `SignedTicket`:
+
+```json
+{
+  "ticket": {
+    "quote_id":         "…",
+    "relayer_peer":     "fr1e….peer",
+    "funding_outpoint": { "txid": "…", "vout": 1 },
+    "funding_sats":     20000,
+    "treasury":         { "block": "2", "tx": "96782" },
+    "deposit_opcode":   "1",
+    "price":            { "sats_num": "…", "sats_den": "…",
+                          "struck_at_height": 969888, "source": "…" },
+    "change_script":    "5120…",
+    "min_change_sats":  15000,
+    "max_outlay_sats":  20000,
+    "margin_bps":       200,
+    "min_repay_sats":   "546",
+    "expiry_height":    969899,
+    "token":            { "id": {"block":"2","tx":"0"}, "route": {} }
+  },
+  "signature": "…"
+}
+```
+
+### Step 3 — verify the ticket before building anything
+
+**BIP-340 Schnorr, by the relayer's `.peer` identity key, over
+`Ticket::signing_bytes()`.**
+
+Those bytes are length-prefixed with a fixed field order and a
+`subminer/ticket/v1` domain tag. They are deliberately **not JSON**, because two
+serde renderings of the same value can differ in key order and whitespace, and a
+signature over a rendering fails in a way that looks exactly like tampering.
+
+If you implement in Rust, call `signing_bytes()` and do not reimplement it. If
+you implement in TypeScript or Swift, port it field for field from
+`subminer-types` and test against fixtures generated by the Rust side. **The
+field order in that function is the specification.**
+
+Checks that are yours alone to make:
+
+- the signature verifies against the key for `ticket.relayer_peer`;
+- `expiry_height` leaves enough blocks to build, send and get a witness back;
+- `price` is not absurd, against whatever independent view you have;
+- `max_outlay_sats` actually covers `fee_target_sats`.
+
+### Step 4 — build the transaction
+
+Your app constructs its own transaction and adds:
+
+1. the ticket's `funding_outpoint` as an input;
+2. an output paying `change_script` at least `min_change_sats`;
+3. a **protostone depositing the user's DIESEL into the treasury**, calling
+   `deposit_opcode` (`1`) on the advertised treasury id.
+
+The DIESEL amount is `fee / price`, with `margin_bps` applied. The deposit must
+route through the treasury's `deposit()` opcode and **not** be edicted at the
+treasury — an edict raises the treasury's balance without advancing its
+`/deposited` counter, which is the stranded-edict signature the treasury's two
+views exist to detect.
+
+### Step 5 — get the witness
+
+```http
+POST /v1/fund
+```
+
+The relayer simulates the transaction, confirms it is repaid, signs **only its
+own input**, and returns the witness.
+
+### Step 6 — check, then broadcast
+
+Confirm the returned transaction is **byte-for-byte your own** before
+broadcasting. You broadcast it; the relayer never does.
+
+:::tip[Prefer all-taproot inputs]
+All-taproot inputs give a witness-stable txid, which means the bytes you verified
+in simulation are exactly the bytes that land. That property is what lets a
+simulated txid be compared against a broadcast txid at all — and losing it
+removes your ability to prove the transaction you checked is the transaction you
+sent.
+:::
+
+---
+
+## Handling an unavailable fleet
+
+An empty `tokens` array, `capacity_sats: 0`, or `relayers_healthy: 0` all mean
+the same thing: **this payment method is unavailable right now.** It is not an
+error, and it is exactly what a normally-funded fleet returns whenever it runs
+dry.
+
+Build that path first. A client that treats an empty fleet as "feature
+unavailable" degrades correctly; one that treats it as an exception shows users
+an error for an ordinary condition.
+
+The broker also runs as **one replica with `strategy: Recreate`**, because it is
+the split coordinator and a lease is one process's unacknowledged delivery — two
+replicas would hand two callers the same work. A redeploy is therefore a brief
+total outage. **Retry; do not treat a connection refused as a verdict.**
+
+---
+
+## The client library
+
+`subminer-client` is the reference implementation: 29 library tests plus 65
+integration tests, including a round trip that decodes a reference transaction
+built independently by a second implementer. It compiles for
+`wasm32-unknown-unknown`, so it works in a browser extension.
+
+🔴 **Nothing in it signs or broadcasts.** It builds and verifies; the signing and
+broadcasting driver is separate. That is a deliberate boundary, not a gap — a
+library that holds keys is a library you cannot audit independently of your
+wallet.
+
+---
+
+## Next
+
+- **[SUBMINER overview](./overview)** — the economics and the live state
+- **[TUNDRA](./tundra)** — where the BTC comes from, and how to supply it

@@ -1,0 +1,360 @@
+---
+title: TUNDRA and the recoup loop
+sidebar_label: TUNDRA & Earning Yield
+description: Supply frBTC to TUNDRA and earn yield paid by real demand for Bitcoin blockspace. The permissionless lending market that funds SUBMINER's relayer fleet — live on Bitcoin L1, with the risks stated plainly.
+keywords: [TUNDRA, BTCfi, frBTC, lending, yield, Bitcoin, alkanes, DIESEL, Morpho, SUBMINER]
+---
+
+# TUNDRA and the recoup loop
+
+TUNDRA is a permissionless over-collateralised lending market on Bitcoin L1,
+built on alkanes. It is where SUBMINER's treasury borrows the BTC that funds its
+relayer fleet — and therefore where anyone who wants to **earn yield on BTC** can
+take the other side of that trade.
+
+Lending in the SUBFROST app settles through TUNDRA. It replaced an earlier
+peer-to-peer loan market, where a lender and a borrower agreed fixed terms and
+matched maker-to-taker, which the app no longer offers. TUNDRA is pool-based
+instead: one pool contract per market, shared by every supplier and borrower in
+it, with rates that float on utilisation, interest that accrues continuously,
+and positions that can be liquidated. Other pages in these docs still describe
+the earlier design; where they disagree with this page, this page is current.
+
+:::info[Verified against mainnet on 2026-10-04]
+Contract ids and parameters below were read from the deployment record and
+cross-checked against chain state at block 969,769 on 2026-10-03. Check
+[`4:881050`](https://explorer.subfrost.io/alkane/4:881050) on the explorer before
+relying on any of it.
+:::
+
+:::danger[No outside firm has audited TUNDRA]
+This is the single most important sentence on this page. The deployment's own
+`HOLD_UNTIL_AUDIT` flag was cleared by the owner on 2026-09-26 **with the audit
+still outstanding** — a deliberate decision, recorded as such, not something a
+script relaxed on its own. One adversarial review pass has been run internally
+and it found a critical issue, which was fixed. That is not the same as an
+audit. Size your exposure accordingly.
+:::
+
+---
+
+## Architecture
+
+TUNDRA is shaped like Morpho Blue rather than like Compound: there is no
+singleton holding every market behind a shared ledger. Instead a **factory**
+clones **one pool per market**, and each pool physically holds only its own
+market's collateral.
+
+That choice is the headline property. Under a singleton, a bug in one market's
+callee has a blast radius of every market at once. Here it is one pool, full
+stop.
+
+| Property | TUNDRA |
+|---|---|
+| Market creation | **permissionless**, market id = hash(params) |
+| Risk parameters | **frozen at creation**, unchangeable by anyone |
+| Pause | **does not exist** |
+| Liquidation | closed-form discount from LLTV, no auction, no close factor |
+| Bad debt | **socialised onto suppliers** in the same call, immediately and visibly |
+| Governance | one bearer token, limited to enable-lists and fee knobs |
+
+Read that table as a risk disclosure, not a feature list. "No pause" means
+nobody can rescue you. "Bad debt socialised immediately" means a liquidation
+that cannot complete is absorbed by suppliers in that market, visibly, in the
+transaction that discovers it. These are the costs of a market nobody can
+intervene in; they are the same reason nobody can intervene against you.
+
+### Deployed contracts
+
+| What | Alkane id | Block |
+|---|---|---|
+| factory (market registry) | [`4:881050`](https://explorer.subfrost.io/alkane/4:881050) | 968,602 |
+| pool template | [`4:668244`](https://explorer.subfrost.io/alkane/4:668244) | 968,588 |
+| adaptive-curve IRM | [`4:674184`](https://explorer.subfrost.io/alkane/4:674184) | 968,598 |
+| TUNDRACLE oracle adapter | [`4:727967`](https://explorer.subfrost.io/alkane/4:727967) | 968,599 |
+| liquidation callee | [`4:962137`](https://explorer.subfrost.io/alkane/4:962137) | 969,371 |
+| **DIESEL/frBTC market** | [`2:98619`](https://explorer.subfrost.io/alkane/2:98619) | 968,870 |
+| **DIESEL/frUSD market** | [`2:98445`](https://explorer.subfrost.io/alkane/2:98445) | 968,690 |
+
+:::warning[Market creation is open to anyone, and that is not reversible]
+It became so the moment the second LLTV enable-list got an entry, which is the
+intended design — a stranger's market pays the protocol through the default fee.
+The consequence for you: **a pool id handed to you out of band proves nothing.**
+Before trusting one, run the round trip in
+[§ Verify a pool before you supply](#verify-a-pool-before-you-supply).
+:::
+
+---
+
+## Earning yield: supplying to a market
+
+This is the participation path. You supply the market's **loan token** and earn
+interest paid by borrowers.
+
+### Getting frBTC
+
+The DIESEL/frBTC market lends **frBTC**, SUBFROST's wrapped Bitcoin, at
+[`32:0`](https://explorer.subfrost.io/alkane/32:0). You hold native BTC, so the
+first step is wrapping it:
+
+- [frBTC overview](../tokens/frBTC-overview) — what it is and how custody works
+- [Wrapping frBTC](../developer-guide/wrapping-frBTC) — the mechanics
+
+frBTC is redeemable for native BTC, so the round trip BTC → frBTC → supply →
+withdraw → BTC leaves you in the asset you started in, plus interest.
+
+### Supply and withdraw
+
+| Opcode | Name | What rides in | What rides out |
+|---|---|---|---|
+| **10** | `Supply` | the loan token (frBTC) | pool share units |
+| **11** | `Withdraw` | pool share units (burned) | the loan token |
+
+Both take **no amount argument**. Whatever you attach to the call is what is
+supplied; the attached parcel *is* the amount, so an explicit argument would
+only restate it. Likewise on withdraw, the share units you send in are the
+authorisation — there is nothing else to check, because holding the shares is
+the claim.
+
+The pool's **own alkane units are the share token**. It mints and burns them
+in-process; there is no separate share contract and no external mint opcode. So
+after supplying to [`2:98619`](https://explorer.subfrost.io/alkane/2:98619) you
+hold units of `2:98619` itself, and your balance of them is your claim on the
+market's supply side.
+
+Shares appreciate against the loan token as interest accrues, rather than
+rebasing. Your unit count stays fixed and each unit becomes redeemable for more
+frBTC.
+
+### Where the yield comes from
+
+Interest is set by the shared **adaptive-curve IRM** at
+[`4:674184`](https://explorer.subfrost.io/alkane/4:674184), which targets a
+utilisation level and moves the rate toward it over time — the rate rises while
+the market is borrowed above target and falls below it. Rate state is keyed by
+`context.caller`, so the calling pool *is* the market and each market carries its
+own curve.
+
+The borrower paying that interest in the DIESEL/frBTC market is, today, the
+SUBMINER treasury — borrowing against DIESEL collected from users who paid their
+Bitcoin fees in DIESEL. **That is the sense in which this yield is real**: it
+traces to demand for Bitcoin blockspace rather than to an emission schedule.
+
+The protocol takes a fee of **10%** of interest from creation, claimable by the
+fee recipient via `ClaimFee` (opcode 19).
+
+### Verify a pool before you supply
+
+Market creation is permissionless, so anyone can deploy a pool that looks
+exactly like a real one. The trust root is the factory's registry, and the check
+is a **two-way round trip** — both halves, not either one:
+
+```text
+pool.GetFactory()                    == 4:881050      # opcode 998
+factory.GetPool(pool.GetMarketId())  == pool          # opcode 999 then the factory
+```
+
+A contract can claim any factory it likes; what it cannot do is make the real
+factory's registry name it back. Run both directions before sending funds.
+
+---
+
+## The full opcode table
+
+From the `TundraPoolMessage` dispatch enum in `alkanes/tundra-pool/src/lib.rs`.
+
+### Writes
+
+| Op | Name | Arguments |
+|---|---|---|
+| 0 | `Initialize` | `loan_block, loan_tx, collateral_block, collateral_tx, oracle_block, oracle_tx, irm_block, irm_tx, lltv, min_borrow` |
+| 10 | `Supply` | — (the attached parcel is the amount) |
+| 11 | `Withdraw` | — (the attached shares are the amount) |
+| 12 | `OpenBorrow` | `borrow_assets, owner_kind, owner_output, salt` |
+| 13 | `Repay` | `key_a, key_b` |
+| 14 | `AddCollateral` | `key_a, key_b` |
+| 15 | `ClosePosition` | `key_a, key_b` |
+| 16 | `Liquidate` | `key_a, key_b, seized_assets, repaid_shares, callee_block, callee_tx, callee_op` |
+| 17 | `FlashLoan` | `token_block, token_tx, assets, callee_block, callee_tx, callee_op` |
+| 18 | `AccrueInterest` | — |
+| 19 | `ClaimFee` | — |
+| 33 | `SetFee` | `fee` |
+
+### Views
+
+| Op | Name | Returns |
+|---|---|---|
+| 99 / 100 / 101 | `GetName` / `GetSymbol` / `GetTotalSupply` | the ecosystem token ABI |
+| 102 | `GetMarketParams` | the nine-word creation tuple |
+| 103 | `GetMarket` | market state, six LE u128 words |
+| 104 | `GetPosition` | `borrow_shares`, `collateral`, tagged owner |
+| 105 | `GetPositionKeyAt` | the nth 32-byte position key |
+| 109 | `GetPositionCount` | positions ever opened |
+| 110 | `GetFeeShares` | fee shares accrued, not yet minted |
+| 998 / 999 | `GetFactory` / `GetMarketId` | the discovery round trip |
+
+:::note[Why `GetMarket` and `GetPosition` are 103 and 104]
+99, 100 and 101 are the ecosystem token ABI that every wallet and indexer
+hardcodes for any alkane. Because a pool's own units are its share token, it
+must answer those — so the market views that would naturally sit at 100 and 101
+are displaced to 103 and 104.
+:::
+
+### Borrowing, for implementers
+
+`OpenBorrow` (12) takes collateral in and sends the loan out in **one call**.
+There is deliberately no way to add debt to a position that already exists: if
+there were, anyone could borrow against someone else's collateral up to the
+health limit. The proceeds would still route to the owner, so nothing is stolen
+— but the owner would be left sitting on the liquidation boundary for the
+attacker to liquidate.
+
+`owner_kind` selects how the position's owner is recorded:
+
+- **kind 0** — the owner is the scriptPubKey of output `owner_output`. The
+  pointer must pay that same output, which makes the designation
+  self-validating: a scriptPubKey that cannot receive the loan cannot be
+  recorded, so a typo cannot strand a position forever.
+- **kind 1** — `context.caller` is the owner and `owner_output` is ignored.
+
+`Repay` (13), `AddCollateral` (14) and `ClosePosition` (15) are all
+**permissionless to call**. Repaying someone's debt or topping up their
+collateral can only help them, and a close releases collateral only to the
+recorded owner — so anyone may trigger these and nobody but the owner benefits.
+
+:::warning[Zero-valued arguments are invisible to a hand-decode]
+`OpenBorrow`'s `owner_kind`, `owner_output` and `salt` are frequently all zero,
+which is byte-identical to the zero padding alkanes applies to calldata on the
+wire. A hand-decode cannot distinguish a correct five-word cellpack from one
+missing three trailing parameters — the re-encode check passes either way. Only
+a **simulation against the real WASM** discriminates. Never treat a clean
+hand-decode of a zero-padded cellpack as proof it is complete.
+:::
+
+---
+
+## The DIESEL/frBTC market
+
+The market SUBMINER borrows from.
+
+| Parameter | Value |
+|---|---|
+| Pool | [`2:98619`](https://explorer.subfrost.io/alkane/2:98619) |
+| Collateral | DIESEL [`2:0`](https://explorer.subfrost.io/alkane/2:0) |
+| Loan | frBTC [`32:0`](https://explorer.subfrost.io/alkane/32:0) |
+| LLTV | **0.40** |
+| Minimum borrow | **3,500,000 sats** |
+| Created | 2026-09-27, block 968,870 |
+| Market id | `22fd73d6dd54b57378d4ce1c565406053933739f6fd4a2d3643556e3bd470d5a` |
+
+The sibling DIESEL/frUSD market at
+[`2:98445`](https://explorer.subfrost.io/alkane/2:98445) has LLTV 0.40, a minimum
+borrow of 3,000 frUSD, and a 10% fee from creation. Its market id is
+`969751733f39479fa2c4291126ec4df55b8670e9e3a901c14a2d095532a5f573`.
+
+Maximum borrow is a double-floored computation:
+
+```text
+max_borrow = floor( floor(collateral * price / 1e27) * lltv / 1e18 )
+```
+
+The **3,500,000-sat minimum borrow is the binding constraint** on the SUBMINER
+side: at LLTV 0.40 it takes roughly 386 DIESEL of collateral before a borrow
+clears the floor at all. The market leaves no smaller first position available,
+which is why the treasury's borrow policy is sized to the whole balance rather
+than to a cautious opening bet.
+
+### The oracle, and why it can freeze things
+
+Prices come from a **TUNDRACLE adapter**, which reads the TUNDRACLE proxy at
+[`4:9010`](https://explorer.subfrost.io/alkane/4:9010).
+
+The adapter returns a **ratio of two feed keys, not a USD price.** Freshness
+therefore depends on both legs. A price that cannot be read **freezes
+liquidation exactly as surely as it freezes borrowing** — the market does not
+degrade gracefully into "liquidations still work," it stops. The correct
+response is to keep a position far from the LLTV boundary rather than merely to
+check staleness before drawing.
+
+### Liquidation
+
+`Liquidate` (16) seizes collateral from an unhealthy position at a fixed
+discount. Exactly one of `seized_assets` and `repaid_shares` may be non-zero.
+
+With `callee` set, the seized collateral is handed to the callee first and the
+repayment comes out of what the callee returns — which is how a liquidator
+holding no loan-token inventory funds the repayment. With `callee` zero, the
+loan token must ride in. The deployed callee is
+[`4:962137`](https://explorer.subfrost.io/alkane/4:962137), which routes through
+an AMM venue at [`4:65522`](https://explorer.subfrost.io/alkane/4:65522).
+
+---
+
+## The recoup loop
+
+How SUBMINER's treasury turns collected DIESEL into relayer funding, without
+ever selling the DIESEL.
+
+| Leg | What it does | State on 2026-10-04 |
+|---|---|---|
+| 1 | sweep DIESEL out of the treasury | ✅ **settled on mainnet** |
+| 1b | second sweep, 60 DIESEL | ✅ **settled on mainnet** |
+| 2 | post the DIESEL as TUNDRA collateral | 🔴 code written, never executed |
+| 3 | `OpenBorrow` frBTC against it | 🔴 code written, never executed |
+| 4 | unwrap the frBTC to native BTC | 🔴 code written, never executed |
+| 5 | deliver the BTC to the FROST group funding relayers | 🔴 code written, never executed |
+
+Treasury state, read from
+[`2:96782`](https://explorer.subfrost.io/alkane/2:96782):
+
+- **held** (opcode 100) = 46,046,327,487 base units = **460.46 DIESEL**
+- **deposited** (opcode 102) = the same number — nothing collected yet
+- **payee** (opcode 101) = [`2:96775`](https://explorer.subfrost.io/alkane/2:96775)
+
+:::tip[Why those two numbers being equal is the real check]
+Opcode 100 is a live read of the contract's actual balance. Opcode 102 is a
+lifetime counter that only the `deposit()` opcode advances. A deposit routed
+properly moves **both**; an alkane merely edicted at the treasury moves only the
+balance and leaves the counter flat. A divergence between them is therefore the
+signature of a stranded edict — which is precisely the condition this treasury
+fork exists to detect and recover. Compare them on every reading.
+:::
+
+So the loop is **half-proven**: DIESEL demonstrably accumulates in the treasury
+from real mainnet transactions, and the borrow side is written but has not yet
+drawn its first satoshi. Until leg 3 executes, the relayer fleet is funded
+directly rather than from borrowed frBTC.
+
+---
+
+## Risk summary
+
+Stated plainly, because supplying capital on the strength of a documentation
+page is how people lose money.
+
+1. **No external audit.** One internal adversarial pass, which found and fixed a
+   critical. `HOLD_UNTIL_AUDIT` was cleared by owner decision with the audit
+   outstanding.
+2. **No pause, no admin rescue.** Risk parameters are frozen at market creation
+   and cannot be retuned by anyone, including the protocol.
+3. **Bad debt is socialised onto suppliers** in the same call that discovers it.
+4. **Oracle dependency.** The price is a ratio of two feeds; if it cannot be
+   read, liquidations stop as well as borrows.
+5. **Permissionless market creation.** Always run the factory round trip before
+   trusting a pool id.
+6. **Counterparty concentration.** In the DIESEL/frBTC market the borrower is
+   substantially one party — the SUBMINER treasury — collateralised by one
+   asset, DIESEL, whose price is itself correlated with Bitcoin fee-market
+   activity.
+
+Point 6 deserves the extra beat: the thing that makes this yield real — that it
+is paid out of Bitcoin blockspace demand — is the same thing that correlates the
+collateral with the borrower's ability to pay.
+
+---
+
+## Next
+
+- **[SUBMINER overview](./overview)** — the fee market this funds
+- **[Paying fees in DIESEL](./paying-fees-in-diesel)** — the client guide
+- **[SUBMINER-GATE](./subminer-gate)** — the proposed second source of treasury collateral
