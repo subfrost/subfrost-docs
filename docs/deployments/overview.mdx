@@ -1,0 +1,102 @@
+---
+title: SUBFROST deployments - addresses and explorer links
+sidebar_label: Deployment Index
+description: Every live SUBFROST contract on Bitcoin mainnet and Ethereum, with its id, its role, and an explorer link.
+---
+
+# Deployments
+
+This is the address book. Every SUBFROST system that is live on Bitcoin mainnet, what
+its contract id is, and where to look at it.
+
+Every id and address on this page was read back from Bitcoin mainnet on **2026-10-04**, at block **969,906**. Re-check instructions are at the bottom of each page.
+
+Alkanes contracts are identified by a pair `block:tx`. That pair is the address: it is
+what you pass to a view call, and it is what the explorer resolves. An id is permanent
+once deployed.
+
+:::tip[Verify before you integrate]
+Nothing here requires trust. Every id below answers a view call that identifies it,
+and the last section of this page shows the one command that checks them all. If a
+value in these docs ever disagrees with the chain, the chain is right and this page
+is stale - please open an issue.
+:::
+
+## Tokens
+
+| Asset | Id | Explorer | Notes |
+|---|---|---|---|
+| **frBTC** | `32:0` | [explorer](https://explorer.subfrost.io/alkane/32:0) | Bitcoin held in threshold custody. See [frBTC](./frbtc). |
+| **frSIGIL** | `32:1` | [explorer](https://explorer.subfrost.io/alkane/32:1) | Permission orbital for frBTC. |
+| **frUSD** | `4:1776` | [explorer](https://explorer.subfrost.io/alkane/4:1776) | Dollar token, 8 decimals. See [frUSD](./frusd). |
+| **frUSD-MINT** | `2:92949` | [explorer](https://explorer.subfrost.io/alkane/2:92949) | Mint authority for frUSD. |
+| **DIESEL** | `2:0` | [explorer](https://explorer.subfrost.io/alkane/2:0) | The alkanes genesis token. |
+| **cFIRE-SIGIL** | `4:866` | [explorer](https://explorer.subfrost.io/alkane/4:866) | FIRE permission orbital. |
+
+## Markets
+
+| Market | Id | Explorer | Notes |
+|---|---|---|---|
+| **BTCUSD** (frBTC/frUSD CryptoSwap) | `4:1778` | [explorer](https://explorer.subfrost.io/alkane/4:1778) | The BTC/USD market. See [BTCUSD](./btcusd). |
+| DIESEL / frBTC LP | `2:77087` | [explorer](https://explorer.subfrost.io/alkane/2:77087) | Prices the `diesel` feed. |
+| FIRE / frBTC LP | `2:80663` | [explorer](https://explorer.subfrost.io/alkane/2:80663) | Prices the `fire` feed. |
+| AMM factory | `4:65522` | [explorer](https://explorer.subfrost.io/alkane/4:65522) | Creates pools. A pool id proves nothing without a factory round trip. |
+
+## Oracles
+
+| Oracle | Id | Explorer | Status |
+|---|---|---|---|
+| **DOOMACLE** (current) | `4:9000` | [explorer](https://explorer.subfrost.io/alkane/4:9000) | Live. 11 feeds. Read this for prices. |
+| **TUNDRACLE** (current) | `4:9010` | [explorer](https://explorer.subfrost.io/alkane/4:9010) | Live. Lending-facing view over DOOMACLE. |
+| FIRE Manual Price Oracle (legacy) | `4:7782` | [explorer](https://explorer.subfrost.io/alkane/4:7782) | Superseded. Do not build on it. |
+| fire-twap-observer (legacy) | `4:7783` | [explorer](https://explorer.subfrost.io/alkane/4:7783) | Frozen - last write block 963,306. |
+
+Full feed catalogue and the call to read one: **[Oracles and price feeds](./oracles)**.
+
+## SUBMINER
+
+| Contract | Id | Explorer | Notes |
+|---|---|---|---|
+| subminer-treasury | `2:96782` | [explorer](https://explorer.subfrost.io/alkane/2:96782) | Holds the DIESEL collateral. |
+| SUBMINER-AUTH | `2:96775` | [explorer](https://explorer.subfrost.io/alkane/2:96775) | The canonical auth orbital. |
+| SUBMINER-AUTH (inert duplicate) | `2:96774` | [explorer](https://explorer.subfrost.io/alkane/2:96774) | Exists, carries no capability. Do not use. |
+
+See **[SUBMINER deployment](./subminer)**, and for what it does,
+[SUBMINER overview](../subminer/overview).
+
+## Ethereum
+
+frUSD is backed by stablecoins held on Ethereum mainnet (chain id `1`).
+
+| Contract | Address | Role |
+|---|---|---|
+| USD vault | [`0x95779E7E1C943042255B8a78273fe6DE4823CF06`](https://etherscan.io/address/0x95779E7E1C943042255B8a78273fe6DE4823CF06) | Holds the stablecoin backing. |
+| USDC | [`0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`](https://etherscan.io/address/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) | Redemption asset, 6 decimals. |
+
+Details and the peg-in / peg-out flow: **[frUSD](./frusd)**.
+
+## Checking this page against the chain
+
+Every alkanes contract that implements the token ABI answers opcode `99` with its
+name. That is the cheapest possible identity check, and it is how the table above
+was built:
+
+```bash
+RPC=https://mainnet.subfrost.io/v4/subfrost/jsonrpc
+
+for id in 2:0 32:0 32:1 4:1776 2:92949 4:9000 4:9010 4:7782 2:77087 2:80663 4:866; do
+  printf '%s  ' "$id"
+  alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate "$id:99" \
+    | grep -oE 'Data: 0x[0-9a-f]*' | sed 's/Data: 0x//' | xxd -r -p
+  echo
+done
+```
+
+At block 969,906 that prints `DIESEL`, `frBTC`, `frSIGIL`, `frUSD`, `frUSD-MINT`,
+`DOOMACLE`, `TUNDRACLE`, `FIRE Manual Price Oracle`, `DIESEL / frBTC LP`,
+`FIRE / frBTC LP`, `cFIRE-SIGIL`.
+
+Contracts that are not tokens - the treasury at `2:96782`, the pool at `4:1778`,
+the factory at `4:65522` - return empty for opcode `99`. That is expected: they
+never implemented the token ABI. Identify those by the view calls documented on
+their own pages, not by asking them their name.

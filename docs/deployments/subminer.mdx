@@ -1,0 +1,67 @@
+---
+title: SUBMINER deployment - contract ids and verification
+sidebar_label: SUBMINER
+description: The deployed SUBMINER contracts on Bitcoin mainnet, including the duplicate auth orbital you must not use.
+---
+
+# SUBMINER
+
+[SUBMINER overview](../subminer/overview) explains what this system does - letting a
+user pay the Bitcoin miner fee in DIESEL. This page is just the deployment.
+
+Verified against Bitcoin mainnet on **2026-10-04** at block **969,906**.
+
+## Ids
+
+| Contract | Id | Explorer | Role |
+|---|---|---|---|
+| subminer-treasury | `2:96782` | [explorer](https://explorer.subfrost.io/alkane/2:96782) | Holds DIESEL collateral and accounts the position. |
+| **SUBMINER-AUTH** | `2:96775` | [explorer](https://explorer.subfrost.io/alkane/2:96775) | The canonical auth orbital. |
+| SUBMINER-AUTH (duplicate) | `2:96774` | [explorer](https://explorer.subfrost.io/alkane/2:96774) | **Inert. Do not use.** |
+
+:::danger[There are two SUBMINER-AUTH orbitals and only one works]
+Both `2:96774` and `2:96775` exist on chain, both answer opcode `99` with the string
+`SUBMINER-AUTH`, and both carry a balance of 1. They are indistinguishable by name.
+
+**`2:96775` is the live one.** `2:96774` is a leftover from an earlier deploy
+attempt: harmless, permanently inert, and carrying no capability at all. Nothing
+about its on-chain appearance says so.
+
+The distinguishing test is not what the orbital says about itself, it is what the
+treasury says about it - see below.
+:::
+
+The treasury also did not land where you would expect. It is at `2:96782`, **seven
+sequence numbers after** the auth orbital at `2:96775`, because unrelated deploys
+took the ids in between. Do not infer a SUBFROST id from its neighbours.
+
+## Verifying the pair
+
+Ask the treasury which orbital it recognises. This is the check that tells the real
+auth orbital from the duplicate:
+
+```bash
+RPC=https://mainnet.subfrost.io/v4/subfrost/jsonrpc
+
+# get_payee is opcode 101 on the treasury; it must decode to 2:96775
+alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate 2:96782:101
+# Data: 0x02000000000000000000000000000000077a0100000000000000000000000000
+#       two little-endian u128s, block then tx  ->  2:96775
+
+# and the orbital identifies itself
+alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate 2:96775:99
+# Data: 0x5355424d494e45522d41555448  ->  "SUBMINER-AUTH"
+```
+
+If `get_payee` returns anything other than `2:96775`, stop and do not sign.
+
+Note that `2:96782` does **not** answer opcode `99` - it is not a token and never
+implemented the token ABI. An empty response there is correct, not a sign that the
+treasury is missing.
+
+## Related
+
+- [SUBMINER overview](../subminer/overview) - what the system does.
+- [Fee integration guide](../subminer/paying-fees-in-diesel) - building the transaction.
+- [TUNDRA and the recoup loop](../subminer/tundra) - the lending market that funds it.
+- [The SUBMINER gate](../subminer/subminer-gate) - eligibility.

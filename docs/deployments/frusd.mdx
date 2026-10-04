@@ -1,0 +1,72 @@
+---
+title: frUSD deployment - ids, backing and the Ethereum side
+sidebar_label: frUSD
+description: Where frUSD lives on Bitcoin mainnet, the Ethereum contracts that back it, and how to read its supply.
+---
+
+# frUSD
+
+[frUSD overview](../tokens/frUSD-overview) is what frUSD is for. This page is the
+deployment.
+
+Verified against Bitcoin mainnet on **2026-10-04** at block **969,906**.
+
+## Ids on Bitcoin
+
+| Contract | Id | Explorer | Verified by |
+|---|---|---|---|
+| **frUSD** | `4:1776` | [explorer](https://explorer.subfrost.io/alkane/4:1776) | opcode `99` returns `frUSD` |
+| **frUSD-MINT** | `2:92949` | [explorer](https://explorer.subfrost.io/alkane/2:92949) | opcode `99` returns `frUSD-MINT` |
+
+`4:1776` is a **proxy**: it is the id users and integrators call, and the
+implementation behind it can be replaced without the id changing. `2:92949` is the
+mint authority - the capability that is allowed to create frUSD. They are separate
+on purpose, and the one you integrate against is `4:1776`.
+
+Total supply at block 969,906 was `5522010783603` raw units, read from opcode `101`.
+
+## Backing, on Ethereum
+
+frUSD is backed by stablecoins held on **Ethereum mainnet, chain id `1`**.
+
+| Contract | Address | Role |
+|---|---|---|
+| USD vault | [`0x95779E7E1C943042255B8a78273fe6DE4823CF06`](https://etherscan.io/address/0x95779E7E1C943042255B8a78273fe6DE4823CF06) | Holds the stablecoin backing. |
+| USDC | [`0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`](https://etherscan.io/address/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) | The redemption asset. 6 decimals. |
+
+**Mind the decimal change across the bridge.** The redemption asset is 6-decimal
+USDC while the oracle quotes dollars at 1e8. Those are two different scales for the
+same dollar, and converting between them with the wrong exponent produces a number
+that is wrong by a factor of 100 while still looking like money.
+
+## Withdrawals can be deferred by a custody floor
+
+The bridge holds a minimum stablecoin custody level - configured at **$1,000,000** -
+below which it will not release further withdrawals. This is a deliberate safety
+floor, not a failure: a withdrawal that would take custody under it waits rather
+than being rejected outright.
+
+If a withdrawal is not progressing, the custody floor is the first thing to check.
+It is the most common reason a correctly-formed request sits.
+
+## What this page does not cover
+
+The peg-in route - the specific deposit contracts a user interacts with on each
+source chain - is **not documented here, deliberately.** Those addresses vary by
+chain and by whether a given route is live, and publishing an address for a route
+that is not actually serving would be worse than publishing nothing. Use the peg-in
+client, which resolves the current route at call time.
+
+## Reading it
+
+```bash
+RPC=https://mainnet.subfrost.io/v4/subfrost/jsonrpc
+
+alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate 4:1776:99    # -> frUSD
+alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate 4:1776:101   # total supply
+```
+
+Supply comes back as a little-endian `u128`.
+
+The oracle's `frusd` feed (key 5) is a **hardcoded constant**, not a measurement of
+frUSD's market price. See [oracles](./oracles).
