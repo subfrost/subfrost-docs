@@ -1,0 +1,313 @@
+---
+title: SUBMINER — Bitcoin fees paid in DIESEL
+sidebar_label: SUBMINER Overview
+description: Pay Bitcoin miner fees in DIESEL instead of BTC — one transaction, non-custodial, live on mainnet. The BTC that makes it possible is supplied by lenders earning real yield on TUNDRA.
+keywords: [BTCfi, DIESEL, SUBMINER, TUNDRA, alkanes, Bitcoin, frBTC, gas abstraction, Bitcoin DeFi]
+---
+
+# SUBMINER
+
+## Pay Bitcoin miner fees in DIESEL
+
+A user holds DIESEL and no BTC. They want a Bitcoin transaction mined. Miners
+only take BTC.
+
+SUBMINER closes that gap in **one Bitcoin transaction, non-custodially**. A
+relayer contributes a BTC input to the user's transaction and is repaid in
+DIESEL inside the very same transaction. There is no bridge, no escrow, no
+"trust us for one block," and no second transaction that could fail after the
+first one landed. Either the whole thing confirms or none of it does, because
+there is only one of it.
+
+To *use* this in a SUBFROST wallet, the product pages are
+[Pay Fees in DIESEL](../using-subfrost/pay-fees-in-diesel) and
+[How DIESEL Fees Work](../protocol/diesel-fees). This page is the
+protocol-level account underneath them: the live contract ids, the
+economics, and where the BTC actually comes from.
+
+:::info[Verified against mainnet on 2026-10-04, at Bitcoin block 969,891]
+Everything on this page was read from the running system or from source on the
+date above. Blockchains outlive documentation, so **check it yourself** before
+relying on it — [§ Is this still live?](#is-this-still-live) is a single command
+that answers for the current block.
+:::
+
+---
+
+## Why this is actually BTCfi
+
+The phrase gets used loosely, so here is the specific claim, which is
+structural rather than promotional.
+
+**The yield in this system is paid by someone who needs a Bitcoin transaction
+mined.** It is not an emission, not a token subsidy, and not a reward for
+locking something up. The chain of custody of a single satoshi of yield runs:
+
+1. A **lender** supplies frBTC (wrapped BTC) to a [TUNDRA](./tundra) market
+   and earns interest.
+2. The **SUBMINER treasury** borrows that frBTC against its DIESEL collateral
+   and pays interest for the privilege.
+3. The borrowed BTC is what **relayers** front as real inputs to real user
+   transactions.
+4. A **user** who needed a transaction mined pays DIESEL for that service.
+
+Every leg settles on Bitcoin L1 in a Bitcoin transaction. Nothing in the loop
+requires a sidechain, a rollup, a multisig federation holding user funds, or a
+counterparty who can refuse to pay. The lender's yield traces to demand for
+Bitcoin blockspace — the one thing on Bitcoin that is unambiguously scarce and
+unambiguously worth paying for.
+
+If you want to take the lending side of that trade, the mechanism and the
+risks — including the un-audited ones — are in **[TUNDRA and the recoup
+loop](./tundra)**.
+
+---
+
+## How a fee-in-DIESEL transaction works
+
+The full client-implementer version is
+**[Paying fees in DIESEL](./paying-fees-in-diesel)**. The shape, in one pass:
+
+| # | Who | What happens |
+|---|-----|--------------|
+| 1 | your app | asks the **broker** for a quote |
+| 2 | broker | picks a relayer, returns a **ticket signed by that relayer** |
+| 3 | your app | verifies the signature, then builds its own transaction |
+| 4 | your app | adds the relayer's named BTC utxo as an input, adds the relayer's change output, and adds a protostone depositing the user's DIESEL into the SUBMINER treasury |
+| 5 | relayer | simulates it, checks it is repaid, signs **only its own input**, returns the witness |
+| 6 | your app | checks the returned transaction is byte-for-byte its own, and broadcasts |
+
+The relayer never broadcasts and never holds user funds. The ticket is signed by
+the **relayer**, not the broker, which makes the broker *skippable* — a client
+that knows a relayer's overlay address can cut it out entirely. That matters for
+privacy: the broker is the only component that learns which users pay fees in
+DIESEL, and the design deliberately keeps it out of the trust path.
+
+What the user signs is a transaction they constructed. What the relayer signs is
+one input. Nobody signs anything on anybody's behalf.
+
+---
+
+## The economics
+
+### What the user pays
+
+The relayer quotes the BTC fee it is fronting, plus a margin.
+
+| Parameter | Live value | Meaning |
+|---|---|---|
+| `margin_bps` | **200** | the relayer's spread, 2% over the fee it fronts |
+| `max_fee_sats` | **20,000** | largest miner fee a single ticket will cover |
+| `min_fee_rate_sat_vb` | **1** | floor on the fee rate quoted |
+| price source | `pool:2:77087:med12g12` | a block-median DIESEL price from pool [`2:77087`](https://explorer.subfrost.io/alkane/2:77087) |
+
+The DIESEL the user deposits is `fee / price`. At the price struck at block
+969,888 — **45,045 sats per DIESEL** — a 4,200-sat fee costs about 0.0933
+DIESEL plus the 2% margin.
+
+Two properties of the quote worth knowing before you build a UI on it:
+
+- **`indicative_price` is an upper bound, never an understatement.** The broker
+  reads no price of its own. Each relayer publishes the basis its own quote path
+  would strike, and the broker serves the *lowest* across healthy, current
+  relayers, verbatim. A preview built on it can overstate the cost and cannot
+  understate it.
+- **`null` is not zero.** A null indicative price means no relayer would sign a
+  price right now. Handle it as "this payment method is unavailable," never as a
+  free transaction.
+
+The binding number is always the one on the signed ticket, not the indicative
+one.
+
+### Why DIESEL is the thing being spent
+
+DIESEL is the alkanes genesis token, [`2:0`](https://explorer.subfrost.io/alkane/2:0),
+8 decimals. It is minted by anyone who calls its mint opcode in a block, and the
+per-block emission tracks **Bitcoin's own subsidy curve at the absolute block
+height**:
+
+```text
+block_reward(h) = 5e9 >> floor(h / 210000)      # base units, 8 decimals
+genesis_block   = 800000
+premine         = 44000000000000
+```
+
+At height ~969,900 that is `5e9 >> 4` = **312,500,000 base units = 3.125 DIESEL
+per block**, divided among everyone who minted in that block. So DIESEL is
+competitively mined, in BTC-denominated terms, by people spending real Bitcoin
+fees to mint it.
+
+That is what makes it the right fee token rather than an arbitrary one: **its
+holders acquired it by paying Bitcoin fees, and SUBMINER lets them spend it on
+Bitcoin fees.** The loop is closed in the same unit of account it started in.
+
+### What the treasury does with it
+
+Collected DIESEL goes into the SUBMINER treasury at
+[`2:96782`](https://explorer.subfrost.io/alkane/2:96782) and is **never sold**.
+It is posted as collateral on TUNDRA and borrowed against. The position
+accumulates and is not unwound.
+
+This is a deliberate decision and not an oversight. Selling the DIESEL would
+mean the system's own fee revenue continuously pressures the price of the asset
+its users pay with. Borrowing against it instead means the treasury's balance
+sheet grows while the BTC that funds relayers is rented from lenders who are
+paid for it. The full five-leg mechanism, and exactly how far it has actually
+executed on mainnet, is in [TUNDRA and the recoup loop](./tundra).
+
+---
+
+## Deployed contracts
+
+Every id below is live on Bitcoin mainnet and links to the SUBFROST explorer.
+
+### SUBMINER
+
+| Contract | Alkane id | Notes |
+|---|---|---|
+| subminer-treasury | [`2:96782`](https://explorer.subfrost.io/alkane/2:96782) | where user DIESEL deposits land; block 967,721 |
+| SUBMINER-AUTH orbital | [`2:96775`](https://explorer.subfrost.io/alkane/2:96775) | the payee capability; block 967,712 |
+| SUBMINER-GATE | *not yet deployed* | see [SUBMINER-GATE](./subminer-gate) |
+
+:::warning[There are two SUBMINER-AUTH orbitals. `2:96775` is the real one.]
+An earlier deploy attempt left an inert duplicate at
+[`2:96774`](https://explorer.subfrost.io/alkane/2:96774), also with balance 1.
+Only the orbital the treasury names as `payee` carries the capability; the other
+is harmless dead weight. The treasury's `get_payee` (opcode 101) decodes to
+`2:96775`, and that is the check that settles it.
+:::
+
+### Tokens
+
+| Token | Alkane id |
+|---|---|
+| DIESEL | [`2:0`](https://explorer.subfrost.io/alkane/2:0) |
+| frBTC | [`32:0`](https://explorer.subfrost.io/alkane/32:0) |
+| frUSD | [`4:1776`](https://explorer.subfrost.io/alkane/4:1776) |
+
+### TUNDRA
+
+| Contract | Alkane id |
+|---|---|
+| factory (market registry) | [`4:881050`](https://explorer.subfrost.io/alkane/4:881050) |
+| DIESEL/frBTC market pool | [`2:98619`](https://explorer.subfrost.io/alkane/2:98619) |
+| DIESEL/frUSD market pool | [`2:98445`](https://explorer.subfrost.io/alkane/2:98445) |
+| adaptive-curve IRM | [`4:674184`](https://explorer.subfrost.io/alkane/4:674184) |
+| pool template | [`4:668244`](https://explorer.subfrost.io/alkane/4:668244) |
+| TUNDRACLE adapter | [`4:727967`](https://explorer.subfrost.io/alkane/4:727967) |
+| liquidation callee | [`4:962137`](https://explorer.subfrost.io/alkane/4:962137) |
+
+---
+
+## Overlay addresses
+
+SUBMINER's services are published as `.peer` names on the **subtun0** overlay
+rather than behind ordinary DNS. These identities are permanent — derived from
+keypairs minted once and backed up outside the cluster — so they survive pod
+restarts, node moves and redeploys.
+
+| Service | `.peer` address |
+|---|---|
+| **broker** — dial this | `fr12quta238kx3l4mfd2jnqv6sgsfa87gskm7avzegg66kdcwjqsh5scqqm58.peer` |
+| relayer-0 | `fr1mrpfpxa9wrthxmlqk54dzg7mehkx03dmrt4h3nscms7jhwndhx6sm4zna9.peer` |
+| relayer-1 | `fr1uxk9um7tr0kmwzj727rvrj6halqdqkna8znasn0q8xn3tpwtz4hshnn9rl.peer` |
+| relayer-2 | `fr1xwcn4dm3v22x54vu97jpwfpy7zuzqntg8c8jmdrswt9vguuy4kfqh9d6uw.peer` |
+
+An application only ever needs the broker. The relayer names are published
+because the broker's replies refer to them, because they are individually
+dialable when you are debugging which relayer refused a quote, and because
+dialing one directly is how you opt out of the broker seeing your traffic.
+
+A public gateway fronts the same addresses for clients with no overlay client of
+their own, which is how the command in the next section works from an ordinary
+laptop.
+
+---
+
+## Is this still live?
+
+One request, no credentials, answers for the current block:
+
+```sh
+curl -s https://fr12quta238kx3l4mfd2jnqv6sgsfa87gskm7avzegg66kdcwjqsh5scqqm58.fr.style/v1/tokens
+```
+
+:::tip[Dial the name with no port]
+The gateway delivers to the peer on **port 80** and ignores any other port
+mapping, so do not add one. The broker's pod forwards `:80` to its internal
+`:8080`.
+:::
+
+Read `fleet.relayers_healthy` and `fleet.capacity_sats`. What it returned on
+2026-10-04 at block 969,891:
+
+```json
+{
+  "tokens": [{
+    "id": { "block": "2", "tx": "0" },
+    "symbol": "DIESEL",
+    "decimals": 8,
+    "treasury": { "block": "2", "tx": "96782" },
+    "margin_bps": 200,
+    "max_fee_sats": 20000,
+    "min_fee_rate_sat_vb": 1,
+    "indicative_price": {
+      "sats_num": "45045",
+      "sats_den": "100000000",
+      "struck_at_height": 969888,
+      "source": "pool:2:77087:med12g12@969888"
+    }
+  }],
+  "fleet": {
+    "relayers_healthy": 3,
+    "capacity_sats": 600000
+  },
+  "tip_height": 969891
+}
+```
+
+Three relayers healthy, 600,000 sats of capacity, 200,000 sats each.
+
+**An empty `tokens` array is not an error.** It is what a funded fleet also
+returns whenever it runs dry, and it means "this payment method is unavailable
+right now." Build that path first and the feature degrades correctly instead of
+erroring at users.
+
+---
+
+## Honest status
+
+What is live, and what is not, as of 2026-10-04:
+
+| Piece | State |
+|---|---|
+| Broker, relayers, overlay, quoting | **Live on mainnet.** 3 relayers healthy and funded. |
+| Wire types, quote/accept logic, client library | **Real and tested.** Client library compiles to `wasm32-unknown-unknown`. |
+| Relayer funding | **Live.** A 6-of-9 FROST group pre-cuts 40,000-sat coins on a timer; only confirmed cuts are spendable. |
+| `POST /v1/fund` end to end | 🔴 **Exercised once**, by this repository's own harness. No external client has ever called it. |
+| Treasury → TUNDRA recoup loop | 🔴 **Legs 2–5 written, never executed.** See [TUNDRA](./tundra). |
+| SUBMINER-GATE | 🔴 **Written, not deployed.** See [SUBMINER-GATE](./subminer-gate). |
+| TUNDRA audit | 🔴 **No outside firm has audited it.** See the risk section in [TUNDRA](./tundra). |
+
+The one confirmed end-to-end fee-in-DIESEL transaction is txid
+`01dc48a1f68faacd1dab9146a240026b7c3ba1a2a96918586ab94aeec2441118`, in block
+968,177.
+
+That table is the real state of it: **the hard part — non-custodial fee payment
+in a single Bitcoin transaction — is built, deployed and proven on mainnet, and
+the parts that are still open are the ones that scale it.** If you are deciding
+whether to integrate, the routes and payloads are const tables in the shipped
+crates and they match the running service, so code written against them will not
+need reshaping.
+
+---
+
+## Next
+
+- **[Paying fees in DIESEL](./paying-fees-in-diesel)** — the client
+  implementer's guide: broker API, ticket verification, the protostone, every
+  refusal and whose fault it is.
+- **[TUNDRA and the recoup loop](./tundra)** — the lending market, how to
+  supply BTC and earn yield on it, and the risks.
+- **[SUBMINER-GATE](./subminer-gate)** — the proposed DIESEL mint gate and
+  the governance decision approaching on sigil.vote.
