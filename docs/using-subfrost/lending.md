@@ -7,6 +7,17 @@ description: Lend your tokens to earn interest, or borrow against collateral, se
 
 # Lending
 
+:::danger[This page describes the retired peer-to-peer loan market. Flagged 2026-10-04.]
+The SUBFROST app no longer offers the maker/taker loan market described below.
+Lending and borrowing now settle through **TUNDRA**, a pool-based market: rates
+float with utilisation, interest accrues continuously, and a position can be
+liquidated. None of those three things is true of the mechanism on this page, so
+do not use this page to reason about a loan you hold today.
+
+See [TUNDRA and the recoup loop](../subminer/tundra) for how lending works now. This page is
+kept for the historical design; it has not yet been rewritten.
+:::
+
 Lending lets you **lend out your tokens to earn interest** or **borrow tokens against collateral**, directly on Bitcoin L1. It is peer-to-peer: you set your own terms and match with another user. There are no pools, no middlemen, and your funds stay in your wallet until a match happens.
 
 ## Lending at a glance

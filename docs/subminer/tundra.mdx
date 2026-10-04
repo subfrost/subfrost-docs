@@ -12,11 +12,13 @@ built on alkanes. It is where SUBMINER's treasury borrows the BTC that funds its
 relayer fleet — and therefore where anyone who wants to **earn yield on BTC** can
 take the other side of that trade.
 
-This is a different product from the peer-to-peer lending described in
-[Lending](../using-subfrost/lending), which matches individual
-counterparties and holds no pool. TUNDRA is pool-based: one pool contract
-per market, shared by every supplier and borrower in it. Read the two as
-separate things.
+Lending in the SUBFROST app settles through TUNDRA. It replaced an earlier
+peer-to-peer loan market, where a lender and a borrower agreed fixed terms and
+matched maker-to-taker, which the app no longer offers. TUNDRA is pool-based
+instead: one pool contract per market, shared by every supplier and borrower in
+it, with rates that float on utilisation, interest that accrues continuously,
+and positions that can be liquidated. Other pages in these docs still describe
+the earlier design; where they disagree with this page, this page is current.
 
 :::info[Verified against mainnet on 2026-10-04]
 Contract ids and parameters below were read from the deployment record and
