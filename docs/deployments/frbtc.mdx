@@ -1,0 +1,87 @@
+---
+title: frBTC deployment - ids, custody and the wrap/unwrap calls
+sidebar_label: frBTC
+description: Where frBTC lives on Bitcoin mainnet, how its custody works, and the exact opcodes to wrap and unwrap.
+---
+
+# frBTC
+
+[frBTC overview](../tokens/frBTC-overview) is what frBTC is for.
+[Peg and custody](../protocol/frbtc-peg-and-custody) is how the peg holds. This page
+is the deployment: ids, calls, and the things an integrator gets wrong.
+
+Verified against Bitcoin mainnet on **2026-10-04** at block **969,906**.
+
+## Ids
+
+| Contract | Id | Explorer | Verified by |
+|---|---|---|---|
+| **frBTC** | `32:0` | [explorer](https://explorer.subfrost.io/alkane/32:0) | opcode `99` returns `frBTC` |
+| **frSIGIL** | `32:1` | [explorer](https://explorer.subfrost.io/alkane/32:1) | opcode `99` returns `frSIGIL` |
+
+Both are genesis deployments: they are created by the indexer at protocol start
+rather than by a deploy transaction, which is why their ids are low and fixed.
+
+## Custody
+
+frBTC is one-for-one claim on Bitcoin held in **threshold signature custody**. The
+backing BTC sits at an address no single party can spend from - the key is split
+across a signer group, and a quorum must agree before anything moves. See
+[FROST and ROAST](../key-components/frost-and-roast) for the signing scheme and
+[peg and custody](../protocol/frbtc-peg-and-custody) for the group's shape.
+
+:::danger[Do not hardcode a deposit address]
+This page deliberately does not print a custody address. The address the protocol
+wants your BTC at is a property of the **current** signer set, and a signer set is
+rotated. An address copied out of a document and pasted into an integration keeps
+working right up until the rotation it did not hear about, and then it silently
+stops being custody and starts being someone's old script.
+
+Obtain the deposit address from the protocol at the time you wrap, every time.
+:::
+
+## Wrapping and unwrapping
+
+The calls are cellpacks against `32:0`:
+
+```
+wrap     [32, 0, 77]
+unwrap   [32, 0, 78, signer_vout, amount_requested]
+```
+
+**Wrap** sends BTC into custody and mints frBTC to you. The mint follows the
+deposit; it is not instant, because the deposit has to be seen and confirmed first.
+
+**Unwrap** burns frBTC and pays out real BTC. `signer_vout` is the index of the
+output carrying the signer's script in the transaction you are building, and
+`amount_requested` is in satoshis. Both are positional and neither is checked for
+you - an unwrap pointed at the wrong vout is a burn without a payout.
+
+:::warning[The payout is not the amount you asked for]
+An unwrap pays out `amount_requested` less the Bitcoin network fee for the payout
+transaction itself. Any interface that tells a user they will receive exactly what
+they typed is wrong, and the difference shows up as a support ticket. Quote the net.
+:::
+
+If you are building the protostone by hand rather than through the SDK, the shape is
+worked through in [SUBMINER's fee integration guide](../subminer/paying-fees-in-diesel),
+which builds exactly this call as one leg of a larger transaction.
+
+## Reading it
+
+```bash
+RPC=https://mainnet.subfrost.io/v4/subfrost/jsonrpc
+
+alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate 32:0:99    # name   -> frBTC
+alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate 32:0:100   # symbol -> frBTC
+```
+
+Opcode `101` on `32:0` does not return a plain scalar supply the way a simple token
+does; decode it against the contract's current ABI rather than assuming it is one
+little-endian `u128`.
+
+## Where frBTC is priced
+
+The oracle's `frbtc` feed (key 4) is **set equal to BTC by assumption**, not measured
+against a market - no on-chain venue prices frBTC against BTC. See
+[oracles](./oracles) before you use key 4 as evidence that the peg is holding.

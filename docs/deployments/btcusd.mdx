@@ -1,0 +1,99 @@
+---
+title: BTCUSD deployment - the market, the price, and how it is held on peg
+sidebar_label: BTCUSD
+description: The BTCUSD market on Bitcoin mainnet, the exact call to read BTC/USD from it, and what keeps it aligned with the wider market.
+---
+
+# BTCUSD
+
+Verified against Bitcoin mainnet on **2026-10-04** at block **969,906**.
+
+## What BTCUSD is
+
+**BTCUSD is a market, not a token.** There is no BTCUSD asset to hold. It is the
+**frBTC/frUSD CryptoSwap pool** at [`4:1778`](https://explorer.subfrost.io/alkane/4:1778) -
+Bitcoin priced in dollars, both sides of it being SUBFROST assets.
+
+This matters for integrators because the natural assumption is wrong in a specific
+way: you do not mint or redeem BTCUSD, you **trade the pool**, and the thing people
+mean by "the BTCUSD price" is a view call on it.
+
+| Contract | Id | Explorer |
+|---|---|---|
+| BTCUSD pool (frBTC/frUSD CryptoSwap) | `4:1778` | [explorer](https://explorer.subfrost.io/alkane/4:1778) |
+
+`4:1778` is a proxy and advertises only the four proxy opcodes. The pool views below
+are served by the CryptoSwap implementation behind it, so do not expect to discover
+them by reading the proxy's ABI.
+
+## Reading BTC/USD
+
+The call is **opcode 104**, `price_oracle`, an exponential moving average over
+recent trades.
+
+```bash
+RPC=https://mainnet.subfrost.io/v4/subfrost/jsonrpc
+
+alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate 4:1778:104
+```
+
+:::danger[BTC/USD is the reciprocal of what comes back]
+`price_oracle` returns the price of coin1 (frUSD) denominated in coin0 (frBTC). To
+get dollars per BTC you must invert it:
+
+```
+btc_usd = 1e18 / price_oracle
+```
+
+At block 969,906 the raw value was `11765042388081`, which is
+**$84,997.57 per BTC** - not $117,650, which is what you get by dividing by
+1e8 and is the single most common way to misread this feed.
+:::
+
+Two more opcodes exist and neither is the one you want for a spot price:
+
+- **105, `price_scale`** - the repeg anchor. It lags a move *by design*.
+- **106, `lp_price`** - the LP token value, not the pair price.
+
+For pool composition use **opcode 999, `POOL_DETAILS`**. The standard
+`GetTotalSupply` at opcode `101` **reverts** on these pools; it is not that the pool
+has no supply, it is that the call is not implemented, and a client that treats a
+revert as a zero will report an empty pool.
+
+If you want BTC/USD with a freshness stamp rather than a bare number, read the
+oracle's `btc` feed instead - it is a median of samples from this same pool, and it
+tells you the height it was written at. See [oracles](./oracles).
+
+## How BTCUSD is kept on peg
+
+A pool price is only the price of the last trade in it. Left alone, a venue whose
+depth is thinner than the wider market drifts away from it, and the drift is a
+standing invitation to arbitrage at the expense of whoever is providing liquidity.
+
+SUBFROST runs a **peg-keeping process** against this market. It continuously
+compares the pool's price with external BTC/USD references, and when the two diverge
+far enough to be worth acting on, it trades against the pool in the correcting
+direction. Profitable divergence is closed by the protocol rather than by an
+outsider, and the pool tracks the broader market without anyone being asked to
+subsidise it.
+
+What this does and does not promise:
+
+- It **narrows** divergence. It does not pin the price, and there is no mechanism
+  that forces the pool to a reference value.
+- It acts **when correction is worth its own cost**. A divergence smaller than the
+  fees and Bitcoin network cost of correcting it is left alone, so a small, persistent
+  spread is the expected resting state and not a fault.
+- It is **best-effort**. It depends on a process that can be stopped, on blockspace
+  being affordable, and on its own capital. None of those is guaranteed on any
+  particular block.
+
+So: do not treat the pool price as an oracle-grade reference for a contract that
+settles money. For that, read [the oracle](./oracles), which gives you a height and
+lets you set your own staleness tolerance.
+
+## Trading it
+
+Trade `4:1778` as an ordinary CryptoSwap pool: frBTC in for frUSD out, or the
+reverse. You need [frBTC](./frbtc) or [frUSD](./frusd) first - there is no path that
+starts from bare BTC in a single call.

@@ -90,6 +90,31 @@ const sidebars: SidebarsConfig = {
         'subminer/subminer-gate',
       ],
     },
+    // DEPLOYMENTS: added 2026-10-04. The address book -- every live contract id,
+    // its explorer link, and the view call that proves it is what we say it is.
+    //
+    // Sits directly after SUBMINER because it is reference material rather than
+    // narrative: a reader arrives here from a search for an id, not by reading
+    // forward. Listed explicitly, overview first, then one page per system in
+    // the order a reader is likely to need them (assets, then the market priced
+    // from them, then the oracles that price it, then SUBMINER's own ids).
+    //
+    // Every value on these pages was read back from mainnet at block 969,906 and
+    // each page ends with the command that re-checks it. When one of these ids
+    // changes, update the page AND the stated block height -- a verification
+    // stamp that is not advanced is worse than none, because it reads as current.
+    {
+      type: 'category',
+      label: 'Deployments & Addresses',
+      items: [
+        'deployments/overview',
+        'deployments/frbtc',
+        'deployments/frusd',
+        'deployments/btcusd',
+        'deployments/oracles',
+        'deployments/subminer',
+      ],
+    },
     // SUBFROST APP: hidden from the nav on 2026-07-15, NOT deleted. The pages and their URLs are
     // untouched; only the sidebar entry is commented out. Restoring is uncommenting this block.
     //

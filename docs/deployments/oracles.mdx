@@ -1,0 +1,167 @@
+---
+title: Oracles and price feeds - addresses and how to read them
+sidebar_label: Oracles and Price Feeds
+description: The DOOMACLE and TUNDRACLE oracle deployments, the eleven feeds they publish, and the exact call a consumer makes to read one.
+---
+
+# Oracles and price feeds
+
+[The Oracle](../protocol/the-oracle) explains why SUBFROST posts prices on-chain at
+all. This page is the deployment beneath it: which contract to read, what it
+publishes, and the exact call.
+
+Every value read back below was read from Bitcoin mainnet on **2026-10-04** at block
+**969,906**.
+
+## What is deployed
+
+| Contract | Id | Role |
+|---|---|---|
+| **DOOMACLE** | [`4:9000`](https://explorer.subfrost.io/alkane/4:9000) | The oracle. Holds every feed. **Read this one for prices.** |
+| **TUNDRACLE** | [`4:9010`](https://explorer.subfrost.io/alkane/4:9010) | A lending-facing view that subscribes to DOOMACLE and exposes feeds as markets. |
+| FIRE Manual Price Oracle | [`4:7782`](https://explorer.subfrost.io/alkane/4:7782) | **Legacy.** Superseded. |
+| fire-twap-observer | [`4:7783`](https://explorer.subfrost.io/alkane/4:7783) | **Legacy.** Frozen. |
+
+Both current contracts are proxies, so their advertised ABI is short and the opcodes
+below are served by the implementation behind them.
+
+## The feeds
+
+Eleven keys. **Every one is a USD price scaled by 1e8**, so a returned value of
+`100000000` is exactly $1.00.
+
+Keys 1-5 are the **chain legs**, priced from on-chain pools. Keys 10-15 are the
+**real-world-asset legs**, priced from the `xyz` HIP-3 dex on Hyperliquid.
+
+| key | name | what it is | last value read | at block |
+|---|---|---|---|---|
+| 1 | `btc` | BTC/USD, from the BTCUSD pool `4:1778` | `8228863386809` = $82,288.63 | 969,868 |
+| 2 | `fire` | FIRE, via the `2:80663` LP times btc | `3174037185` = $31.74 | 969,881 |
+| 3 | `diesel` | DIESEL, via the `2:77087` LP times btc | `3707226388` = $37.07 | 969,868 |
+| 4 | `frbtc` | equals `btc`, by the custody peg | - | - |
+| 5 | `frusd` | the constant `1e8`, being the numeraire | `100000000` = $1.00 | 969,795 |
+| 10 | `sp500` | S&P 500 index | - | - |
+| 11 | `xyz100` | Nasdaq-100-alike index | - | - |
+| 12 | `gold` | gold | `414290000000` = $4,142.90 | 969,796 |
+| 13 | `silver` | silver | - | - |
+| 14 | `cl` | WTI crude, front month | - | - |
+| 15 | `brentoil` | Brent crude, front month | - | - |
+
+### Three things about these numbers that will bite you
+
+**`frbtc` is stated, not measured.** No on-chain market prices frBTC against BTC, so
+key 4 is set equal to key 1 by assumption. If frBTC ever trades away from par, this
+key says so nowhere and nothing in the feed notices.
+
+**`frusd` is a constant, not a measurement.** Key 5 is hardcoded to `1e8`. The only
+frUSD market that existed held about $26 and had never traded, and a median over an
+untraded pool is not a price. Treat key 5 as a definition of the numeraire, not as
+evidence that frUSD is on peg.
+
+**The RWA keys are not on TUNDRACLE.** Keys 10-15 are registered on DOOMACLE only.
+Asking TUNDRACLE for key 12 returns a well-formed zero, which reads exactly like a
+price of nothing rather than like an error. Read keys 10-15 from `4:9000` directly.
+
+## Reading a feed
+
+The call is `GetEntry`, **opcode 23** on `4:9000`, with the key as its one input.
+
+```bash
+RPC=https://mainnet.subfrost.io/v4/subfrost/jsonrpc
+
+# GetEntry(key=1) -> the btc feed
+alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate 4:9000:23:1
+```
+
+### What comes back
+
+Four little-endian 16-byte words, concatenated:
+
+```
+height(16) || seq(16) || len(16) || value
+```
+
+- **`height`** - the Bitcoin block height at which this value was written.
+- **`seq`** - the write sequence number, which increments per write to this key.
+- **`len`** - the byte length of `value`.
+- **`value`** - the price, little-endian, USD at 1e8.
+
+The btc feed above decoded as `height=969868, seq=109, len=16, value=8228863386809`.
+
+**An unset key returns three zero words and no value, and does not trap.** Probing a
+key you have never seen written is ordinary, so it is not an error. But note what
+that means: `height == 0` is *never written*, not *written at genesis*. A response
+that is neither well-formed nor empty means you are pointed at the wrong alkane, and
+that is worth telling apart from an unset key.
+
+If you want the raw stored bytes with no framing, that is `Get`, **opcode 20**.
+`GetEntry` is the one a lending market should use, because it returns the value and
+its freshness in a single call - reading the price at one height and its staleness at
+another is a bug waiting for a volatile day.
+
+### Reading through TUNDRACLE
+
+`GetOracle`, **opcode 37** on `4:9010`, returns the oracle id TUNDRACLE is pointed at.
+Use it to confirm the subscription chain is what you think it is before you trust a
+market quote.
+
+Contracts can also be *pushed to* rather than polling: a consumer registers a
+callback and DOOMACLE calls it at the opcode the consumer chose, framed as
+`[callback_opcode, key, height, seq, value_len, word_count, ...words]`. The height and
+sequence ride along so a callback never has to call back into the oracle to find out
+how fresh its own notification was. TUNDRACLE receives updates this way, on
+opcode 50.
+
+## Freshness, and what it actually proves
+
+The keeper writes a key when either condition holds:
+
+- the price moved by at least **10 basis points**, or
+- **144 blocks** have passed since the last write (the heartbeat).
+
+So a feed that has not moved is indistinguishable from a feed whose keeper died,
+until the heartbeat is missed. **The only honest staleness check is to compare
+`height` against your own view of the tip** and decide your own tolerance. A
+freshness flag that the oracle computes for you would be reporting on its own
+liveness, which is the one thing it cannot be trusted to self-report.
+
+At block 969,906 the chain legs were 25 to 111 blocks old and the RWA legs about
+110 blocks old, all inside the heartbeat.
+
+:::warning[Not every feed refreshes at the same rate]
+A single write transaction carries a bounded number of per-key notifications. When
+more keys are due than fit, some keys wait for the next round. Do not assume that
+because one key is fresh the key next to it is.
+:::
+
+## The legacy oracle
+
+The **FIRE Manual Price Oracle** at `4:7782` and its companion
+**fire-twap-observer** at `4:7783` are the previous generation. They are still on
+chain and still answer calls, which is exactly why they are worth a warning.
+
+The observer's last recorded write is block **963,306**. At block 969,906 that is
+**6,600 blocks stale - roughly 46 days.** It is not being poked and will not resume
+on its own: catching up requires replaying more checkpoints than a single
+transaction can afford, so each attempt to advance it costs more than it can spend.
+
+**Do not build on `4:7782` or `4:7783`.** A reader that does not check `height` will
+get a confident, well-formed, months-old number out of them. Use `4:9000`.
+
+## Re-checking this page
+
+```bash
+RPC=https://mainnet.subfrost.io/v4/subfrost/jsonrpc
+
+# identity
+alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate 4:9000:99   # -> DOOMACLE
+alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate 4:9010:99   # -> TUNDRACLE
+
+# every chain leg, with its height
+for k in 1 2 3 4 5; do
+  alkanes-cli -p mainnet --jsonrpc-url "$RPC" alkanes simulate "4:9000:23:$k"
+done
+```
+
+Decode each result as the four little-endian words above. Divide `value` by `1e8` for
+dollars.
