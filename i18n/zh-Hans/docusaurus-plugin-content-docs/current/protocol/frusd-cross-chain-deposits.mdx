@@ -1,0 +1,340 @@
+---
+title: 从其他链存入 frUSD
+sidebar_label: 从其他链存入 frUSD
+sidebar_position: 6
+description: BNB Chain、Polygon 或 Base 上的一笔稳定币存款如何经由一份签名意图、一个只存在于以太坊上的存款地址和 frUSD 金库，变成比特币上的 frUSD。
+---
+
+# 从其他链存入 frUSD
+
+:::info[状态：测试中]
+本页涉及的合约已在以太坊、BNB Chain、Polygon 和 Base 上线。已有存款走通了 BNB Chain USDT 路线，直到在 frUSD 金库中排队、等待在比特币上铸造的付款。但目前还没有公开的入口：SUBFROST 应用中没有相应的界面，源链上那笔已签名的存款由 SUBFROST 运营方广播。本页解释的是机制，而不是操作指南。目前从 USDC 或 USDT 铸造 frUSD 的受支持方式，是 [frUSD 概览](../tokens/frUSD-overview) 中介绍的以太坊存款。
+:::
+
+frUSD 金库位于以太坊上。本页通过一笔真实的存款（BNB Chain USDT），说明从 BNB Chain、Polygon 或 Base 出发的稳定币如何到达金库：2026 年 9 月 30 日在 BNB Chain 上发出的 3,000.000000 USDT，最终成为 frUSD 金库中的第 52 号付款（payment #52），在比特币上应付 2,989.017990 USDT 对应的 frUSD。
+
+## 简要流程
+
+1. **存款人在源链上签署一份意图（intent）。** 这是一个 Permit2 签名，其见证（witness）是一个 `DepositIntent`：资产、精确金额、比特币收款方的哈希、退款规则、到期时间和一个 nonce。
+2. **转发合约拉取稳定币并跨链发送。** `Permit2SweepForwarder` 通过 Permit2 拉取该稳定币，交给 Stargate 资金池，收款方是以太坊上一个由该意图推导出的存款地址（网关，gateway）。
+3. **LayerZero 完成送达。** 以太坊上的 Stargate 资金池把稳定币支付给网关，而此时网关还没有代码。
+4. **`settle` 把资金扫入金库。** 在 `GatewayFactory` 上的一次调用会部署网关、清空网关，并把稳定币存入 frUSD 金库。
+5. **金库将一笔付款排入队列。** FROST 签名组在比特币上，向意图所承诺的脚本铸造相应的 frUSD。
+
+<div className="sf-diagram">
+<svg viewBox="0 0 800 536" role="img" aria-label="一笔从 BNB Chain 到比特币上 frUSD 的 USDT 存款。在 BNB Chain 上，存款人签署的意图让 Permit2SweepForwarder 拉取 3,000.000000 USDT 并交给 Stargate 资金池。LayerZero 把 2,993.999999 USDT 送到以太坊上的 Stargate 资金池，再由它支付给一个尚无代码的网关。GatewayFactory 上的 settle 部署并清空网关，把 2,993.999999 存入 frUSD 金库，金库扣除手续费后为第 52 号付款排队 2,989.017990。FROST 签名组在比特币上铸造 frUSD。">
+  <defs>
+    <marker id="xa" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow"/></marker>
+  </defs>
+  <text x="780" y="24" className="sf-chain sf-chain-bnb" text-anchor="end">BNB CHAIN</text>
+
+  <rect x="20" y="40" width="160" height="64" rx="10" className="sf-box"/>
+  <text x="100" y="67" className="sf-label" text-anchor="middle">存款人</text>
+  <text x="100" y="87" className="sf-sub" text-anchor="middle">签署一份意图</text>
+
+  <rect x="290" y="40" width="210" height="64" rx="10" className="sf-box"/>
+  <text x="395" y="67" className="sf-label" text-anchor="middle">Permit2SweepForwarder</text>
+  <text x="395" y="87" className="sf-sub" text-anchor="middle">拉取并跨链，同一笔交易</text>
+
+  <rect x="615" y="40" width="165" height="64" rx="10" className="sf-box"/>
+  <text x="697" y="67" className="sf-label" text-anchor="middle">Stargate 资金池</text>
+  <text x="697" y="87" className="sf-sub" text-anchor="middle">接收 USDT</text>
+
+  <path d="M180,72 L276,72" className="sf-line" marker-end="url(#xa)"/>
+  <text x="235" y="62" className="sf-edge" text-anchor="middle">3,000.000000</text>
+  <text x="235" y="90" className="sf-edge" text-anchor="middle">Permit2</text>
+  <path d="M500,72 L601,72" className="sf-line" marker-end="url(#xa)"/>
+  <text x="557" y="62" className="sf-edge" text-anchor="middle">3,000.000000</text>
+  <text x="557" y="90" className="sf-edge" text-anchor="middle">sendToken</text>
+
+  <line x1="16" y1="122" x2="784" y2="122" className="sf-divide"/>
+  <path d="M650,104 L650,220" className="sf-line sf-line-heavy"/>
+  <polygon points="644,219 650,232 656,219" className="sf-head"/>
+  <text x="638" y="150" className="sf-edge" text-anchor="end">LayerZero，38 秒</text>
+  <text x="638" y="166" className="sf-edge" text-anchor="end">Stargate 手续费 6.000001</text>
+  <text x="662" y="158" className="sf-edge">2,993.999999</text>
+  <line x1="16" y1="188" x2="784" y2="188" className="sf-divide"/>
+
+  <text x="780" y="210" className="sf-chain sf-chain-eth" text-anchor="end">以太坊</text>
+
+  <rect x="615" y="236" width="165" height="64" rx="10" className="sf-box"/>
+  <text x="697" y="263" className="sf-label" text-anchor="middle">Stargate 资金池</text>
+  <text x="697" y="283" className="sf-sub" text-anchor="middle">放出 USDT</text>
+
+  <rect x="330" y="236" width="180" height="64" rx="10" className="sf-box sf-line-soft"/>
+  <text x="420" y="263" className="sf-label" text-anchor="middle">网关</text>
+  <text x="420" y="283" className="sf-sub" text-anchor="middle">settle 之前没有代码</text>
+
+  <path d="M615,268 L524,268" className="sf-line" marker-end="url(#xa)"/>
+  <text x="562" y="258" className="sf-edge" text-anchor="middle">2,993.999999</text>
+  <text x="562" y="286" className="sf-edge" text-anchor="middle">00:32:11</text>
+
+  <rect x="330" y="330" width="180" height="64" rx="10" className="sf-box"/>
+  <text x="420" y="357" className="sf-label" text-anchor="middle">GatewayFactory</text>
+  <text x="420" y="377" className="sf-sub" text-anchor="middle">settle，00:44:35</text>
+
+  <path d="M420,300 L420,316" className="sf-line" marker-end="url(#xa)"/>
+  <text x="432" y="319" className="sf-edge">在同一笔交易中部署并清空</text>
+
+  <rect x="20" y="330" width="170" height="64" rx="10" className="sf-box sf-box-key"/>
+  <text x="105" y="357" className="sf-label sf-on-key" text-anchor="middle">frUSD</text>
+  <text x="105" y="377" className="sf-label sf-on-key" text-anchor="middle">金库</text>
+
+  <path d="M330,362 L204,362" className="sf-line" marker-end="url(#xa)"/>
+  <text x="260" y="352" className="sf-edge" text-anchor="middle">2,993.999999</text>
+  <text x="260" y="380" className="sf-edge" text-anchor="middle">depositAndBridge</text>
+
+  <line x1="16" y1="420" x2="784" y2="420" className="sf-divide"/>
+  <text x="780" y="442" className="sf-chain sf-chain-btc" text-anchor="end">比特币 L1</text>
+
+  <path d="M105,394 L105,442" className="sf-line" marker-end="url(#xa)"/>
+  <text x="117" y="413" className="sf-edge">第 52 号付款</text>
+  <text x="117" y="436" className="sf-edge">扣除手续费后 2,989.017990</text>
+
+  <rect x="20" y="456" width="170" height="64" rx="10" className="sf-box sf-box-btc"/>
+  <text x="105" y="483" className="sf-label" text-anchor="middle">FROST</text>
+  <text x="105" y="503" className="sf-label" text-anchor="middle">签名组</text>
+
+  <rect x="330" y="456" width="180" height="64" rx="10" className="sf-box sf-box-btc"/>
+  <text x="420" y="483" className="sf-label" text-anchor="middle">frUSD</text>
+  <text x="420" y="503" className="sf-sub" text-anchor="middle">bc1pcpfr…qvhvqwd</text>
+
+  <path d="M192,488 L314,488" className="sf-line sf-line-heavy"/>
+  <polygon points="313,482 326,488 313,494" className="sf-head"/>
+  <text x="258" y="478" className="sf-edge" text-anchor="middle">铸造</text>
+</svg>
+</div>
+
+图中金额均为示例中的 USDT 数额；虚线框是网关，它在没有代码的状态下持有这笔存款，直到 `settle` 在同一笔交易中部署并清空它。
+
+## 路线
+
+目前有五条跨链路线的合约已经部署。每条路线从某条源链上的一种稳定币出发，到达以太坊时成为 frUSD 金库持有的两种代币之一。
+
+| 源链 | 代币 | 小数位数 | 到达以太坊时为 |
+|---|---|---|---|
+| BNB Chain | USDT | 18 | USDT（资产编号 1） |
+| BNB Chain | USDC | 18 | USDC（资产编号 0） |
+| Polygon | USDC | 6 | USDC（资产编号 0） |
+| Polygon | USDT0 | 6 | USDT（资产编号 1） |
+| Base | USDC | 6 | USDC（资产编号 0） |
+
+- **Base 没有 USDT 路线。** 那里没有对应的 Stargate 资金池。不在表中的组合均不受支持。
+- **Polygon 上的 USDT 的代币符号显示为 USDT0。** 它就是 Polygon 上的 USDT 合约（`0xc2132D05D31c914a87C6611C10748AEb04B58e8F`），到达时成为以太坊 USDT。
+- **Polygon 的 USDC 路线是原生 USDC，不是 USDC.e。**
+- **已在以太坊上的 USDC 或 USDT 无需跨链。** 存款地址在以太坊上接收一笔普通的 ERC-20 转账，可以来自钱包，也可以来自交易所提现。
+- **转发合约属于路线，而不属于链。** 每个 `Permit2SweepForwarder` 只为一条链上的一种代币而建，因此 BNB Chain 上有两个。同一个地址在另一条链上可能是另一个合约，因此客户端必须按链和代币查找转发合约，而不能只按链查找。地址列在下方的“合约”表中。
+
+## 意图
+
+一笔存款的一切都由一个 `DepositIntent` 确定。以下是它的字段（按顺序）以及示例中的取值：
+
+| 字段 | 含义 | 示例取值 |
+|---|---|---|
+| `assetId`（`uint8`） | 金库的资产编号：0 = USDC，1 = USDT。 | `1` |
+| `token`（`address`） | frUSD 金库在以太坊上为该编号持有的代币。 | `0xdAC17F958D2ee523a2206206994597C13D831ec7`（以太坊 USDT） |
+| `amount`（`uint256`） | 必须到达网关的精确金额，以代币的最小单位计。 | `2992000000`（2,992.000000 USDT） |
+| `recipientScriptHash`（`bytes32`） | 接收 frUSD 的比特币 scriptPubKey 的 keccak256。 | `0x615f28775040b5eecc619a53fce969d88d2a058566d0242818329a772bd723bb` |
+| `convertBps`（`uint32`） | 0 = 纯 frUSD；大于 0 时，按该基点比例的部分转换为 BTC。 | `0` |
+| `btcDestHash`（`bytes32`） | `convertBps` 大于 0 时为 BTC 目标的 keccak256，否则为零。 | 零 |
+| `maxSlippageBps`（`uint16`） | BTC 转换的滑点上限；`convertBps` 为 0 时不使用。 | `0` |
+| `refundAddress`（`address`） | 可追回存款的退回地址。零表示没有退款。 | 零地址 |
+| `expiry`（`uint64`） | Unix 秒。 | `1790805138`（2026-09-30 21:52:18 UTC） |
+| `nonce`（`uint256`） | 防重放；同时也是 Permit2 的 nonce。 | `1` |
+
+意图使用 EIP-712 进行哈希，域名为 `SUBFROST frUSD Gateway`，版本 `1`，chain id 1，验证合约（verifying contract）为 `GatewayFactory`。类型字符串是哈希的一部分，因此字段顺序和字段名也是哈希的一部分：
+
+```text
+DepositIntent(uint8 assetId,address token,uint256 amount,bytes32 recipientScriptHash,uint32 convertBps,bytes32 btcDestHash,uint16 maxSlippageBps,address refundAddress,uint64 expiry,uint256 nonce)
+
+typehash = 0xd0ba66893952bd61d59c1120e0819129666508130451c7f40bba1c37f5d730c5
+```
+
+每一个对意图做哈希的实现（合约、钱包、链下服务）都必须得到完全相同的字节。调换两个字段的顺序、改一个字段名，或者把较窄的整数紧凑打包而不是扩展到 32 字节，都会得到不同的哈希，从而得到不同的存款地址。示例意图的哈希为 `0xf00c4c2bb3e7a7f0553508e6d4da138400426a81ce6912c665bfde24dd9858da`；`GatewayFactory` 上的 `intentHashOf` 返回同一个值。
+
+从源链的角度看，有两个字段显得不太直观：
+
+- **`token` 指的是该路线到达以太坊时的代币（USDT 或 USDC）**，而不是源链上的代币。在示例中它是以太坊 USDT，尽管资金一开始是 BNB Chain 上的 USDT。意图属于以太坊一侧，在 `GatewayFactory` 的域下哈希，而金库持有的是以太坊上的 USDC 和 USDT，不是源链上的代币。如果意图的 `assetId` 和 `token` 不是转发合约所配置的那一对，转发合约会拒绝它。
+- **`amount` 是必须到达的金额，而不是发送的金额。** 如果网关持有的数额少于它，`settle` 会回滚。转发合约由它推导出跨链的最低到账额：`amount × 10^(source decimals - 6)`，因为金库的代币有 6 位小数。对两种 BNB Chain 代币（18 位小数）而言，这个系数是 10^12；在 Polygon 和 Base 上（6 位小数）是 1。客户端会把 `amount` 设得比跨链桥报价的到账额略低一些（客户端库默认的余量是 20 bps）：设得过高，存款就会卡住，因为 `settle` 会一直回滚，直到网关被补足（或者在意图设有退款地址时被 reclaim）；设得低一些则没有损失，因为超额到账会全部转入。在示例中，存款人针对 2,992.000000 的 `amount` 发送了 3,000.000000，因此 Stargate 的手续费扣除后仍高于最低到账额。
+
+## 一个哈希，四种用途
+
+意图哈希在两条链上的四个地方被使用：
+
+1. **网关的 CREATE2 盐值（salt）。** 哈希决定了存款地址。
+2. **源链上的 Permit2 见证。** 存款人的签名覆盖整份意图。转发合约把 Permit2 的 nonce 设为意图的 `nonce`，因此 Permit2 消耗的是这份意图本身，而不只是某一个签名：同一份意图不能被拉取两次，即使换一个转发合约也不行。
+3. **以太坊上的注册键。** `register` 以该哈希为键存储意图及其比特币脚本，一次性的 `consumed` 标记也以它为键。
+4. **`settle` 的参数。** `settle(intentHash, tokens)` 无需其他信息，就能找到意图、网关和收款方。
+
+结果是：跨链桥只携带一个地址和一个金额。转发合约发给 Stargate 的只有网关地址和稳定币，compose 消息为空。比特币收款方、资产、最低到账额和退款规则从不作为指令跨链传递；在任何代币移动之前，它们就已经由哈希固定下来了。
+
+## 存款地址（网关）
+
+每份意图都有自己的网关：它是同一个 `GatewayProxy` 实现合约的 EIP-1167 最小代理克隆，通过 CREATE2 部署，以意图哈希作为盐值。
+
+```text
+salt     = intentHash
+initCode = 3d602d80600a3d3981f3363d3d373d3d3d363d73 <implementation> 5af43d82803e903d91602b57fd5bf3
+gateway  = last20(keccak256(0xff ++ GatewayFactory ++ salt ++ keccak256(initCode)))
+
+# 示例
+GatewayFactory     = 0xaF4C39A0Da304eF39D56783d785ea52bb8431362
+implementation     = 0xdbA4c9fe841A7cf0b37B041126bA4d4640B4F296
+salt               = 0xf00c4c2bb3e7a7f0553508e6d4da138400426a81ce6912c665bfde24dd9858da
+keccak256(initCode) = 0xae78bd81aa686ad972e9cf69b3b526123eae9615a544c18a6b64819d63072968
+gateway            = 0x0d69fc4dc9c1d34bf63d76bf147a1e1e86065263
+```
+
+init code 只取决于实现合约的地址，因此网关完全由工厂地址和意图哈希决定。任何人都可以在一切尚不存在时推导出它：用上面的公式离线计算，调用 `GatewayFactory` 上的 `gatewayFor(intentHash)` 或 `gatewayForIntent(intent)`，或调用转发合约上的 `preview(intent, srcAmount)`。后者还会返回最低到账额、LayerZero 手续费报价以及 Stargate 预计送达的金额。
+
+网关只有在 `GatewayFactory` 调用它时才能转移代币；工厂地址固定在实现合约的代码中。工厂只从意图哈希所覆盖的字段中选择去向：意图的代币转给工厂自己（以便转入金库），其他一切转给 `refundAddress`。
+
+在示例中，Stargate 资金池于 UTC 00:32:11 把 2,993.999999 USDT 支付进网关，当时该地址没有代码。它就这样持有这笔存款约 12 分钟，并在 00:44:35 那笔清空它的 `settle` 交易中获得了代码。网关永远不会自毁，因此一个地址一旦有了代码，就会一直保留。
+
+:::danger[存款地址只存在于以太坊上]
+网关由以太坊上的 `GatewayFactory` 推导，也只部署在以太坊上。同一个十六进制地址在 BNB Chain、Polygon 或 Base 上并不是存款地址。在任何其他链上发送到该地址的代币，都无法通过本系统追回。
+:::
+
+## 比特币地址是一个承诺
+
+意图只携带 `recipientScriptHash`，即比特币 scriptPubKey 的 keccak256。源链从头到尾看不到这个地址。
+
+以太坊上的 `register` 公开脚本，并检查其 keccak256 是否等于 `recipientScriptHash`。任何人都可以调用它，而且这是安全的：不同的脚本有不同的哈希，因此属于另一份意图，其网关是另一个没有资金的地址。`register` 还只接受标准脚本形式（P2WPKH、P2WSH、P2TR、P2SH、P2PKH），其他一律回滚，因为金库存储收款方时不会对其做检查。
+
+可以这样复核示例：
+
+```text
+# register 公开的 scriptPubKey（34 字节，P2TR：OP_1、PUSH32、32 字节公钥）
+recipientScript   = 5120c052331c3d07822a338e86cd14d3d011e21e562380ea96f6093f7cc233dab49e
+
+# 对这 34 字节做 keccak256
+keccak256(script) = 0x615f28775040b5eecc619a53fce969d88d2a058566d0242818329a772bd723bb
+                  = intent.recipientScriptHash
+
+# 同一脚本的 bech32m 地址（见证版本 1，5120 之后的 32 字节）
+address           = bc1pcpfrx8paq7pz5vuwsmx3f57sz83pu43rsr4fdasf8a7vyv76kj0qvhvqwd
+```
+
+## register、settle、reclaim
+
+以太坊上的 `GatewayFactory` 有三个存款人需要了解的调用，三者都无需许可。
+
+| 调用 | 谁可以调用 | 检查什么 | 支付什么 | Gas 退款 |
+|---|---|---|---|---|
+| `register(intent, recipientScript, btcDestination)` | 任何人 | 意图尚未注册。每个脚本的 keccak256 与意图中的哈希一致。金库的 `assets(assetId)` 等于 `token`。脚本是标准形式，且 `convertBps` 不超过 10,000。 | 不支付。它存储意图和脚本。 | 无 |
+| `settle(intentHash, tokens)` | 任何人 | 意图已注册且尚未被消耗。若设置了退款地址，则意图未过期。`tokens` 恰好包含一次意图的代币（最多 8 项）。网关持有的数额至少为 `amount`。 | 必要时部署网关并清空它。意图的代币通过 `depositAndBridge` 存入 frUSD 金库；列出的其他代币转给 `refundAddress`。 | 有，来自备用金，尽力而为 |
+| `reclaim(intentHash, token)` | 任何人 | 意图已注册且 `refundAddress` 非零。意图已过期，或代币不是意图的代币，或余额低于 `amount`，或意图已经结算。 | 网关中该代币的全部余额，只能转给 `refundAddress`。 | 无 |
+
+`settleMany` 可在一次调用中结算最多 16 份意图，整批只退一次 gas。`reclaimETH` 退回被误发到网关的 ETH，同样只能转给 `refundAddress`。
+
+对存款人而言重要的规则：
+
+- **到账不足无法结算。** 如果到账少于 `amount`，`settle` 会回滚。`reclaim` 是一条出路，而它需要一个退款地址。另一条出路是在以太坊上再转入同一种代币，使网关余额达到 `amount`，之后 `settle` 就重新有效；但如果意图设有退款地址且已过期，就只能走 `reclaim`。
+- **超额到账会全部转入。** 多出的部分与其余资金一起进入金库。示例就是超额到账：针对 2,992.000000 的 `amount`，到账 2,993.999999。
+- **只有设置了退款地址时，到期才会阻止 `settle`。** 有退款地址时，过期的存款归 `reclaim` 处理。没有退款地址时，`settle` 在到期后依然有效，因为转入金库是存款人拿到钱的唯一途径。
+- **`refundAddress` 为零意味着完全没有退款途径。** `reclaim` 和 `reclaimETH` 总是以 `NoRefundAddress` 回滚；如果要求 `settle` 转移任何其他代币，它也会回滚。发送到这种网关的错误代币或 ETH，任何调用都无法转出。示例使用的就是零退款地址。
+- **非零的退款地址才使错误可以挽回。** 错误的代币、不足额的存款、过期的存款，或在结算之后到达的任何资金，都可以由任何人退回到该地址，因为它是 `reclaim` 唯一能使用的去向。
+
+`settle` 会从 SUBFROST 运营方在 `GatewayFactory` 上注资的一笔备用金（float）中，以 ETH 报销调用者的 gas。每次调用的退款有上限，计价不超过区块基础费用加上一个有上限的小费。备用金为空时，结算照常进行：调用者得不到报销，工厂会发出 `GasRefundShortfall` 事件。读取本页数据时，备用金为 0 wei，因此调用者是自己支付 gas 的。
+
+工厂的所有者可以设置退款参数，并提取备用金中的 ETH。它没有任何途径转移已存入的代币，也无法改变一笔结算的去向。
+
+## 源链上的中继方
+
+已签名的意图在源链上由一个中继方（relayer）广播，它调用 `Permit2SweepForwarder` 上的 `sweepAndBridge(intent, owner, srcAmount, deadline, signature)`。任何人都可以调用。中继方能做什么、不能做什么，由合约决定：
+
+- **它无法改变资金去向。** 与目的地有关的一切都不是参数。转发合约用与 `GatewayFactory` 相同的代码，从已签名的意图重新推导意图哈希和网关地址。
+- **它无法接受糟糕的成交。** Stargate 必须送达的最低金额由意图推导而来（`amount × 10^(source decimals - 6)`），因此当送达金额会低于 `settle` 可接受的数额时，Stargate 会回滚。
+- **它无法让资金停在半路。** Permit2 拉取和 Stargate 发送在同一笔交易中。如果跨链回滚，拉取也随之回滚，存款人的钱包里不会有任何资金离开。
+- **它无法在别处复用签名。** Permit2 把支出方（spender）绑定为转发合约，因此该签名只能由这条链上的这个转发合约兑现。
+- **它唯一能选择的，是何时广播以及支付多少原生手续费。** 两者花的都是它自己的钱：它支付 gas 和 LayerZero 手续费，Stargate 会把未用完的原生手续费退还给它。
+
+Permit2 只能转移它已获得授权额度的代币，因此在第一笔存款之前，该链上的这种稳定币必须已有给 Permit2 的授权：`approve(Permit2, max)`，每条链上每种代币一生只需一次。BNB Chain 上的 USDT 没有 `permit`，所以在那里这笔授权只能通过一笔交易设置。之后的每一笔存款都只需签名。Permit2 的截止时间最多可以比广播时刻晚 7 天；截止时间更晚的签名会被拒绝。
+
+## 手续费
+
+| 步骤 | USDT | 规则 |
+|---|---|---|
+| 在 BNB Chain 上发送 | 3,000.000000 | |
+| Stargate 手续费 | 6.000001 | 发送额减去到账额。这是 Stargate 的手续费，本次存款为 0.2%，由 Stargate 设定，而非 SUBFROST。它并不固定：随当时资金池的余额而变化，因此在签名之前会实时报价（`quoteOFT`）。 |
+| 到达网关 | 2,993.999999 | `settle` 转入的金额。 |
+| 金库固定费用 | 1.990000 | `flatFee()` |
+| 金库协议费用 | 2.992009 | `protocolFeeBps()` = 10，按扣除固定费用后的余额计算，向下取整 |
+| 为比特币排队 | 2,989.017990 | 第 52 号付款 |
+| **合计** | **10.982010** | 3,000.000000 的 0.366% |
+
+顺序是固定的：Stargate 在途中收取手续费，因此金库只看到到账的金额。随后金库先收取固定费用，再对剩余部分收取百分比费用。两项金库费用都在 `settle` 时实时读取，可以在链上修改；它们同样适用于跨链转出。当前数值请参阅 [frUSD 概览](../tokens/frUSD-overview)。
+
+网络成本是另外的。在这笔存款中，中继方支付了 BNB Chain 的 gas（453,336）和 LayerZero 手续费（0.002225801385214171 BNB）。在以太坊上，`register` 用了 253,158 gas，`settle` 用了 628,204 gas，由各自的发送者支付。
+
+## 金库记录了什么
+
+frUSD 金库把每笔存款存为一笔付款。第 52 号付款，即 `getPayment(52)` 的返回值：
+
+```text
+getPayment(52)
+  depositor    0xaF4C39A0Da304eF39D56783d785ea52bb8431362   # GatewayFactory，而不是用户
+  assetAmount  2989017990                                   # 2,989.017990 USDT，已扣除手续费
+  bridgeData   0x12225120c052331c3d07822a338e86cd14d3d011e21e562380ea96f6093f7cc233dab49e
+  timestamp    1790729075                                   # 2026-09-30 00:44:35 UTC
+  assetId      1                                            # USDT
+```
+
+- **`depositor` 是 `GatewayFactory`。** 是工厂调用了金库，因此它被记录为存款人。比特币上付给谁，只由 `bridgeData` 决定。
+- **`bridgeData` 是 protobuf 字段 2 加上脚本：** `0x12`（字段 2，bytes 类型）、`0x22`（长度 34），然后是 `register` 时提交的 34 字节 scriptPubKey。金库原样存储它，从不解析；工厂根据已注册的脚本构建它，并在每次调用金库之前进行校验。
+- **`frAmount` 在存款时就已固定。** 存储的记录和 `PaymentQueued` 事件都带有 `frAmount` = 298,901,799,000，即以 frUSD 的 8 位小数表示的同一数值，因此 6 位到 8 位小数的换算在付款排队时就已确定。
+
+付款上没有“已处理”标记。比特币上的 alkane 记录自己已经铸造到哪一笔，一次铸造的“至多一次”键是（金库地址，付款编号）这一对。从以太坊上，你能看到一笔付款已经排队，但看不到它是否已经铸造。
+
+## 储备
+
+每次存款时，金库在把付款排入队列后，会把闲置的 USDT 转入它的 Curve 3pool 策略，但只在闲置余额（不含手续费）达到 `minSweep`，即 1,000 USDT 时才转。较小的存款会留在金库中，与之后的存款一起转入。这就是这次 `settle` 转出 3,011.989995 USDT 的原因：本次付款的 2,989.017990，加上第 51 号付款留下的闲置 22.972005。第 51 号付款是更早的一份 24.984999 USDT 的意图，于 2026-09-29 20:22:47 UTC 结算，当时闲置余额未达到 `minSweep`。手续费从不转入策略，它们留在金库中。
+
+:::note[给集成方]
+触发转入策略的 `settle` 会消耗更多 gas：本次为 628,204，而之前那次没有转入的 `settle` 为 403,384。如果 gas 上限是按不转入的路径设定的，那么每当某笔存款触发转入时都会失败，因此请按转入的路径来设定上限。
+:::
+
+`pending(assetId)` 是该资产历来所有排队净额的累计值，从不减少。它不是未偿负债。2026 年 10 月 1 日读取时，`pending(1)` 为 1,364,365.728510 USDT，高于金库的持有量：闲置 1,504.071913（恰好等于 `feesCollected`），加上策略中的 1,362,094.122333。当时金库共有 53 笔付款。
+
+## 示例全程
+
+| 时间（UTC） | 链 | 发生了什么 | 交易 |
+|---|---|---|---|
+| 2026-09-29 21:52:35 | 以太坊 | `register`：意图和比特币脚本以哈希 `0xf00c…58da` 为键存储。253,158 gas。 | [0x4fce…2e1a](https://etherscan.io/tx/0x4fce8c88d60aa3050726b17704c1d743b05563a44f6e6d077f083c8e2d8e2e1a) |
+| 2026-09-30 00:31:33 | BNB Chain | `sweepAndBridge`：Permit2 拉取 3,000.000000 USDT，转发合约调用 Stargate `sendToken` 发往网关。中继方支付 453,336 gas 和 0.002225801385214171 BNB 的 LayerZero 手续费。 | [0x8611…8767](https://bscscan.com/tx/0x8611ead789ba2546a00604793cb28db2098d8330dbfd075f6b6d936722208767) |
+| 2026-09-30 00:32:11 | 以太坊 | 38 秒后，Stargate 资金池把 2,993.999999 USDT 放给网关，此时网关没有代码。 | [0xa4cd…fd15](https://etherscan.io/tx/0xa4cd35770fb089361e66981da91e9ff6d83cd033b30137cbc8f959856f6efd15)，[LayerZero 消息](https://layerzeroscan.com/tx/0x8611ead789ba2546a00604793cb28db2098d8330dbfd075f6b6d936722208767) |
+| 2026-09-30 00:44:35 | 以太坊 | `settle`：网关被部署并清空，2,993.999999 USDT 进入 frUSD 金库，第 52 号付款以 2,989.017990 排队，金库把 3,011.989995 USDT 转入策略。628,204 gas。 | [0xd0ec…46cd](https://etherscan.io/tx/0xd0ec299b18a3dc126c89e521e330e9102c5e67b49940abb2cbc14d337f5c46cd) |
+
+从 BNB Chain 上发送到付款排队，共用时 13 分 2 秒。`register` 和 `settle` 由存款人自己的钱包发送；这两个调用对任何人开放。
+
+## 合约
+
+| 合约 | 链 | 地址 | 作用 |
+|---|---|---|---|
+| `GatewayFactory` | 以太坊 | `0xaF4C39A0Da304eF39D56783d785ea52bb8431362` | 推导网关；`register`、`settle`、`reclaim`；转入金库。 |
+| `GatewayProxy` 实现合约 | 以太坊 | `0xdbA4c9fe841A7cf0b37B041126bA4d4640B4F296` | 每个网关所克隆的代码。 |
+| `Permit2SweepForwarder`（USDT） | BNB Chain | `0xb24bccc6256309d0dff6883ab874e84179d53da9` | 通过 Permit2 拉取 USDT 并跨链发往网关。 |
+| `Permit2SweepForwarder`（USDC） | BNB Chain | `0x9A2Bd5Ab5A9fB426d7F754eae14B54b3C3F93F19` | 通过 Permit2 拉取 USDC 并跨链发往网关。 |
+| `Permit2SweepForwarder`（USDC） | Polygon | `0xb24bccc6256309d0dff6883ab874e84179d53da9` | 通过 Permit2 拉取 USDC 并跨链发往网关。 |
+| `Permit2SweepForwarder`（USDT0） | Polygon | `0x24167a1b385145057bdc93aabf5dbe2047e5c7c6` | 通过 Permit2 拉取 USDT0 并跨链发往网关。 |
+| `Permit2SweepForwarder`（USDC） | Base | `0x24167a1b385145057bdc93aabf5dbe2047e5c7c6` | 通过 Permit2 拉取 USDC 并跨链发往网关。 |
+| Stargate 资金池（USDT） | BNB Chain | `0x138EB30f73BC423c6455C53df6D89CB01d9eBc63` | 在 BNB Chain 上接收 USDT。 |
+| Stargate 资金池（USDC） | BNB Chain | `0x962Bd449E630b0d928f308Ce63f1A21F02576057` | 在 BNB Chain 上接收 USDC。 |
+| Stargate 资金池（USDC） | Polygon | `0x9Aa02D4Fae7F58b8E8f34c66E756cC734DAc7fe4` | 在 Polygon 上接收 USDC。 |
+| Stargate 资金池（USDT0） | Polygon | `0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7` | 在 Polygon 上接收 USDT0。 |
+| Stargate 资金池（USDC） | Base | `0x27a16dc786820B16E5c9028b75B99F6f604b5d26` | 在 Base 上接收 USDC。 |
+| Stargate 资金池（USDT） | 以太坊 | `0x933597a323Eb81cAe705C5bC29985172fd5A3973` | 在以太坊上把 USDT 放给网关。 |
+| Stargate 资金池（USDC） | 以太坊 | `0xc026395860Db2d07ee33e05fE50ed7bD583189C7` | 在以太坊上把 USDC 放给网关。 |
+| Permit2 | BNB Chain、Polygon、Base | `0x000000000022D473030F116dDEE9F6B43aC78BA3` | 转发合约所使用的标准 Permit2，在所列的每条链上地址相同。 |
+| frUSD 金库（代理） | 以太坊 | `0x95779E7E1C943042255B8a78273fe6DE4823CF06` | 接收存款，并为比特币排队付款。 |
+| frUSD 金库实现合约 | 以太坊 | `0x5376beedba9ba7f5b0396d28bd75473027b8bd55` | 金库代理背后的代码。 |
+| frUSD 金库策略 | 以太坊 | `0x5c5d66c82e2c634074661c3e7427668737c70100` | 在 Curve 3pool 中持有储备。 |
+
+`Permit2Gateway`，即针对已在以太坊上的资金的免 gas 路径，尚未部署。
+
+## 接下来可以看看
+
+- [frUSD 概览](../tokens/frUSD-overview)：frUSD 是什么、它的信任模型，以及受支持的以太坊存款。
+- [frBTC 锚定与托管](./frbtc-peg-and-custody)：基于 FROST 和 ROAST 的门限托管，以它在 frBTC 中的运作为例。
+- [签名与密钥](./signing-and-keys)：签名组背后的门限签名。
+- [BTC/USD 命令](../api-reference/cli-sdk/btcusd)：通过命令行准备一笔以太坊 frUSD 存款。

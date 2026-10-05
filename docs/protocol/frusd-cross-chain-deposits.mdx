@@ -1,0 +1,340 @@
+---
+title: frUSD Deposits from Other Chains
+sidebar_label: frUSD from Other Chains
+sidebar_position: 6
+description: How a stablecoin deposit on BNB Chain, Polygon or Base becomes frUSD on Bitcoin, through one signed intent, a deposit address that exists only on Ethereum, and the frUSD vault.
+---
+
+# frUSD Deposits from Other Chains
+
+:::info[Status: in testing]
+The contracts on this page are live on Ethereum, BNB Chain, Polygon and Base. Deposits have gone through the BNB Chain USDT route, up to a payment queued in the frUSD vault for minting on Bitcoin. There is no public way in yet: the SUBFROST app has no screen for it, and the signed deposit on the source chain is broadcast by the SUBFROST operators. This page explains the mechanism; it is not a how-to. The supported way to mint frUSD from USDC or USDT today is the Ethereum deposit in [frUSD Overview](../tokens/frUSD-overview).
+:::
+
+The frUSD vault lives on Ethereum. This page shows how stablecoins that start on BNB Chain, Polygon or Base reach it, by following one real deposit (BNB Chain USDT): 3,000.000000 USDT sent on BNB Chain on 30 September 2026, which became payment #52 in the frUSD vault, 2,989.017990 USDT owed as frUSD on Bitcoin.
+
+## The short version
+
+1. **The depositor signs one intent on the source chain.** It is a Permit2 signature whose witness is a `DepositIntent`: the asset, the exact amount, a hash of the Bitcoin recipient, the refund rule, an expiry and a nonce.
+2. **The forwarder pulls the stablecoin and bridges it.** The `Permit2SweepForwarder` pulls the stablecoin with Permit2 and hands it to the Stargate pool, addressed to a deposit address (the gateway) on Ethereum that is derived from the intent.
+3. **LayerZero delivers it.** The Stargate pool on Ethereum pays the stablecoin to the gateway, which has no code yet.
+4. **`settle` sweeps it into the vault.** One call on the `GatewayFactory` deploys the gateway, sweeps it and deposits the stablecoin into the frUSD vault.
+5. **The vault queues a payment.** The FROST signer group mints the matching frUSD on Bitcoin, to the script the intent committed to.
+
+<div className="sf-diagram">
+<svg viewBox="0 0 800 536" role="img" aria-label="A USDT deposit from BNB Chain to frUSD on Bitcoin. On BNB Chain the depositor's signed intent lets the Permit2SweepForwarder pull 3,000.000000 USDT and hand it to the Stargate pool. LayerZero delivers 2,993.999999 USDT to the Stargate pool on Ethereum, which pays it to a gateway that has no code yet. settle on the GatewayFactory deploys and sweeps the gateway and deposits 2,993.999999 into the frUSD vault, which queues payment 52 for 2,989.017990 after fees. The FROST signer group mints frUSD on Bitcoin.">
+  <defs>
+    <marker id="xa" viewBox="-1 -1 13 12" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="13" markerHeight="12" orient="auto"><path d="M0,0 L10,5 L0,10 z" className="sf-arrow"/></marker>
+  </defs>
+  <text x="780" y="24" className="sf-chain sf-chain-bnb" text-anchor="end">BNB CHAIN</text>
+
+  <rect x="20" y="40" width="160" height="64" rx="10" className="sf-box"/>
+  <text x="100" y="67" className="sf-label" text-anchor="middle">Depositor</text>
+  <text x="100" y="87" className="sf-sub" text-anchor="middle">signs one intent</text>
+
+  <rect x="290" y="40" width="210" height="64" rx="10" className="sf-box"/>
+  <text x="395" y="67" className="sf-label" text-anchor="middle">Permit2SweepForwarder</text>
+  <text x="395" y="87" className="sf-sub" text-anchor="middle">pull and bridge, one transaction</text>
+
+  <rect x="615" y="40" width="165" height="64" rx="10" className="sf-box"/>
+  <text x="697" y="67" className="sf-label" text-anchor="middle">Stargate pool</text>
+  <text x="697" y="87" className="sf-sub" text-anchor="middle">takes the USDT in</text>
+
+  <path d="M180,72 L276,72" className="sf-line" marker-end="url(#xa)"/>
+  <text x="235" y="62" className="sf-edge" text-anchor="middle">3,000.000000</text>
+  <text x="235" y="90" className="sf-edge" text-anchor="middle">Permit2</text>
+  <path d="M500,72 L601,72" className="sf-line" marker-end="url(#xa)"/>
+  <text x="557" y="62" className="sf-edge" text-anchor="middle">3,000.000000</text>
+  <text x="557" y="90" className="sf-edge" text-anchor="middle">sendToken</text>
+
+  <line x1="16" y1="122" x2="784" y2="122" className="sf-divide"/>
+  <path d="M650,104 L650,220" className="sf-line sf-line-heavy"/>
+  <polygon points="644,219 650,232 656,219" className="sf-head"/>
+  <text x="638" y="150" className="sf-edge" text-anchor="end">LayerZero, 38 s</text>
+  <text x="638" y="166" className="sf-edge" text-anchor="end">Stargate fee 6.000001</text>
+  <text x="662" y="158" className="sf-edge">2,993.999999</text>
+  <line x1="16" y1="188" x2="784" y2="188" className="sf-divide"/>
+
+  <text x="780" y="210" className="sf-chain sf-chain-eth" text-anchor="end">ETHEREUM</text>
+
+  <rect x="615" y="236" width="165" height="64" rx="10" className="sf-box"/>
+  <text x="697" y="263" className="sf-label" text-anchor="middle">Stargate pool</text>
+  <text x="697" y="283" className="sf-sub" text-anchor="middle">releases the USDT</text>
+
+  <rect x="330" y="236" width="180" height="64" rx="10" className="sf-box sf-line-soft"/>
+  <text x="420" y="263" className="sf-label" text-anchor="middle">gateway</text>
+  <text x="420" y="283" className="sf-sub" text-anchor="middle">no code until settle</text>
+
+  <path d="M615,268 L524,268" className="sf-line" marker-end="url(#xa)"/>
+  <text x="562" y="258" className="sf-edge" text-anchor="middle">2,993.999999</text>
+  <text x="562" y="286" className="sf-edge" text-anchor="middle">00:32:11</text>
+
+  <rect x="330" y="330" width="180" height="64" rx="10" className="sf-box"/>
+  <text x="420" y="357" className="sf-label" text-anchor="middle">GatewayFactory</text>
+  <text x="420" y="377" className="sf-sub" text-anchor="middle">settle, 00:44:35</text>
+
+  <path d="M420,300 L420,316" className="sf-line" marker-end="url(#xa)"/>
+  <text x="432" y="319" className="sf-edge">deployed and swept in one transaction</text>
+
+  <rect x="20" y="330" width="170" height="64" rx="10" className="sf-box sf-box-key"/>
+  <text x="105" y="357" className="sf-label sf-on-key" text-anchor="middle">frUSD</text>
+  <text x="105" y="377" className="sf-label sf-on-key" text-anchor="middle">vault</text>
+
+  <path d="M330,362 L204,362" className="sf-line" marker-end="url(#xa)"/>
+  <text x="260" y="352" className="sf-edge" text-anchor="middle">2,993.999999</text>
+  <text x="260" y="380" className="sf-edge" text-anchor="middle">depositAndBridge</text>
+
+  <line x1="16" y1="420" x2="784" y2="420" className="sf-divide"/>
+  <text x="780" y="442" className="sf-chain sf-chain-btc" text-anchor="end">BITCOIN L1</text>
+
+  <path d="M105,394 L105,442" className="sf-line" marker-end="url(#xa)"/>
+  <text x="117" y="413" className="sf-edge">payment #52</text>
+  <text x="117" y="436" className="sf-edge">2,989.017990 after fees</text>
+
+  <rect x="20" y="456" width="170" height="64" rx="10" className="sf-box sf-box-btc"/>
+  <text x="105" y="483" className="sf-label" text-anchor="middle">FROST</text>
+  <text x="105" y="503" className="sf-label" text-anchor="middle">signer group</text>
+
+  <rect x="330" y="456" width="180" height="64" rx="10" className="sf-box sf-box-btc"/>
+  <text x="420" y="483" className="sf-label" text-anchor="middle">frUSD</text>
+  <text x="420" y="503" className="sf-sub" text-anchor="middle">bc1pcpfr…qvhvqwd</text>
+
+  <path d="M192,488 L314,488" className="sf-line sf-line-heavy"/>
+  <polygon points="313,482 326,488 313,494" className="sf-head"/>
+  <text x="258" y="478" className="sf-edge" text-anchor="middle">mints</text>
+</svg>
+</div>
+
+Amounts are USDT from the worked example; the dashed box is the gateway, which held the deposit with no code until `settle` deployed it and emptied it in the same transaction.
+
+## Routes
+
+Five bridged routes have their contracts deployed. Each starts with a stablecoin on a source chain and arrives on Ethereum as one of the two tokens the frUSD vault holds.
+
+| Source chain | Token | Decimals | Arrives on Ethereum as |
+|---|---|---|---|
+| BNB Chain | USDT | 18 | USDT (asset id 1) |
+| BNB Chain | USDC | 18 | USDC (asset id 0) |
+| Polygon | USDC | 6 | USDC (asset id 0) |
+| Polygon | USDT0 | 6 | USDT (asset id 1) |
+| Base | USDC | 6 | USDC (asset id 0) |
+
+- **Base has no USDT route.** There is no Stargate pool for it. A pair that is not in the table is not supported.
+- **Polygon's USDT reports its symbol as USDT0.** It is the USDT contract on Polygon (`0xc2132D05D31c914a87C6611C10748AEb04B58e8F`), and it arrives as Ethereum USDT.
+- **The Polygon USDC route is native USDC, not USDC.e.**
+- **USDC or USDT already on Ethereum needs no bridge.** The deposit address receives an ordinary ERC-20 transfer on Ethereum, from a wallet or an exchange withdrawal.
+- **A forwarder belongs to a route, not to a chain.** Each `Permit2SweepForwarder` is built for one token on one chain, so BNB Chain has two. The same address can be a different contract on another chain, so a client must look a forwarder up by chain and token, never by chain alone. The addresses are in the Contracts table below.
+
+## The intent
+
+Everything about a deposit is fixed by one `DepositIntent`. These are its fields, in order, with the values of the worked example:
+
+| Field | What it holds | Worked example |
+|---|---|---|
+| `assetId` (`uint8`) | The vault's asset id: 0 = USDC, 1 = USDT. | `1` |
+| `token` (`address`) | The token the frUSD vault holds for that id, on Ethereum. | `0xdAC17F958D2ee523a2206206994597C13D831ec7` (Ethereum USDT) |
+| `amount` (`uint256`) | The exact amount that must arrive at the gateway, in the token's base units. | `2992000000` (2,992.000000 USDT) |
+| `recipientScriptHash` (`bytes32`) | keccak256 of the Bitcoin scriptPubKey that receives the frUSD. | `0x615f28775040b5eecc619a53fce969d88d2a058566d0242818329a772bd723bb` |
+| `convertBps` (`uint32`) | 0 = pure frUSD; above 0, that share in basis points is converted to BTC. | `0` |
+| `btcDestHash` (`bytes32`) | keccak256 of the BTC destination when `convertBps` is above 0, else zero. | zero |
+| `maxSlippageBps` (`uint16`) | Slippage limit for the BTC conversion; unused when `convertBps` is 0. | `0` |
+| `refundAddress` (`address`) | Where a recoverable deposit is returned. Zero means no refund. | zero address |
+| `expiry` (`uint64`) | Unix seconds. | `1790805138` (2026-09-30 21:52:18 UTC) |
+| `nonce` (`uint256`) | Anti-replay; also the Permit2 nonce. | `1` |
+
+The intent is hashed with EIP-712 under the domain name `SUBFROST frUSD Gateway`, version `1`, chain id 1, and the `GatewayFactory` as verifying contract. The type string is part of the hash, so the field order and the field names are part of it too:
+
+```text
+DepositIntent(uint8 assetId,address token,uint256 amount,bytes32 recipientScriptHash,uint32 convertBps,bytes32 btcDestHash,uint16 maxSlippageBps,address refundAddress,uint64 expiry,uint256 nonce)
+
+typehash = 0xd0ba66893952bd61d59c1120e0819129666508130451c7f40bba1c37f5d730c5
+```
+
+Every implementation that hashes an intent (the contracts, a wallet, an off-chain service) must produce the same bytes. Reordering two fields, renaming one, or packing the narrow integers instead of widening them to 32 bytes gives a different hash, and with it a different deposit address. The worked example's intent hash is `0xf00c4c2bb3e7a7f0553508e6d4da138400426a81ce6912c665bfde24dd9858da`; `intentHashOf` on the `GatewayFactory` returns the same value.
+
+Two fields read oddly from the source chain's side:
+
+- **`token` names the Ethereum token the route arrives as (USDT or USDC)**, not the token on the source chain. In the worked example that is Ethereum USDT, although the money started as USDT on BNB Chain. The intent is the Ethereum side's object, hashed under the `GatewayFactory`'s domain, and the vault holds Ethereum USDC and USDT, not the source chain's tokens. The forwarder refuses an intent whose `assetId` and `token` are not the pair it is wired for.
+- **`amount` is what must arrive, not what is sent.** `settle` reverts if the gateway holds less. The forwarder derives the bridge floor from it: `amount × 10^(source decimals - 6)`, because the vault's tokens have 6 decimals. That factor is 10^12 for both BNB Chain tokens (18 decimals) and 1 on Polygon and Base (6 decimals). A client sets `amount` a little below the bridge's quoted arrival (the client library's default slack is 20 bps): set too high, the deposit is stranded, because `settle` reverts until the gateway is topped up (or reclaimed, if the intent has a refund address); set lower, nothing is lost, because over-funding is relayed in full. In the worked example the depositor sent 3,000.000000 against an `amount` of 2,992.000000, so Stargate's fee fit above the floor.
+
+## One hash, four jobs
+
+The intent hash is used in four places, on two chains:
+
+1. **The CREATE2 salt of the gateway.** The hash fixes the deposit address.
+2. **The Permit2 witness on the source chain.** The depositor's signature covers the whole intent. The forwarder sets the Permit2 nonce to the intent's `nonce`, so Permit2 spends the intent itself, not just one signature: the same intent cannot be pulled twice, even through another forwarder.
+3. **The registration key on Ethereum.** `register` stores the intent and its Bitcoin script under the hash, and the single-use `consumed` flag is keyed by it.
+4. **The argument to `settle`.** `settle(intentHash, tokens)` needs nothing else to find the intent, the gateway and the recipient.
+
+The consequence: the bridge carries only an address and an amount. The forwarder sends Stargate the gateway address and the stablecoin, with an empty compose message. The Bitcoin recipient, the asset, the amount floor and the refund rule never cross chains as instructions; they were fixed by the hash before any token moved.
+
+## The deposit address (the gateway)
+
+Each intent gets its own gateway: an EIP-1167 minimal-proxy clone of one `GatewayProxy` implementation, deployed with CREATE2 and salted with the intent hash.
+
+```text
+salt     = intentHash
+initCode = 3d602d80600a3d3981f3363d3d373d3d3d363d73 <implementation> 5af43d82803e903d91602b57fd5bf3
+gateway  = last20(keccak256(0xff ++ GatewayFactory ++ salt ++ keccak256(initCode)))
+
+# worked example
+GatewayFactory     = 0xaF4C39A0Da304eF39D56783d785ea52bb8431362
+implementation     = 0xdbA4c9fe841A7cf0b37B041126bA4d4640B4F296
+salt               = 0xf00c4c2bb3e7a7f0553508e6d4da138400426a81ce6912c665bfde24dd9858da
+keccak256(initCode) = 0xae78bd81aa686ad972e9cf69b3b526123eae9615a544c18a6b64819d63072968
+gateway            = 0x0d69fc4dc9c1d34bf63d76bf147a1e1e86065263
+```
+
+The init code depends only on the implementation address, so the gateway is a pure function of the factory and the intent hash. Anyone can derive it before anything exists: offline with the formula above, with `gatewayFor(intentHash)` or `gatewayForIntent(intent)` on the `GatewayFactory`, or with `preview(intent, srcAmount)` on the forwarder, which also returns the floor, the LayerZero fee quote and the amount Stargate expects to deliver.
+
+A gateway can only move tokens when the `GatewayFactory` calls it; the factory address is fixed in the implementation's code. The factory picks destinations only from fields inside the intent hash: itself for the intent's token (to relay into the vault), and `refundAddress` for anything else.
+
+In the worked example the Stargate pool paid 2,993.999999 USDT into the gateway at 00:32:11 UTC, when the address had no code. It held the deposit that way for about 12 minutes, and got its code at 00:44:35 in the same `settle` transaction that emptied it. Gateways never self-destruct, so once an address has code it keeps that code.
+
+:::danger[The deposit address exists only on Ethereum]
+The gateway is derived from the `GatewayFactory` on Ethereum and is deployed only there. The same hex on BNB Chain, Polygon or Base is not a deposit address. Tokens sent to it on any other chain cannot be recovered by this system.
+:::
+
+## The Bitcoin address is a commitment
+
+The intent carries only `recipientScriptHash`, the keccak256 of the Bitcoin scriptPubKey. The source chain never sees the address.
+
+`register` on Ethereum reveals the script and checks that its keccak256 equals `recipientScriptHash`. Anyone may call it, and that is safe: a different script has a different hash, so it belongs to a different intent, whose gateway is a different address with no money at it. `register` also accepts only standard script forms (P2WPKH, P2WSH, P2TR, P2SH, P2PKH) and reverts on anything else, because the vault stores the recipient without checking it.
+
+To re-check the worked example:
+
+```text
+# the scriptPubKey revealed by register (34 bytes, P2TR: OP_1, PUSH32, 32-byte key)
+recipientScript   = 5120c052331c3d07822a338e86cd14d3d011e21e562380ea96f6093f7cc233dab49e
+
+# keccak256 over those 34 bytes
+keccak256(script) = 0x615f28775040b5eecc619a53fce969d88d2a058566d0242818329a772bd723bb
+                  = intent.recipientScriptHash
+
+# the same script as a bech32m address (witness version 1, the 32 bytes after 5120)
+address           = bc1pcpfrx8paq7pz5vuwsmx3f57sz83pu43rsr4fdasf8a7vyv76kj0qvhvqwd
+```
+
+## Register, settle, reclaim
+
+The `GatewayFactory` on Ethereum has three calls a depositor needs to know. All three are permissionless.
+
+| Call | Who may call | What it checks | What it pays out | Gas refund |
+|---|---|---|---|---|
+| `register(intent, recipientScript, btcDestination)` | Anyone | The intent is not registered yet. keccak256 of each script matches the hash in the intent. The vault's `assets(assetId)` is `token`. The scripts are standard and `convertBps` is at most 10,000. | Nothing. It stores the intent and the scripts. | No |
+| `settle(intentHash, tokens)` | Anyone | The intent is registered and not yet consumed. It has not expired, if it has a refund address. `tokens` lists the intent's token exactly once (at most 8 entries). The gateway holds at least `amount`. | Deploys the gateway if needed and sweeps it. The intent's token goes into the frUSD vault through `depositAndBridge`; any other listed token goes to `refundAddress`. | Yes, from the float, best effort |
+| `reclaim(intentHash, token)` | Anyone | The intent is registered and has a non-zero `refundAddress`. It has expired, or the token is not the intent's token, or the balance is below `amount`, or the intent was already settled. | The gateway's whole balance of that token, to `refundAddress` only. | No |
+
+`settleMany` settles up to 16 intents in one call, with one refund for the batch. `reclaimETH` returns ETH sent to a gateway by mistake, also to `refundAddress` only.
+
+The rules that matter to a depositor:
+
+- **Under-funded is not settleable.** If less than `amount` arrives, `settle` reverts. `reclaim` is one way out, and it needs a refund address. The other is to bring the gateway's balance up to `amount` with a further transfer of the same token on Ethereum, after which `settle` is valid again, unless the intent has a refund address and has already expired; then only `reclaim` applies.
+- **Over-funded relays the whole balance.** The extra goes into the vault with the rest. The worked example was over-funded: 2,993.999999 arrived against an `amount` of 2,992.000000.
+- **Expiry blocks `settle` only when a refund address is set.** With a refund address, an expired deposit belongs to `reclaim`. Without one, `settle` stays valid after expiry, because relaying is the only way the depositor is paid.
+- **`refundAddress` = zero means no refund path at all.** `reclaim` and `reclaimETH` always revert with `NoRefundAddress`, and `settle` reverts if it is asked to move any other token. A wrong token or ETH sent to such a gateway cannot be moved by any call. The worked example used a zero refund address.
+- **A non-zero refund address is what makes a mistake recoverable.** A wrong token, a short deposit, a late deposit, or anything that arrives after settlement can be sent back to it by anyone, because it is the only destination `reclaim` can use.
+
+`settle` reimburses its caller's gas in ETH from a float that the SUBFROST operators fund on the `GatewayFactory`. The refund is capped per call and priced at no more than the block's base fee plus a capped tip. When the float is empty, settlement still works: the caller is not reimbursed and the factory emits `GasRefundShortfall`. When the figures on this page were read, the float held 0 wei, so callers were paying their own gas.
+
+The factory's owner can set the refund parameters and withdraw the float's ETH. It has no path to move a deposited token or to redirect a settlement.
+
+## The relayer on the source chain
+
+The signed intent is broadcast on the source chain by a relayer calling `sweepAndBridge(intent, owner, srcAmount, deadline, signature)` on the `Permit2SweepForwarder`. Anyone may call it. What the relayer can and cannot do follows from the contract:
+
+- **It cannot redirect the funds.** Nothing about the destination is a parameter. The forwarder re-derives the intent hash and the gateway address from the signed intent, with the same code the `GatewayFactory` runs.
+- **It cannot accept a bad fill.** The minimum Stargate must deliver is derived from the intent (`amount × 10^(source decimals - 6)`), so Stargate reverts rather than deliver less than `settle` will accept.
+- **It cannot leave funds half-way.** The Permit2 pull and the Stargate send are one transaction. If the bridge reverts, the pull reverts with it and nothing leaves the depositor's wallet.
+- **It cannot reuse the signature elsewhere.** Permit2 binds the spender to the forwarder, so the signature can only be redeemed by this forwarder on this chain.
+- **Its only choices are when to broadcast and how much native fee to pay.** Both are its own money: it pays the gas and the LayerZero fee, and Stargate returns any unused native fee to it.
+
+Permit2 can only move a token it has an allowance for, so before the first deposit a Permit2 allowance must exist for the stablecoin on that chain: `approve(Permit2, max)`, once ever per token per chain. USDT on BNB Chain has no `permit`, so there that allowance can only be set by a transaction. Every deposit after it is a signature only. The Permit2 deadline may be at most 7 days after the broadcast; a signature with a later deadline is refused.
+
+## Fees
+
+| Step | USDT | Rule |
+|---|---|---|
+| Sent on BNB Chain | 3,000.000000 | |
+| Stargate fee | 6.000001 | Sent minus arrived. Stargate's fee, 0.2% in this deposit, set by Stargate, not by SUBFROST. It is not fixed: it varies with the pool's balance at the time, so it is quoted live (`quoteOFT`) before signing. |
+| Arrived at the gateway | 2,993.999999 | What `settle` relays. |
+| Vault flat fee | 1.990000 | `flatFee()` |
+| Vault protocol fee | 2.992009 | `protocolFeeBps()` = 10, on the remainder after the flat fee, rounded down |
+| Queued for Bitcoin | 2,989.017990 | Payment #52 |
+| **Total** | **10.982010** | 0.366% of 3,000.000000 |
+
+The order is fixed: Stargate takes its fee in transit, so the vault sees only what arrived. The vault then takes its flat fee first and the percentage on what remains. Both vault fees are read live at `settle` and can be changed on chain; they apply to bridge-outs too. For current values see [frUSD Overview](../tokens/frUSD-overview).
+
+The network costs are separate. In this deposit the relayer paid the BNB Chain gas (453,336) and the LayerZero fee (0.002225801385214171 BNB). On Ethereum, `register` used 253,158 gas and `settle` 628,204, paid by whoever sent them.
+
+## What the vault records
+
+The frUSD vault stores each deposit as a payment. Payment #52, as `getPayment(52)` returns it:
+
+```text
+getPayment(52)
+  depositor    0xaF4C39A0Da304eF39D56783d785ea52bb8431362   # the GatewayFactory, not the user
+  assetAmount  2989017990                                   # 2,989.017990 USDT, after fees
+  bridgeData   0x12225120c052331c3d07822a338e86cd14d3d011e21e562380ea96f6093f7cc233dab49e
+  timestamp    1790729075                                   # 2026-09-30 00:44:35 UTC
+  assetId      1                                            # USDT
+```
+
+- **`depositor` is the `GatewayFactory`.** The factory made the vault call, so it is recorded as the depositor. Who is paid on Bitcoin is decided by `bridgeData` alone.
+- **`bridgeData` is protobuf field 2 plus the script:** `0x12` (field 2, bytes), `0x22` (length 34), then the 34-byte scriptPubKey from `register`. The vault stores it verbatim and never parses it; the factory builds it from the registered script and validates it before every vault call.
+- **`frAmount` is fixed at deposit time.** The stored record and the `PaymentQueued` event carry `frAmount` = 298,901,799,000, the same value in frUSD's 8 decimals, so the conversion from 6 to 8 decimals is settled when the payment is queued.
+
+There is no "processed" flag on a payment. The alkane on Bitcoin records how far it has minted, and the at-most-once key for a mint is the pair (vault address, payment id). From Ethereum you can see that a payment is queued, not whether it has been minted.
+
+## The reserve
+
+On every deposit, after queuing the payment, the vault moves its idle USDT into its Curve 3pool strategy, but only once the idle balance (not counting fees) reaches `minSweep`, which is 1,000 USDT. Smaller deposits wait in the vault and go in with a later one. That is why this `settle` swept 3,011.989995 USDT: this payment's 2,989.017990 plus 22.972005 left idle by payment #51, an earlier 24.984999 USDT intent settled at 2026-09-29 20:22:47 UTC that stayed under `minSweep`. Fees are never swept; they stay in the vault.
+
+:::note[For integrators]
+A `settle` that triggers the sweep costs more gas: 628,204 for this one, against 403,384 for the previous `settle`, which did not sweep. A gas limit sized for the path without the sweep fails whenever a deposit triggers one, so size it for the sweep.
+:::
+
+`pending(assetId)` is a running total of every net amount ever queued for that asset, and it is never decremented. It is not the outstanding liability. Read on 1 October 2026, `pending(1)` was 1,364,365.728510 USDT, more than the vault held: 1,504.071913 idle, which is exactly `feesCollected`, plus 1,362,094.122333 in the strategy. The vault had 53 payments at that point.
+
+## The worked example, end to end
+
+| Time (UTC) | Chain | What happened | Transaction |
+|---|---|---|---|
+| 2026-09-29 21:52:35 | Ethereum | `register`: the intent and the Bitcoin script are stored under hash `0xf00c…58da`. 253,158 gas. | [0x4fce…2e1a](https://etherscan.io/tx/0x4fce8c88d60aa3050726b17704c1d743b05563a44f6e6d077f083c8e2d8e2e1a) |
+| 2026-09-30 00:31:33 | BNB Chain | `sweepAndBridge`: Permit2 pulls 3,000.000000 USDT and the forwarder calls Stargate `sendToken` to the gateway. A relayer pays 453,336 gas and 0.002225801385214171 BNB of LayerZero fee. | [0x8611…8767](https://bscscan.com/tx/0x8611ead789ba2546a00604793cb28db2098d8330dbfd075f6b6d936722208767) |
+| 2026-09-30 00:32:11 | Ethereum | 38 s later, the Stargate pool releases 2,993.999999 USDT to the gateway, which has no code. | [0xa4cd…fd15](https://etherscan.io/tx/0xa4cd35770fb089361e66981da91e9ff6d83cd033b30137cbc8f959856f6efd15), [LayerZero message](https://layerzeroscan.com/tx/0x8611ead789ba2546a00604793cb28db2098d8330dbfd075f6b6d936722208767) |
+| 2026-09-30 00:44:35 | Ethereum | `settle`: the gateway is deployed and swept, 2,993.999999 USDT goes into the frUSD vault, payment #52 is queued for 2,989.017990, and the vault sweeps 3,011.989995 USDT into its strategy. 628,204 gas. | [0xd0ec…46cd](https://etherscan.io/tx/0xd0ec299b18a3dc126c89e521e330e9102c5e67b49940abb2cbc14d337f5c46cd) |
+
+From the send on BNB Chain to the queued payment took 13 minutes 2 seconds. `register` and `settle` were sent from the depositor's own wallet; both calls are open to anyone.
+
+## Contracts
+
+| Contract | Chain | Address | Role |
+|---|---|---|---|
+| `GatewayFactory` | Ethereum | `0xaF4C39A0Da304eF39D56783d785ea52bb8431362` | Derives gateways; `register`, `settle`, `reclaim`; relays into the vault. |
+| `GatewayProxy` implementation | Ethereum | `0xdbA4c9fe841A7cf0b37B041126bA4d4640B4F296` | The code every gateway clones. |
+| `Permit2SweepForwarder` (USDT) | BNB Chain | `0xb24bccc6256309d0dff6883ab874e84179d53da9` | Pulls USDT with Permit2 and bridges it to the gateway. |
+| `Permit2SweepForwarder` (USDC) | BNB Chain | `0x9A2Bd5Ab5A9fB426d7F754eae14B54b3C3F93F19` | Pulls USDC with Permit2 and bridges it to the gateway. |
+| `Permit2SweepForwarder` (USDC) | Polygon | `0xb24bccc6256309d0dff6883ab874e84179d53da9` | Pulls USDC with Permit2 and bridges it to the gateway. |
+| `Permit2SweepForwarder` (USDT0) | Polygon | `0x24167a1b385145057bdc93aabf5dbe2047e5c7c6` | Pulls USDT0 with Permit2 and bridges it to the gateway. |
+| `Permit2SweepForwarder` (USDC) | Base | `0x24167a1b385145057bdc93aabf5dbe2047e5c7c6` | Pulls USDC with Permit2 and bridges it to the gateway. |
+| Stargate pool (USDT) | BNB Chain | `0x138EB30f73BC423c6455C53df6D89CB01d9eBc63` | Takes the USDT in on BNB Chain. |
+| Stargate pool (USDC) | BNB Chain | `0x962Bd449E630b0d928f308Ce63f1A21F02576057` | Takes the USDC in on BNB Chain. |
+| Stargate pool (USDC) | Polygon | `0x9Aa02D4Fae7F58b8E8f34c66E756cC734DAc7fe4` | Takes the USDC in on Polygon. |
+| Stargate pool (USDT0) | Polygon | `0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7` | Takes the USDT0 in on Polygon. |
+| Stargate pool (USDC) | Base | `0x27a16dc786820B16E5c9028b75B99F6f604b5d26` | Takes the USDC in on Base. |
+| Stargate pool (USDT) | Ethereum | `0x933597a323Eb81cAe705C5bC29985172fd5A3973` | Releases USDT to the gateway on Ethereum. |
+| Stargate pool (USDC) | Ethereum | `0xc026395860Db2d07ee33e05fE50ed7bD583189C7` | Releases USDC to the gateway on Ethereum. |
+| Permit2 | BNB Chain, Polygon, Base | `0x000000000022D473030F116dDEE9F6B43aC78BA3` | The canonical Permit2 the forwarders pull through, at the same address on every chain listed. |
+| frUSD vault (proxy) | Ethereum | `0x95779E7E1C943042255B8a78273fe6DE4823CF06` | Takes the deposit and queues the payment for Bitcoin. |
+| frUSD vault implementation | Ethereum | `0x5376beedba9ba7f5b0396d28bd75473027b8bd55` | The code behind the vault proxy. |
+| frUSD vault strategy | Ethereum | `0x5c5d66c82e2c634074661c3e7427668737c70100` | Holds the reserve in Curve 3pool. |
+
+`Permit2Gateway`, the gasless path for funds already on Ethereum, is not deployed.
+
+## Where to go next
+
+- [frUSD Overview](../tokens/frUSD-overview): what frUSD is, its trust model, and the supported Ethereum deposit.
+- [frBTC Peg & Custody](./frbtc-peg-and-custody): threshold custody with FROST and ROAST, as it works for frBTC.
+- [Signing and Keys](./signing-and-keys): the threshold signatures behind the signer group.
+- [BTC/USD Commands](../api-reference/cli-sdk/btcusd): prepare an Ethereum frUSD deposit from the command line.
