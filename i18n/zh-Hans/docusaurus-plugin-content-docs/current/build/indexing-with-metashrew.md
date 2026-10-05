@@ -44,7 +44,12 @@ rockshrew-mono \
 
 `--start-block 880000` 是 Alkanes 的创世高度，因此节点会跳过创世之前的链。从这里开始同步仍然需要数天量级的时间。
 
-要跳过完整同步，可以从一个**已发布的快照**引导启动：把 `--repo` 指向一个快照基础 URL，节点就会下载状态并在数小时内追上链尖。SUBFROST 在 `https://cdn.subfrost.io/snapshots/` 提供快照服务。
+要跳过完整同步，可以从已有状态引导启动。这里有两种完全不同的机制，二者很容易混淆：
+
+- **已发布的 tar 包。** SUBFROST 提供 `https://cdn.subfrost.io/snapshots/latest.tar.gz`，它是一个健康索引器整个 `/data` 目录的 gzip 压缩副本。你需要自己把它解压到数据库路径中，然后在不加 `--start-block` 的情况下启动 `rockshrew-mono`：它会从数据库里读出高度并继续向前同步。在决定采用之前，请先检查它的大小和 `Last-Modified` —— 具体步骤和当前数值见[快照下载](../api-reference/platform/snapshots)。
+- **`--repo <基础 URL>`。** metashrew 自带的增量仓库同步。它要求该基础路径下存在一个 `index.json`，其中列出按区间划分的 WASM 文件和 diff 文件。节点通过 `--snapshot-directory` 和 `--snapshot-interval` 发布这样的仓库。SUBFROST 的 CDN 路径**不是** `--repo` 的基础路径：那里只有 tar 包，没有 `index.json`。
+
+商业版（Business-tier）账户还可以通过 [rsync](../api-reference/platform/rsync) 直接拉取原始数据库。
 
 ## 构建你自己的索引器 WASM
 
