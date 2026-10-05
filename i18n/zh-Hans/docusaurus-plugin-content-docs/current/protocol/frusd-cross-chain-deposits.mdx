@@ -8,7 +8,7 @@ description: BNB Chain、Polygon 或 Base 上的一笔稳定币存款如何经�
 # 从其他链存入 frUSD
 
 :::info[状态：测试中]
-本页涉及的合约已在以太坊、BNB Chain、Polygon 和 Base 上线。已有存款走通了 BNB Chain USDT 路线，直到在 frUSD 金库中排队、等待在比特币上铸造的付款。但目前还没有公开的入口：SUBFROST 应用中没有相应的界面，源链上那笔已签名的存款由 SUBFROST 运营方广播。本页解释的是机制，而不是操作指南。目前从 USDC 或 USDT 铸造 frUSD 的受支持方式，是 [frUSD 概览](../tokens/frUSD-overview) 中介绍的以太坊存款。
+本页涉及的合约已在以太坊、BNB Chain、Polygon 和 Base 上线。各条路线正在逐条开放，第一条是经由 Circle CCTP v2 的 Base USDC 路线；BNB Chain 和 Polygon 的路线尚未开放。此前已有存款走通了 BNB Chain USDT 路线，直到在 frUSD 金库中排队、等待在比特币上铸造的付款，本页的示例就是其中一笔。但目前还没有公开的入口：SUBFROST 应用中没有相应的界面，源链上那笔已签名的存款由 SUBFROST 运营方广播。本页解释的是机制，而不是操作指南。目前从 USDC 或 USDT 铸造 frUSD 的受支持方式，是 [frUSD 概览](../tokens/frUSD-overview) 中介绍的以太坊存款。
 :::
 
 frUSD 金库位于以太坊上。本页通过一笔真实的存款（BNB Chain USDT），说明从 BNB Chain、Polygon 或 Base 出发的稳定币如何到达金库：2026 年 9 月 30 日在 BNB Chain 上发出的 3,000.000000 USDT，最终成为 frUSD 金库中的第 52 号付款（payment #52），在比特币上应付 2,989.017990 USDT 对应的 frUSD。
@@ -20,6 +20,8 @@ frUSD 金库位于以太坊上。本页通过一笔真实的存款（BNB Chain U
 3. **LayerZero 完成送达。** 以太坊上的 Stargate 资金池把稳定币支付给网关，而此时网关还没有代码。
 4. **`settle` 把资金扫入金库。** 在 `GatewayFactory` 上的一次调用会部署网关、清空网关，并把稳定币存入 frUSD 金库。
 5. **金库将一笔付款排入队列。** FROST 签名组在比特币上，向意图所承诺的脚本铸造相应的 frUSD。
+
+以上步骤对应的是示例，它走的是 Stargate 路线。Base 路线只在第 2、3 步不同：其转发合约通过 Circle CCTP v2 在 Base 上销毁 USDC；Circle 对该销毁出具证明，该证明在以太坊上提交后，USDC 会被铸造到同一个网关。从第 4 步起完全相同。Base 上的 USDC 还支持 EIP-2612，因此在 Base 上存款人可以用 permit 签名代替那笔一次性授权交易，从而无需发送任何交易；详见下文“源链上的中继方”。
 
 <div className="sf-diagram">
 <svg viewBox="0 0 800 536" role="img" aria-label="一笔从 BNB Chain 到比特币上 frUSD 的 USDT 存款。在 BNB Chain 上，存款人签署的意图让 Permit2SweepForwarder 拉取 3,000.000000 USDT 并交给 Stargate 资金池。LayerZero 把 2,993.999999 USDT 送到以太坊上的 Stargate 资金池，再由它支付给一个尚无代码的网关。GatewayFactory 上的 settle 部署并清空网关，把 2,993.999999 存入 frUSD 金库，金库扣除手续费后为第 52 号付款排队 2,989.017990。FROST 签名组在比特币上铸造 frUSD。">
@@ -109,21 +111,21 @@ frUSD 金库位于以太坊上。本页通过一笔真实的存款（BNB Chain U
 
 ## 路线
 
-目前有五条跨链路线的合约已经部署。每条路线从某条源链上的一种稳定币出发，到达以太坊时成为 frUSD 金库持有的两种代币之一。
+目前有五种源链代币的合约已经部署（Base USDC 有两个转发合约，每个跨链桥各一个），其中只有 Base 路线正在开放。每条路线从某条源链上的一种稳定币出发，到达以太坊时成为 frUSD 金库持有的两种代币之一。
 
-| 源链 | 代币 | 小数位数 | 到达以太坊时为 |
-|---|---|---|---|
-| BNB Chain | USDT | 18 | USDT（资产编号 1） |
-| BNB Chain | USDC | 18 | USDC（资产编号 0） |
-| Polygon | USDC | 6 | USDC（资产编号 0） |
-| Polygon | USDT0 | 6 | USDT（资产编号 1） |
-| Base | USDC | 6 | USDC（资产编号 0） |
+| 源链 | 代币 | 小数位数 | 跨链桥 | 到达以太坊时为 | 状态 |
+|---|---|---|---|---|---|
+| BNB Chain | USDT | 18 | Stargate | USDT（资产编号 1） | 尚未开放 |
+| BNB Chain | USDC | 18 | Stargate | USDC（资产编号 0） | 尚未开放 |
+| Polygon | USDC | 6 | Stargate | USDC（资产编号 0） | 尚未开放 |
+| Polygon | USDT0 | 6 | Stargate | USDT（资产编号 1） | 尚未开放 |
+| Base | USDC | 6 | Circle CCTP v2 | USDC（资产编号 0） | 正在开放 |
 
-- **Base 没有 USDT 路线。** 那里没有对应的 Stargate 资金池。不在表中的组合均不受支持。
+- **Base 没有 USDT 路线。** 那里没有对应的 Stargate 资金池，而 CCTP 不承载 USDT。不在表中的组合均不受支持。
 - **Polygon 上的 USDT 的代币符号显示为 USDT0。** 它就是 Polygon 上的 USDT 合约（`0xc2132D05D31c914a87C6611C10748AEb04B58e8F`），到达时成为以太坊 USDT。
 - **Polygon 的 USDC 路线是原生 USDC，不是 USDC.e。**
 - **已在以太坊上的 USDC 或 USDT 无需跨链。** 存款地址在以太坊上接收一笔普通的 ERC-20 转账，可以来自钱包，也可以来自交易所提现。
-- **转发合约属于路线，而不属于链。** 每个 `Permit2SweepForwarder` 只为一条链上的一种代币而建，因此 BNB Chain 上有两个。同一个地址在另一条链上可能是另一个合约，因此客户端必须按链和代币查找转发合约，而不能只按链查找。地址列在下方的“合约”表中。
+- **转发合约属于路线，而不属于链。** 每个转发合约只为一条链上的一种代币和一个跨链桥而建，因此 BNB Chain 上有两个；Base 上的 USDC 也有两个：一个走 CCTP，即正在开放的路线，另一个走 Stargate。同一个地址在另一条链上可能是另一个合约，因此客户端必须按链和代币查找转发合约，而不能只按链查找。地址列在下方的“合约”表中。
 
 ## 意图
 
@@ -166,7 +168,7 @@ typehash = 0xd0ba66893952bd61d59c1120e0819129666508130451c7f40bba1c37f5d730c5
 3. **以太坊上的注册键。** `register` 以该哈希为键存储意图及其比特币脚本，一次性的 `consumed` 标记也以它为键。
 4. **`settle` 的参数。** `settle(intentHash, tokens)` 无需其他信息，就能找到意图、网关和收款方。
 
-结果是：跨链桥只携带一个地址和一个金额。转发合约发给 Stargate 的只有网关地址和稳定币，compose 消息为空。比特币收款方、资产、最低到账额和退款规则从不作为指令跨链传递；在任何代币移动之前，它们就已经由哈希固定下来了。
+结果是：跨链桥只携带一个地址和一个金额。在 Stargate 路线上，转发合约发给 Stargate 的只有网关地址和稳定币，compose 消息为空。比特币收款方、资产、最低到账额和退款规则从不作为指令跨链传递；在任何代币移动之前，它们就已经由哈希固定下来了。
 
 ## 存款地址（网关）
 
@@ -185,7 +187,7 @@ keccak256(initCode) = 0xae78bd81aa686ad972e9cf69b3b526123eae9615a544c18a6b64819d
 gateway            = 0x0d69fc4dc9c1d34bf63d76bf147a1e1e86065263
 ```
 
-init code 只取决于实现合约的地址，因此网关完全由工厂地址和意图哈希决定。任何人都可以在一切尚不存在时推导出它：用上面的公式离线计算，调用 `GatewayFactory` 上的 `gatewayFor(intentHash)` 或 `gatewayForIntent(intent)`，或调用转发合约上的 `preview(intent, srcAmount)`。后者还会返回最低到账额、LayerZero 手续费报价以及 Stargate 预计送达的金额。
+init code 只取决于实现合约的地址，因此网关完全由工厂地址和意图哈希决定。任何人都可以在一切尚不存在时推导出它：用上面的公式离线计算，调用 `GatewayFactory` 上的 `gatewayFor(intentHash)` 或 `gatewayForIntent(intent)`，或调用转发合约上的 `preview(intent, srcAmount)`。在 Stargate 转发合约上，后者还会返回最低到账额、LayerZero 手续费报价以及 Stargate 预计送达的金额。
 
 网关只有在 `GatewayFactory` 调用它时才能转移代币；工厂地址固定在实现合约的代码中。工厂只从意图哈希所覆盖的字段中选择去向：意图的代币转给工厂自己（以便转入金库），其他一切转给 `refundAddress`。
 
@@ -241,7 +243,7 @@ address           = bc1pcpfrx8paq7pz5vuwsmx3f57sz83pu43rsr4fdasf8a7vyv76kj0qvhvq
 
 ## 源链上的中继方
 
-已签名的意图在源链上由一个中继方（relayer）广播，它调用 `Permit2SweepForwarder` 上的 `sweepAndBridge(intent, owner, srcAmount, deadline, signature)`。任何人都可以调用。中继方能做什么、不能做什么，由合约决定：
+已签名的意图在源链上由一个中继方（relayer）广播，它调用转发合约（Stargate 路线上为 `Permit2SweepForwarder`，Base 的 CCTP 路线上为 `Permit2CctpForwarder`）上的 `sweepAndBridge(intent, owner, srcAmount, deadline, signature)`。任何人都可以调用。中继方能做什么、不能做什么，由合约决定：
 
 - **它无法改变资金去向。** 与目的地有关的一切都不是参数。转发合约用与 `GatewayFactory` 相同的代码，从已签名的意图重新推导意图哈希和网关地址。
 - **它无法接受糟糕的成交。** Stargate 必须送达的最低金额由意图推导而来（`amount × 10^(source decimals - 6)`），因此当送达金额会低于 `settle` 可接受的数额时，Stargate 会回滚。
@@ -249,7 +251,9 @@ address           = bc1pcpfrx8paq7pz5vuwsmx3f57sz83pu43rsr4fdasf8a7vyv76kj0qvhvq
 - **它无法在别处复用签名。** Permit2 把支出方（spender）绑定为转发合约，因此该签名只能由这条链上的这个转发合约兑现。
 - **它唯一能选择的，是何时广播以及支付多少原生手续费。** 两者花的都是它自己的钱：它支付 gas 和 LayerZero 手续费，Stargate 会把未用完的原生手续费退还给它。
 
-Permit2 只能转移它已获得授权额度的代币，因此在第一笔存款之前，该链上的这种稳定币必须已有给 Permit2 的授权：`approve(Permit2, max)`，每条链上每种代币一生只需一次。BNB Chain 上的 USDT 没有 `permit`，所以在那里这笔授权只能通过一笔交易设置。之后的每一笔存款都只需签名。Permit2 的截止时间最多可以比广播时刻晚 7 天；截止时间更晚的签名会被拒绝。
+以上列表描述的是示例中的 Stargate 转发合约。Base 的 CCTP 转发合约以同样的方式拉取资金，并从意图推导出同一个网关，因此同样无法改变资金去向。它的跨链环节由 Circle 而不是 Stargate 完成，因此其中继方只支付 gas，不支付 LayerZero 手续费。
+
+Permit2 只能转移它已获得授权额度的代币，因此在第一笔存款之前，该链上的这种稳定币必须已有给 Permit2 的授权：`approve(Permit2, max)`，每条链上每种代币一生只需一次。BNB Chain 上的 USDT 没有 `permit`，所以在那里这笔授权只能通过一笔交易设置。之后的每一笔存款都只需签名。Base 上的 USDC 有 `permit`（EIP-2612），而且 Base 的转发合约在与意图相同的一次调用中接受它（`sweepWithPermit`）：存款人签署该 permit 和意图，完全不需要发送交易。Permit2 的截止时间最多可以比广播时刻晚 7 天；截止时间更晚的签名会被拒绝。
 
 ## 手续费
 
@@ -264,6 +268,8 @@ Permit2 只能转移它已获得授权额度的代币，因此在第一笔存款
 | **合计** | **10.982010** | 3,000.000000 的 0.366% |
 
 顺序是固定的：Stargate 在途中收取手续费，因此金库只看到到账的金额。随后金库先收取固定费用，再对剩余部分收取百分比费用。两项金库费用都在 `settle` 时实时读取，可以在链上修改；它们同样适用于跨链转出。当前数值请参阅 [frUSD 概览](../tokens/frUSD-overview)。
+
+在 Base 路线上，由 Circle 取代 Stargate。Base 的转发合约按 Circle 的标准最终性销毁 USDC（`MIN_FINALITY_THRESHOLD` = 2000）；2026 年 10 月 5 日读取时，Circle 在该最终性下从 Base 到以太坊的手续费为 0（更快的最终性收取 1.3 个基点）。只要该手续费为 0，到达网关的金额就等于发送的金额。金库费用在每条路线上都相同。
 
 网络成本是另外的。在这笔存款中，中继方支付了 BNB Chain 的 gas（453,336）和 LayerZero 手续费（0.002225801385214171 BNB）。在以太坊上，`register` 用了 253,158 gas，`settle` 用了 628,204 gas，由各自的发送者支付。
 
@@ -317,7 +323,8 @@ getPayment(52)
 | `Permit2SweepForwarder`（USDC） | BNB Chain | `0x9A2Bd5Ab5A9fB426d7F754eae14B54b3C3F93F19` | 通过 Permit2 拉取 USDC 并跨链发往网关。 |
 | `Permit2SweepForwarder`（USDC） | Polygon | `0xb24bccc6256309d0dff6883ab874e84179d53da9` | 通过 Permit2 拉取 USDC 并跨链发往网关。 |
 | `Permit2SweepForwarder`（USDT0） | Polygon | `0x24167a1b385145057bdc93aabf5dbe2047e5c7c6` | 通过 Permit2 拉取 USDT0 并跨链发往网关。 |
-| `Permit2SweepForwarder`（USDC） | Base | `0x24167a1b385145057bdc93aabf5dbe2047e5c7c6` | 通过 Permit2 拉取 USDC 并跨链发往网关。 |
+| `Permit2CctpForwarder`（USDC） | Base | `0x5e656a3e5680046e1E71361d59fdfbe058546518` | 通过 Permit2 或 EIP-2612 permit 拉取 USDC，经 CCTP v2 跨链发往网关。即 Base 路线。 |
+| `Permit2SweepForwarder`（USDC） | Base | `0x9b728A1366EFD0D892eb50e3E75DFFF5eD666EC7` | 功能相同，但走 Stargate。已部署，不是正在开放的路线。 |
 | Stargate 资金池（USDT） | BNB Chain | `0x138EB30f73BC423c6455C53df6D89CB01d9eBc63` | 在 BNB Chain 上接收 USDT。 |
 | Stargate 资金池（USDC） | BNB Chain | `0x962Bd449E630b0d928f308Ce63f1A21F02576057` | 在 BNB Chain 上接收 USDC。 |
 | Stargate 资金池（USDC） | Polygon | `0x9Aa02D4Fae7F58b8E8f34c66E756cC734DAc7fe4` | 在 Polygon 上接收 USDC。 |
@@ -329,6 +336,10 @@ getPayment(52)
 | frUSD 金库（代理） | 以太坊 | `0x95779E7E1C943042255B8a78273fe6DE4823CF06` | 接收存款，并为比特币排队付款。 |
 | frUSD 金库实现合约 | 以太坊 | `0x5376beedba9ba7f5b0396d28bd75473027b8bd55` | 金库代理背后的代码。 |
 | frUSD 金库策略 | 以太坊 | `0x5c5d66c82e2c634074661c3e7427668737c70100` | 在 Curve 3pool 中持有储备。 |
+
+:::warning[已退役的 Base 转发合约]
+两个较早的 Base 转发合约仍在链上，但已退役：`0x24167a1b385145057bdc93aabf5dbe2047e5c7c6`（Stargate）和 `0x9A2Bd5Ab5A9fB426d7F754eae14B54b3C3F93F19`（CCTP）。中继方不再处理它们；而且 Permit2 签名把转发合约指定为支出方，因此为已退役转发合约签署的意图无法通过当前的转发合约兑现。一次调用即可区分新旧两代：`escrowFactory()` 在两个当前的 Base 转发合约上都有返回值，在已退役的合约上会回滚。它并不说明哪条路线已开放。在其他链上，这两个地址是已部署、互不相关的转发合约（上表中的 Polygon USDT0 和 BNB Chain USDC），这也是必须按链和代币查找转发合约的又一个原因。
+:::
 
 `Permit2Gateway`，即针对已在以太坊上的资金的免 gas 路径，尚未部署。
 
