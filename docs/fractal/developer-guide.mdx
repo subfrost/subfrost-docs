@@ -113,27 +113,23 @@ The pointer must not point back at the vault, and the transaction must pay the v
 
 An intent is canonical bytes. The address depends on every byte, so encode exactly this:
 
-This is the layout implemented today:
-
 | field | size |
 |---|---|
 | version `0x01` | 1 |
 | recipient script length *n* (1–75) | 1 |
 | recipient scriptPubKey: receives frFB on Bitcoin, and is the claimant output on Fractal | *n* |
-| refund x-only key | 32 |
-| refund CSV in blocks, u16 LE (1–65535) | 2 |
+| refund x-only key, or **32 zero bytes for no refund** | 32 |
+| refund CSV in blocks, u16 LE; **0 when there is no refund** | 2 |
 | action length *m*, u16 LE | 2 |
 | action: what to do with the frFB after minting (opaque; empty = deliver) | *m* |
 
-:::caution[Provisional]
-The refund fields are being made optional. The sweep is fully committed and anyone can broadcast it, so a refund path is not needed for safety. When that lands, an intent without a refund produces a gateway address with a single leaf. This table will be updated with the final byte layout. Until then, derive addresses with the `fb-gateway` reference implementation rather than encoding by hand.
-:::
+**No refund is the default.** The sweep is fully committed and anyone can broadcast it, so a refund path is not needed for safety. An intent with no refund (all-zero key, CSV 0) gives a gateway address with a single leaf, the sweep. If you do set a refund key and CSV, a second leaf lets that key take the deposit back after CSV blocks. The two forms give different addresses for the same recipient.
 
 Decoding is strict. Trailing bytes, an unknown version, or anything over 4096 bytes is rejected.
 
 ## Computing the gateway address yourself
 
-The address is `P2TR(internal = H, tree = {sweep leaf[, refund leaf]})`. `H` is BIP341's unspendable point `50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0`. The sweep leaf is built from two things only:
+The address is `P2TR(internal = H, tree = {sweep leaf})`, plus a refund leaf only if the intent sets one. `H` is BIP341's unspendable point `50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0`. The sweep leaf is built from two things only:
 
 - your intent bytes;
 - the vault script: fb-vault opcode 104, **read live**, never hardcoded.
