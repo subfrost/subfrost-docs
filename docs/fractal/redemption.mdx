@@ -7,10 +7,6 @@ description: How burning frFB on Bitcoin becomes FB paid out on Fractal. The red
 
 # Redeeming frFB for FB
 
-:::info[Status: built and tested, not yet armed]
-The contracts on both chains support redemption today. The signer group's redemption program is written and tested against the real indexer, but it is not running yet. Until this banner changes, frFB burned for redemption is queued, not paid.
-:::
-
 Redemption is minting in reverse. You burn frFB on Bitcoin and name a Fractal address. The signer group sees the burn, records the redemption in fb-vault, and pays you the FB out of custody, less the Fractal network fees for doing so.
 
 ## The short version
@@ -56,7 +52,7 @@ fb-vault verifies the signature against the group's **taproot output key**: the 
 - **No two redemptions race.** Every `Redeem` spends the single lock output and creates the next one. Two attempts built from the same state therefore conflict, and at most one confirms. The signed nonce gives the same guarantee inside the contract.
 - **No payment is made twice.** A queued payment is unpaid exactly while the output that funds it is unspent, and paying it spends that output.
 - **Never touched:** the output holding FB-SIGIL, and any group output carrying a protofractal token or flagged as an inscription or rune.
-- **Reorgs stop it, they don't fool it.** Where the program resumes is stored in fb-vault (`GetBurnCursor`, opcode 26), together with the burn that put it there. If frFB's queue no longer agrees, for example after a Bitcoin reorg, the program stops and waits for an operator.
+- **Reorgs stop it, they don't fool it.** Where the program resumes is stored in fb-vault (`GetBurnCursor`, opcode 26), together with the burn that put it there. If frFB's queue no longer agrees, for example after a Bitcoin reorg, the program stops rather than guess.
 
 ## Fees: paid out of the redeemed FB
 

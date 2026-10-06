@@ -67,12 +67,12 @@ const sidebars: SidebarsConfig = {
         },
       ],
     },
-    // FRACTAL (BETA): added 2026-10-06. FB on Fractal Bitcoin <-> frFB on Bitcoin, the
+    // FRACTAL: added 2026-10-06. FB on Fractal Bitcoin <-> frFB on Bitcoin, the
     // protofractal subprotocol, OP_CAT gateway addresses and the developer guide. Explicit
     // order (overview -> mechanism -> integration) rather than alphabetical.
     {
       type: 'category',
-      label: 'Fractal (Beta)',
+      label: 'Fractal',
       link: {type: 'doc', id: 'fractal/overview'},
       items: ['fractal/gateway-addresses', 'fractal/redemption', 'fractal/developer-guide'],
     },
