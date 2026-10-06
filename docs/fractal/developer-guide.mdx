@@ -1,0 +1,172 @@
+---
+title: Fractal Developer Guide
+sidebar_label: Developer Guide
+sidebar_position: 3
+description: Reading protofractal state, sending FB with an intent, computing a gateway address yourself, and asking the SUBFROST gateway service to sweep it over subtun0.
+---
+
+# Fractal Developer Guide
+
+:::info[Status: beta]
+The endpoint, the ids and the encodings on this page are live on mainnet. The gateway service is in its first public test. Pin nothing that this page marks as provisional.
+:::
+
+This page is for wallets and applications that want to move FB into frFB, or read the peg's state. If you only need the concepts, read the [overview](./overview) first.
+
+## The endpoint
+
+```
+POST https://mainnet.subfrost.io/v4/{apikey}/fractal          JSON-RPC 2.0
+```
+
+| method | what it returns |
+|---|---|
+| `metashrew_height` | protofractal's indexed Fractal height |
+| `metashrew_view` | an alkanes view against protofractal: `simulate`, `getbytecode`, `protorunesbyoutpoint`, … |
+| `fractal_height`, `getblockcount` | Fractal chain tip |
+| `fractal_addressutxos` | an address's UTXOs |
+| `fractal_addressbalance` | an address's balance |
+| `fractal_feeestimates` | `{slow, avg, fast}` sat/vB |
+| `fractal_broadcast`, `sendrawtransaction` | broadcast a raw transaction |
+
+Mempool fee rates are at `/v4/{apikey}/fractal/mempool` (`mempool_feerates`).
+
+If you use `alkanes-cli`, point it at the endpoint and it works unchanged for views:
+
+```bash
+alkanes-cli -p mainnet --jsonrpc-url https://mainnet.subfrost.io/v4/{apikey}/fractal \
+  alkanes simulate 44:44:104
+```
+
+## Reading a contract
+
+`metashrew_view` takes `[view_name, hex_protobuf_request, "latest"]`. To call a view opcode, the request is a `MessageContextParcel` holding only `calldata` (field 5). The calldata is the cellpack `[block, tx, opcode, …inputs]` as a list of **LEB128 varints**, not fixed-width words:
+
+```python
+def varint(n):
+    out = bytearray()
+    while True:
+        b = n & 0x7f; n >>= 7
+        out.append(b | 0x80 if n else b)
+        if not n: return bytes(out)
+
+def simulate_param(block, tx, inputs):
+    cd = b''.join(varint(v) for v in [block, tx] + inputs)
+    return '0x' + (b'\x2a' + varint(len(cd)) + cd).hex()
+
+simulate_param(44, 44, [104])   # '0x2a032c2c68'  -> fb-vault GetSignerScript
+```
+
+The response is a `SimulateResponse`: `execution.data` (field 1, then field 3) is the return value, and `error` (field 3) is a revert.
+
+:::danger[A revert is an HTTP 200]
+A reverted call does **not** produce a JSON-RPC error. The transport succeeds and the failure is a string in `SimulateResponse.error`. If you only check the JSON-RPC `error`, every revert reads as success with empty data.
+:::
+
+### fb-vault (`44:44`) views
+
+| opcode | name | returns |
+|---|---|---|
+| 103 | `GetSigner` | the group's x-only key, **untweaked**. Not a payable script. |
+| 104 | `GetSignerScript` | the 34-byte P2TR script the vault credits. **Read this, and pay this.** |
+| 20 | `GetHeld` | FB credited and not yet released, sats (u128 LE) |
+| 22 | `GetNonce` | next nonce for signed calls |
+| 23 | `GetDepositsByHeight {height}` | deposit records at that Fractal height |
+| 21 | `GetPaymentsByHeight {height}` | payment records queued at that height |
+| 24 | `GetSigilHeld` | 1 while FB-SIGIL is in the vault (now 0) |
+| 25 | `GetIntent {txid0, txid1}` | the intent stored for a deposit txid |
+
+A deposit or payment record is `consensus(OutPoint) ‖ consensus(TxOut)`. Records are concatenated with no header, so decode them in a loop until the bytes run out. For a deposit, the outpoint is the vault output that received the FB. The TxOut's value is the amount credited, and its script is the **claimant**: who receives the frFB on Bitcoin.
+
+`GetIntent` takes the deposit txid as two little-endian u128 words, in the txid's internal byte order (the order it is serialized in the outpoint). It returns `source ‖ payload`:
+
+| source | meaning |
+|---|---|
+| `0x00` | no intent |
+| `0x01` | from `Wrap` cellpack words. **An empty payload means no intent**: protostone padding makes every plain `Wrap` look like this. |
+| `0x02` | from an `fb-intent` tapscript envelope |
+| `0xfe` / `0xff` | oversized / malformed: stored without a payload, and the frFB is delivered plainly |
+
+### frFB (`4:4444`, Bitcoin) views
+
+Use the Bitcoin endpoint, `https://mainnet.subfrost.io/v4/{apikey}`.
+
+| opcode | name |
+|---|---|
+| 99 / 100 / 101 | name / symbol / total supply |
+| 21 | `GetBurnsByHeight {height}`: the redemption queue, same record format; the TxOut is the FB owed and its Fractal destination |
+
+## Three ways to deposit
+
+**1. Use a gateway address (recommended).** You build nothing. Derive the address from your intent, check it, and send FB to it from any wallet. The rest of this page covers this path.
+
+**2. Call `Wrap` yourself.** One Fractal transaction that:
+- pays the vault's opcode-104 script;
+- has an output to your claimant script, the Bitcoin script that will receive frFB;
+- carries an OP_RETURN with one protostone: protocol tag **44**, cellpack `[44, 44, 77]`, and **pointer = your claimant output**. An intent can be appended as `[44, 44, 77, byte_len, w0, w1, …]`.
+
+The pointer must not point back at the vault, and the transaction must pay the vault something. Otherwise `Wrap` reverts and nothing is credited.
+
+**3. Don't pay the script from opcode 103.** That is the untweaked key. Paying it, or tweaking a key yourself and getting it wrong, results in nothing credited, **and no error anywhere**. Always pay the script that opcode 104 returns.
+
+## The intent encoding (v1)
+
+An intent is canonical bytes. The address depends on every byte, so encode exactly this:
+
+This is the layout implemented today:
+
+| field | size |
+|---|---|
+| version `0x01` | 1 |
+| recipient script length *n* (1–75) | 1 |
+| recipient scriptPubKey: receives frFB on Bitcoin, and is the claimant output on Fractal | *n* |
+| refund x-only key | 32 |
+| refund CSV in blocks, u16 LE (1–65535) | 2 |
+| action length *m*, u16 LE | 2 |
+| action: what to do with the frFB after minting (opaque; empty = deliver) | *m* |
+
+:::caution[Provisional]
+The refund fields are being made optional. The sweep is fully committed and anyone can broadcast it, so a refund path is not needed for safety. When that lands, an intent without a refund produces a gateway address with a single leaf. This table will be updated with the final byte layout. Until then, derive addresses with the `fb-gateway` reference implementation rather than encoding by hand.
+:::
+
+Decoding is strict. Trailing bytes, an unknown version, or anything over 4096 bytes is rejected.
+
+## Computing the gateway address yourself
+
+The address is `P2TR(internal = H, tree = {sweep leaf[, refund leaf]})`. `H` is BIP341's unspendable point `50929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0`. The sweep leaf is built from two things only:
+
+- your intent bytes;
+- the vault script: fb-vault opcode 104, **read live**, never hardcoded.
+
+The reference implementation is the `fb-gateway` crate:
+
+```bash
+fb-gateway address --recipient <bitcoin scriptPubKey hex> --vault <opcode-104 script hex>
+```
+
+Fractal mainnet uses Bitcoin's `bc1p…` address format, so the address is the same string a Bitcoin wallet would show.
+
+**Always compute the address on your side.** Whoever builds the address chooses where the frFB goes. Never send FB to a gateway address you have not recomputed from your own recipient script.
+
+## Asking the gateway service to sweep it
+
+SUBFROST runs a gateway service on its peer-to-peer network, **subtun0**. It is not behind a public HTTP endpoint. It is a `.peer` service that you reach through any subtun0 relay (`wss://wss-2.asilos.ltd/ws`, with `wss-1` and `wss-3` as fallbacks). Its `.peer` name will be published on this page when the service opens for the beta.
+
+The flow:
+
+1. **Compute** the gateway address locally from your intent and the live opcode-104 script.
+2. **Register** the same intent with the service. It computes the address independently and stores it.
+3. **Compare** the two addresses. If they differ, stop: someone is wrong about the intent or the vault script.
+4. **Deposit** FB to the address from any wallet.
+5. **The service sweeps** the deposit after one confirmation. It broadcasts the covenant spend into fb-vault, paying the claimant output and the fee from its own funds. Ask it for status, or watch fb-vault's deposit log (opcode 23) and your intent (opcode 25).
+6. **The signer group mints** frFB, less fees, to your recipient on Bitcoin.
+
+The service is a convenience, not a dependency. The sweep is fully determined by your intent, so if the service is down you can build and broadcast it yourself with `fb-gateway` (any wallet can fund the 546-sat claimant output and the fee).
+
+## Checklist
+
+- Read opcode 104 **every time**. Don't cache it. A rotation changes it, and a stale address can only be swept to the old key.
+- Recompute every gateway address locally before showing it to a user.
+- Treat a `SimulateResponse.error` as failure, even though the HTTP status is 200.
+- Sweep or deposit promptly after deriving an address.
+- Use `env -u SUBFROST_API_KEY` with `alkanes-cli` if you have that variable set to anything other than a valid RPC key. The header outranks the key in the URL, and a wrong key makes reads come back **empty** rather than failing.

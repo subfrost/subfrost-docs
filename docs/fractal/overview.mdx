@@ -1,0 +1,86 @@
+---
+title: Fractal (Beta)
+sidebar_label: Overview
+sidebar_position: 1
+description: How FB on Fractal Bitcoin becomes frFB on Bitcoin. The protofractal subprotocol, the fb-vault custody contract, the FROST signer group, intents, and what is live today.
+---
+
+# Fractal (Beta)
+
+:::warning[Status: beta, being armed]
+Everything on this page is deployed on mainnet: the contracts on both chains, the read endpoint, and the signer group. The peg is in its first end-to-end test. Until this banner changes, treat frFB as experimental:
+
+- Mints are driven by the SUBFROST operators, not yet by the signer group's own program.
+- The redemption direction (frFB back to FB) is not open yet.
+
+Do not bridge more than you are prepared to wait on.
+:::
+
+frFB is FB, the native coin of [Fractal Bitcoin](https://fractalbitcoin.io), held in custody on Fractal and represented on Bitcoin as an alkane. It works the same way [frBTC](../tokens/frBTC-overview) does, with one difference: the coin being locked lives on a different chain from the token being minted.
+
+## The short version
+
+1. **You lock FB on Fractal.** You pay FB to the signer group's address, in a transaction that calls the **fb-vault** contract's `Wrap`. The transaction names who receives the frFB, and can carry an **intent**: arbitrary bytes saying what to do next.
+2. **fb-vault records the deposit.** The amount is whatever the transaction actually paid the group. The contract also records the claimant and the intent bytes. Nothing is minted on Fractal.
+3. **The signer group mints frFB on Bitcoin.** The 6-of-9 FROST group holds frFB's mint authority. It reads fb-vault's deposit log and mints frFB, less fees, to the claimant.
+4. **Redemption runs the other way.** Burning frFB on Bitcoin records a Fractal destination in frFB's redemption queue. The group then queues and pays the FB out of custody on Fractal.
+
+You do not have to build any of these transactions yourself. A **gateway address** can be derived from your intent alone, and any FB sent to it can be moved into the vault by anyone, and only into the vault. See [Gateway addresses and OP_CAT](./gateway-addresses).
+
+## Two chains, two contracts, one group
+
+| | chain | id | what it is |
+|---|---|---|---|
+| **fb-vault** | Fractal | `44:44` | FB custody: the deposit log, the intents, the payment queue, the signer key |
+| **FB-SIGIL** | Fractal | `44:4442` | one indivisible token; bearing it is the only way to rotate fb-vault's signer key |
+| **frFB** | Bitcoin | `4:4444` | the wrapped token, plus its redemption queue |
+| **frFB-AUTH** | Bitcoin | `2:102485` | mint authority for frFB, held by the signer group |
+| **frFB-SIGIL** | Bitcoin | `2:102486` | upgrade authority for frFB, held separately from AUTH |
+
+**The signer group** is a 6-of-9 FROST group. Its taproot address is the same string on both chains, because Fractal uses Bitcoin's address format:
+
+```
+bc1pt93aunap64ys8zlpmzc20z65a2vnmn0phrpc37kknve5835xsc9s6332rc
+```
+
+On Fractal, that address *is* the vault's custody: fb-vault only credits FB paid to it. On Bitcoin, it holds frFB-AUTH, so only the group can mint.
+
+### Why the Fractal contracts have ids like `44:44`
+
+Fractal has no alkanes deployment path of its own. SUBFROST indexes it with **protofractal**, a separate protorunes subprotocol with **protocol tag 44** (alkanes is tag 1). Its storage is namespaced by that tag, so it cannot collide with alkanes even in principle. protofractal has two contracts compiled into the indexer and installed at genesis: fb-vault and FB-SIGIL. It refuses every deploy. So nothing on Fractal can be replaced by a transaction; changing a contract means shipping a new indexer.
+
+The ids sit on block 44, the protocol tag reused as an id prefix. Ordinary alkanes give that block no meaning, so a protofractal call can never be mistaken for an alkanes deployment.
+
+frFB, on the other hand, is an ordinary alkane on Bitcoin. It was deployed by witness reveal to the reserved id `4:4444` on 5 October 2026 (reveal `d2e644e9…663d`).
+
+## Authority, and how it can change
+
+- **Custody** is a script comparison, not a signature check. `Wrap` sums the outputs that pay the vault's *current* signer script (opcode 104). FB paid anywhere else is not credited.
+- **Paying FB out** (`Release`, opcode 78) needs a BIP340 signature from the group over the amount, the destination and a nonce. A captured signature can't be redirected, resized or replayed.
+- **Rotating the signer key** (`SetSigner`, opcode 1) needs no signature. It needs the caller to **bear FB-SIGIL**. A key that has been lost can't authorize its own replacement, but a bearer token outlives the key it governs. The sigil started inside the vault and was released to the group's address on 6 October 2026. That transaction is `5b74991b…04f8`; the rotation to the group key was `c2b8c3f3…2414`.
+- **Minting frFB** needs frFB-AUTH. **Upgrading frFB** needs frFB-SIGIL; AUTH alone is not enough.
+
+## Intents
+
+An intent is up to 4 KB of bytes attached to a deposit, telling the group what to do once the frFB exists: deliver it to a script, and later swap it or route it onward. fb-vault **stores intents and never interprets them**. Their meaning lives in the signer group's programs, so it can evolve without touching the contract. A deposit can carry its intent in either of two ways:
+
+- **A tapscript envelope** in any input: `OP_FALSE OP_IF "fb-intent" <bytes…> OP_ENDIF`. This is how gateway addresses carry it, and it can be large.
+- **Extra words in the `Wrap` cellpack**: `[44, 44, 77, byte_len, w0, w1, …]`. This is for a plain wallet deposit, and is limited by the 83-byte OP_RETURN.
+
+An envelope takes precedence over words. An intent that is missing, oversized or unreadable never blocks the deposit. By the time `Wrap` runs, the FB has already been paid, so the deposit is credited and the frFB goes to the claimant plainly.
+
+## Reading it yourself
+
+All Fractal state is served at:
+
+```
+https://mainnet.subfrost.io/v4/{apikey}/fractal
+```
+
+This returns live alkanes state from protofractal (`metashrew_view`, `metashrew_height`), plus address balances, UTXOs and broadcast. The [developer guide](./developer-guide) shows each request.
+
+## What is not live yet
+
+- **Automatic minting.** The signer group's `frfb-mint` program is written and tested but not armed. Mints during the beta are proposed and broadcast by the operators.
+- **Redemption.** frFB's burn queue works. The FB payout on Fractal needs the group to produce an untweaked BIP340 signature over the payout, and that path is not finished.
+- **Self-hosted Fractal node.** Reads currently come from UniSat, plus a block stand-in for the indexer, while SUBFROST's own fractald finishes syncing.
