@@ -7,11 +7,11 @@ description: How FB on Fractal Bitcoin becomes frFB on Bitcoin. The protofractal
 
 # Fractal (Beta)
 
-:::warning[Status: beta, being armed]
-Everything on this page is deployed on mainnet: the contracts on both chains, the read endpoint, and the signer group. The peg is in its first end-to-end test. Until this banner changes, treat frFB as experimental:
+:::warning[Status: beta, first end-to-end test]
+Everything on this page is deployed on mainnet: the contracts on both chains, the read endpoint, the gateway service, and the signer group. The peg is in its first end-to-end test. Until this banner changes, treat frFB as experimental:
 
-- The signer group's mint and redemption programs are built and tested but not yet armed. During the first test, mints are proposed and broadcast by the operators.
-- Redemption (frFB back to FB) is supported by the contracts on both chains, but burns are queued, not paid, until the redemption program is armed.
+- **Minting is live but supervised.** The signer group's mint program is armed and signs mints automatically. During the first test, an operator checks each signed mint before it is broadcast.
+- **Redemption (frFB back to FB) is not open yet.** The contracts on both chains support it, but burns are queued, not paid, until the redemption program is armed.
 
 Do not bridge more than you are prepared to wait on.
 :::
@@ -79,8 +79,18 @@ https://mainnet.subfrost.io/v4/{apikey}/fractal
 
 This returns live alkanes state from protofractal (`metashrew_view`, `metashrew_height`), plus address balances, UTXOs and broadcast. The [developer guide](./developer-guide) shows each request.
 
+## Fees
+
+| | where | amount (beta settings) |
+|---|---|---|
+| gateway sweep | Fractal, taken from the deposit | `K`, 2,000 sats by default, fixed per address |
+| mint | taken from the frFB minted | 0.30% + 1,000 sats |
+| redemption | taken from the FB paid out | the Fractal network fees of the two redemption transactions (protocol fee 0) |
+
+Example: 1 FB (100,000,000 sats) sent to a gateway address puts 99,998,000 sats in the vault and mints 99,697,006 frFB.
+
 ## What is not live yet
 
-- **Automatic minting and redemption.** The signer group's `frfb-mint` and `frfb-burn` programs are written and tested against the real indexer, but not armed. During the first test, mints are proposed and broadcast by the operators.
-- **The gateway service** is built and tested but not yet deployed. Gateway addresses can be computed and swept by anyone today (see [Gateway addresses](./gateway-addresses)); the service makes it automatic.
+- **Unsupervised minting.** Mints are signed automatically; during the first test an operator checks each one before broadcast.
+- **Redemption.** The `frfb-burn` program is written and tested against the real indexer, but not armed.
 - **Self-hosted Fractal node.** Reads currently come from UniSat, plus a block stand-in for the indexer, while SUBFROST's own fractald finishes syncing.

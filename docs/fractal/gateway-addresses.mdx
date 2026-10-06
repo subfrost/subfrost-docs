@@ -8,7 +8,7 @@ description: How a Fractal deposit address that commits to your intent can be sw
 # Gateway Addresses and OP_CAT
 
 :::info[Status: beta]
-The covenant is proven on a Fractal regtest node running the same fractald release as mainnet (v0.4.0): honest sweeps are mined, and every tampering attempt below is rejected. SUBFROST's gateway service, which watches gateway addresses and sweeps them, is in beta. Anyone else can sweep too.
+The covenant is proven on a Fractal regtest node running the same fractald release as mainnet (v0.4.0): honest sweeps are mined, and every tampering attempt below is rejected. SUBFROST's gateway service, which watches gateway addresses and sweeps them, is live in beta on subtun0 (see the [developer guide](./developer-guide#asking-the-gateway-service-to-sweep-it)). Anyone else can sweep too.
 :::
 
 A gateway address is a Fractal address derived from your **intent**: where the frFB should go, and optionally what should happen to it next. You send FB to it from any wallet. From there the FB can move in exactly one way: into the frFB vault, in a transaction whose OP_RETURN calls `Wrap` with your claimant and carries your intent.

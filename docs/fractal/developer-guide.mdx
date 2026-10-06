@@ -155,7 +155,28 @@ Fractal mainnet uses Bitcoin's `bc1p…` address format, so the address is the s
 
 ## Asking the gateway service to sweep it
 
-SUBFROST runs a gateway service on its peer-to-peer network, **subtun0**. It is not behind a public HTTP endpoint. It is a `.peer` service that you reach through any subtun0 relay (`wss://wss-2.asilos.ltd/ws`, with `wss-1` and `wss-3` as fallbacks). Its `.peer` name will be published on this page when the service opens for the beta.
+SUBFROST runs a gateway service on its peer-to-peer network, **subtun0**. It is not behind a public HTTP endpoint: you reach it through any subtun0 relay (`wss://wss-2.asilos.ltd/ws`, with `wss-1` and `wss-3` as fallbacks) at
+
+```
+fr1kq3hutys4xp0gvukkpr68nyzrjt2tnrwlafnqxuuv8agh2l720tqlxjywg.peer
+```
+
+The name is derived from the service's subtun0 key, so nobody else can answer as it without that key. Even so, never trust an address it returns without comparing: the client below does that for you.
+
+| request | does |
+|---|---|
+| `POST /v1/gateway` `{recipient_spk \| recipient_address, sweep_fee?, refund_xonly?, csv?, action?}` | derives the address from the **live** vault script, registers it, and returns the address, intent bytes, leaf scripts, control block and merkle root |
+| `GET /v1/gateway/:address` | the registration, deposits seen and their sweep status, and whether the address is stale |
+| `GET /v1/vault` | the current vault script and signer, the sweep fee bounds and the minimum deposit |
+
+The reference client does the whole compare-before-deposit flow:
+
+```bash
+fb-gatewayd client --service fr1kq3hutys4xp0gvukkpr68nyzrjt2tnrwlafnqxuuv8agh2l720tqlxjywg.peer \
+  gateway --recipient-address <your Bitcoin address> [--sweep-fee 2000]
+```
+
+It reads opcode 104 itself, derives the address locally, asks the service to derive and register the same intent, and prints the deposit address **only if both agree**. The service currently sweeps deposits of at least **10,000 sats** (and always at least `K + 330`).
 
 The flow:
 
