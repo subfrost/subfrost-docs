@@ -10,8 +10,8 @@ description: How FB on Fractal Bitcoin becomes frFB on Bitcoin. The protofractal
 :::warning[Status: beta, being armed]
 Everything on this page is deployed on mainnet: the contracts on both chains, the read endpoint, and the signer group. The peg is in its first end-to-end test. Until this banner changes, treat frFB as experimental:
 
-- Mints are driven by the SUBFROST operators, not yet by the signer group's own program.
-- The redemption direction (frFB back to FB) is not open yet.
+- The signer group's mint and redemption programs are built and tested but not yet armed. During the first test, mints are proposed and broadcast by the operators.
+- Redemption (frFB back to FB) is supported by the contracts on both chains, but burns are queued, not paid, until the redemption program is armed.
 
 Do not bridge more than you are prepared to wait on.
 :::
@@ -23,9 +23,9 @@ frFB is FB, the native coin of [Fractal Bitcoin](https://fractalbitcoin.io), hel
 1. **You lock FB on Fractal.** You pay FB to the signer group's address, in a transaction that calls the **fb-vault** contract's `Wrap`. The transaction names who receives the frFB, and can carry an **intent**: arbitrary bytes saying what to do next.
 2. **fb-vault records the deposit.** The amount is whatever the transaction actually paid the group. The contract also records the claimant and the intent bytes. Nothing is minted on Fractal.
 3. **The signer group mints frFB on Bitcoin.** The 6-of-9 FROST group holds frFB's mint authority. It reads fb-vault's deposit log and mints frFB, less fees, to the claimant.
-4. **Redemption runs the other way.** Burning frFB on Bitcoin records a Fractal destination in frFB's redemption queue. The group then queues and pays the FB out of custody on Fractal.
+4. **Redemption runs the other way.** Burning frFB on Bitcoin records a Fractal destination in frFB's redemption queue. The group redeems it in fb-vault and pays the FB out of custody, with the Fractal network fees taken from the redeemed FB. See [Redemption](./redemption).
 
-You do not have to build any of these transactions yourself. A **gateway address** can be derived from your intent alone, and any FB sent to it can be moved into the vault by anyone, and only into the vault. See [Gateway addresses and OP_CAT](./gateway-addresses).
+You do not have to build any of these transactions yourself. A **gateway address** can be derived from your intent alone. Any FB sent to it can be moved into the vault by anyone, and only into the vault, and the deposit pays for that move itself. See [Gateway addresses and OP_CAT](./gateway-addresses).
 
 ## Two chains, two contracts, one group
 
@@ -56,7 +56,7 @@ frFB, on the other hand, is an ordinary alkane on Bitcoin. It was deployed by wi
 ## Authority, and how it can change
 
 - **Custody** is a script comparison, not a signature check. `Wrap` sums the outputs that pay the vault's *current* signer script (opcode 104). FB paid anywhere else is not credited.
-- **Paying FB out** (`Release`, opcode 78) needs a BIP340 signature from the group over the amount, the destination and a nonce. A captured signature can't be redirected, resized or replayed.
+- **Paying FB out** (`Redeem`, opcode 79) needs a BIP340 signature from the group over the burn being redeemed, the amounts, the destination and a nonce. A captured signature can't be redirected, resized or replayed, and no burn can be redeemed twice. Signatures verify against the group's taproot **output** key, which is what its threshold signer produces.
 - **Rotating the signer key** (`SetSigner`, opcode 1) needs no signature. It needs the caller to **bear FB-SIGIL**. A key that has been lost can't authorize its own replacement, but a bearer token outlives the key it governs. The sigil started inside the vault and was released to the group's address on 6 October 2026. That transaction is `5b74991b…04f8`; the rotation to the group key was `c2b8c3f3…2414`.
 - **Minting frFB** needs frFB-AUTH. **Upgrading frFB** needs frFB-SIGIL; AUTH alone is not enough.
 
@@ -81,6 +81,6 @@ This returns live alkanes state from protofractal (`metashrew_view`, `metashrew_
 
 ## What is not live yet
 
-- **Automatic minting.** The signer group's `frfb-mint` program is written and tested but not armed. Mints during the beta are proposed and broadcast by the operators.
-- **Redemption.** frFB's burn queue works. The FB payout on Fractal needs the group to produce an untweaked BIP340 signature over the payout, and that path is not finished.
+- **Automatic minting and redemption.** The signer group's `frfb-mint` and `frfb-burn` programs are written and tested against the real indexer, but not armed. During the first test, mints are proposed and broadcast by the operators.
+- **The gateway service** is built and tested but not yet deployed. Gateway addresses can be computed and swept by anyone today (see [Gateway addresses](./gateway-addresses)); the service makes it automatic.
 - **Self-hosted Fractal node.** Reads currently come from UniSat, plus a block stand-in for the indexer, while SUBFROST's own fractald finishes syncing.

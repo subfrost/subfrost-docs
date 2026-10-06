@@ -8,7 +8,7 @@ description: How a Fractal deposit address that commits to your intent can be sw
 # Gateway Addresses and OP_CAT
 
 :::info[Status: beta]
-The covenant is proven on a Fractal regtest node running the same fractald release as mainnet (v0.4.0): honest sweeps are mined, and every tampering attempt below is rejected. The relayer that sweeps mainnet gateway addresses is a beta service.
+The covenant is proven on a Fractal regtest node running the same fractald release as mainnet (v0.4.0): honest sweeps are mined, and every tampering attempt below is rejected. SUBFROST's gateway service, which watches gateway addresses and sweeps them, is in beta. Anyone else can sweep too.
 :::
 
 A gateway address is a Fractal address derived from your **intent**: where the frFB should go, and optionally what should happen to it next. You send FB to it from any wallet. From there the FB can move in exactly one way: into the frFB vault, in a transaction whose OP_RETURN calls `Wrap` with your claimant and carries your intent.
@@ -35,16 +35,16 @@ Because the address is a pure function of `(intent, vault script)`, anyone can r
 
 ## What the covenant enforces
 
-A sweep must have **exactly** these outputs, in this order:
+Your intent commits to a **sweep fee `K`**, 2,000 sats by default. A sweep must have **exactly** these outputs, in this order:
 
 | output | script | value |
 |---|---|---|
-| 0 | the vault's custody script (fb-vault opcode 104 when the address was made) | **exactly the deposit amount** |
+| 0 | the vault's custody script (fb-vault opcode 104 when the address was made) | **exactly deposit − K** |
 | 1 | your claimant script, taken from the intent | 546 sats |
 | 2 | `OP_RETURN` with one protorunes protostone: protocol tag 44, call `[44,44,77]` (`Wrap`), pointer 1 | 0 |
-| 3 *(optional)* | anything: the sweeper's change | anything |
+| 3 *(optional)* | anything: the sweeper's tip | anything |
 
-It also requires the deposit to be **input 0**. The sweeper adds its own inputs after it, to pay the 546-sat claimant output and the fee. The deposit itself is never touched: all of it lands in the vault.
+The deposit must be **input 0**, and it is the only input a sweep needs. `K` pays for everything else: the 546-sat claimant output, the miner fee, and whatever is left over as a tip to whoever swept. **A sweeper needs no FB of its own.** Anyone can sweep a gateway address and earn the tip, so sweeps don't depend on SUBFROST.
 
 ## How OP_CAT enforces it
 
@@ -53,13 +53,21 @@ Script cannot read a transaction. But `OP_CHECKSIG` verifies a signature over a 
 **Step 1: rebuild the signature message in script.** The taproot signature hash (BIP341) is a SHA256 of a fixed sequence of fields: version, locktime, hashes of the inputs' outpoints, amounts, scripts and sequences, a hash of all outputs, the spend type, the input index, and the leaf hash. The sweeper hands the script these fields as witness items, each 80 bytes or less. The script `OP_CAT`s them together, but it does **not** take the sweeper's word for the outputs. It builds the outputs itself, from constants in the leaf:
 
 ```
-vault_script ‖ amount        ← amount is an 8-byte witness item
+vault_script ‖ (amount − K)  ← checked by the limb arithmetic below
 claimant_script ‖ 546
 OP_RETURN ‖ <the exact Wrap runestone bytes>
 [ change, if the sweeper supplied one ]
 ```
 
-and hashes that to get `sha_outputs`. The same 8 `amount` bytes are also used as the first entry when the script rebuilds the hash of input amounts. With the deposit pinned at input 0, the vault output's value can only equal the deposit. That check is equality, not arithmetic, which matters because script cannot do 64-bit arithmetic.
+and hashes that to get `sha_outputs`. The `amount` it uses is the deposit's real amount: it also goes into the hash of input amounts, and the deposit is pinned at input 0. The vault output's value has to be exactly `amount − K`. That takes 64-bit subtraction in a script language that cannot do it directly, which is the next step.
+
+**Step 1b: subtract without 64-bit math.** Script arithmetic only works on numbers of up to 4 bytes. A plain `OP_SUB` would cap deposits at 2³¹ sats (21.47 FB). So the witness supplies the deposit amount `A` and the vault value `V` as **four 2-byte pieces each** ("limbs"). For each limb, the script:
+
+1. checks it is exactly 2 bytes (`OP_SIZE 2 OP_EQUALVERIFY`);
+2. appends the byte `0x01`, turning the 2 bytes `b` into the number `65536 + b`. Its last byte is `0x01`, so it is always a valid, minimally encoded script number. The number the arithmetic uses is therefore a pure function of the bytes, and the two can't disagree;
+3. checks `V + K == A` limb by limb, carrying between limbs, with nothing carried out of the top limb.
+
+The limbs are then `OP_CAT`ed back into the 8-byte amount and the 8-byte vault value used in step 1. The arithmetic and the transaction see the same bytes, and the size checks stop a sweeper from splitting the same 8 bytes differently (for example 1+3+2+2) to fool the arithmetic. The script also requires `V ≥ 330`, so a deposit must be at least `K + 330`.
 
 **Step 2: make CHECKSIG check that message.** The script hashes everything into `m`, the message a signature would sign. It then computes the Schnorr challenge for a signature by the generator point `G` (secret key 1) with nonce `R = G`:
 
@@ -75,25 +83,29 @@ Anyone could produce that signature: the key is 1. So the check isn't about who 
 
 ### Why not SIGHASH_ANYONECANPAY
 
-The natural design lets the sweeper add inputs freely with `ALL|ANYONECANPAY`, and it is **unsafe**. Under ANYONECANPAY the signature hash covers this input's outpoint but not its position. If two deposits of the same amount sit at one gateway address, both covenants are satisfied by the same outputs. A sweeper could then spend both in one transaction, pay the vault once, and keep the second deposit as "change". The covenant therefore uses the default hash type, which commits to all inputs, and pins the deposit to input 0. The sweeper still adds inputs, but supplies their hashes for the script to fold in. This attack is in the regtest proof, and it fails.
+The natural design lets the sweeper add inputs freely with `ALL|ANYONECANPAY`, and it is **unsafe**. Under ANYONECANPAY the signature hash covers this input's outpoint but not its position. If two deposits of the same amount sit at one gateway address, both covenants are satisfied by the same outputs. A sweeper could then spend both in one transaction, pay the vault once, and keep the second deposit as "change". The covenant therefore uses the default hash type, which commits to all inputs, and pins the deposit to input 0. Extra inputs remain possible, with their hashes supplied for the script to fold in, but a sweep never needs them. This attack is in the regtest proof, and it fails.
 
 ## Limits
 
 | | |
 |---|---|
-| sweep leaf | 565 bytes for an intent with a 34-byte recipient (about 95 bytes of intent envelope, about 470 bytes of covenant) |
-| sweep transaction | **482 vB** with one sweeper input and change; 428 vB without change |
-| sweeper inputs | at most 10. Every witness item must be 80 bytes or less to relay, and the input amounts travel as one item. More inputs are valid but need a miner willing to mine them. |
-| deposits per sweep | one. A second gateway input would need its own outputs, and the covenant allows exactly one set. |
+| sweep leaf | 699 bytes for an intent with a 34-byte recipient |
+| sweep transaction | **397 vB** with no tip, the deposit as the only input; 452 vB with a tip |
+| sweep fee `K` | 1,000–100,000 sats, fixed per address (default 2,000; about 3.7 sat/vB with no tip) |
+| minimum deposit | `K + 330` |
+| maximum deposit | none: the subtraction is full 64-bit (100 FB sweeps were mined on regtest) |
+| deposits per sweep | one |
 | intent size | up to 4096 bytes |
 
-The sweeper pays the 546-sat claimant output plus a fee of a few hundred sats at most. The deposit pays nothing.
+Extra inputs are allowed but never needed. Their only use is paying a higher fee than `K` covers when the network is busy: add an input, and take its value back in the tip.
 
 ## What it proves, and what it can't
 
 Every one of these was tried on regtest, rebuilt and re-ground the way an attacker would. All were rejected:
 - paying output 0 to a different key
-- paying output 0 the deposit minus 10,000 sats, or plus 1,000
+- paying output 0 one sat more or one sat less than `deposit − K`, or the whole deposit
+- limbs of the wrong size, or limbs split differently from 2+2+2+2
+- deposits of exactly `K`, or below `K + 330`
 - flipping one byte of the OP_RETURN
 - re-pointing the protostone at the sweeper
 - dropping or redirecting the claimant output
@@ -105,4 +117,5 @@ What the covenant does **not** do:
 
 - **It doesn't mint frFB.** It delivers FB and your intent into the vault, with no trust in whoever sweeps. Minting frFB on Bitcoin is the signer group's job, the same as for any deposit. Bitcoin has no `OP_CAT`, so that leg relies on the 6-of-9 group, as all of frFB's custody does.
 - **It doesn't survive a vault key rotation.** The vault script is a constant in the leaf. If fb-vault's signer key is rotated, the vault stops crediting the old script. A deposit at an address derived before the rotation can still be swept, but only to the old key, where it is not credited. The gateway service refuses to sweep stale addresses. Without a refund leaf, recovering such a deposit needs the old key's holder. Rotations are rare and announced: derive your address fresh, and sweep it promptly.
-- **It doesn't protect against dust.** Anyone can send tiny amounts to your address. Sweeping each one costs the sweeper more than it's worth, so tiny deposits are left alone.
+- **It can't sweep deposits below `K + 330`.** With no refund leaf, such a deposit stays where it is. Send at least the minimum.
+- **`K` is fixed per address.** If network fees ever rise above what `K` covers, a sweeper has to add its own input to pay the difference.

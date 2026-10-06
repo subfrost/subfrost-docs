@@ -74,7 +74,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Fractal (Beta)',
       link: {type: 'doc', id: 'fractal/overview'},
-      items: ['fractal/gateway-addresses', 'fractal/developer-guide'],
+      items: ['fractal/gateway-addresses', 'fractal/redemption', 'fractal/developer-guide'],
     },
     // SUBFROST APP: hidden from the nav on 2026-07-15, NOT deleted. The pages and their URLs are
     // untouched; only the sidebar entry is commented out. Restoring is uncommenting this block.
