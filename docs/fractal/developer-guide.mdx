@@ -126,6 +126,8 @@ An intent is canonical bytes. The address depends on every byte, so encode exact
 | action length *m*, u16 LE | 2 |
 | action: what to do with the frFB after minting (opaque; empty = deliver) | *m* |
 
+**Leave `action` empty for now.** Onward routes (frFB swapped to BTC, a stablecoin or DIESEL inside the mint) are coming, but no action encoding is defined yet. Today a non-empty action is ignored and the frFB is delivered plainly to the recipient.
+
 **No refund is the default.** The sweep is fully committed and anyone can broadcast it, so a refund path is not needed for safety. An intent with no refund (all-zero key, CSV 0) gives a gateway address with a single leaf, the sweep. If you do set a refund key and CSV, a second leaf lets that key take the deposit back after CSV blocks. The two forms give different addresses for the same recipient.
 
 Version `0x01` intents have no `K`, and their sweeper pays the claimant output and the fee. They still decode and can still be swept, but nothing issues them any more.
@@ -151,7 +153,7 @@ Fractal mainnet uses Bitcoin's `bc1p…` address format, so the address is the s
 
 ## Asking the gateway service to sweep it
 
-SUBFROST runs a gateway service on its peer-to-peer network, **subtun0**. It is not behind a public HTTP endpoint: you reach it through any subtun0 relay (`wss://wss-2.asilos.ltd/ws`, with `wss-1` and `wss-3` as fallbacks) at
+SUBFROST runs a gateway service on its peer-to-peer network, **subtun0** (see [Connecting over subtun0](../protocol/subtun0)). It is not behind a public HTTP endpoint, and it does not speak HTTP over subtun0 either: it uses its own request framing, so an HTTPS gateway can't reach it. Use its client, `fb-gatewayd client`, which connects through the subtun0 relays `wss://wss-2.asilos.ltd/ws`, then `wss-1` and `wss-3` (override with `--relays`), to
 
 ```
 fr1kq3hutys4xp0gvukkpr68nyzrjt2tnrwlafnqxuuv8agh2l720tqlxjywg.peer
@@ -191,4 +193,5 @@ The service is a convenience, not a dependency. The sweep is fully determined by
 - Recompute every gateway address locally before showing it to a user.
 - Treat a `SimulateResponse.error` as failure, even though the HTTP status is 200.
 - Sweep or deposit promptly after deriving an address.
+- Leave the intent's `action` empty until onward routes ship.
 - Use `env -u SUBFROST_API_KEY` with `alkanes-cli` if you have that variable set to anything other than a valid RPC key. The header outranks the key in the URL, and a wrong key makes reads come back **empty** rather than failing.

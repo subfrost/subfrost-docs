@@ -1,0 +1,467 @@
+---
+title: Encoding Pegs and Swaps
+sidebar_label: Encoding Pegs and Swaps
+sidebar_position: 7
+description: Byte-level encodings for every supported SUBFROST trade. Stablecoins to frUSD and BTC (four ways in, with EIP-712 typed data), frUSD back out to Base, Polygon or BNB Chain, frUSD against frBTC on Bitcoin, FB and frFB, and DIESEL.
+---
+
+# Encoding Pegs and Swaps
+
+This page is for wallets, apps and agents that build SUBFROST transactions themselves. It gives the exact encodings for each supported route, with worked examples: EIP-712 typed data for the EVM side and cellpacks for the alkanes side.
+
+| Arm | From → to | Where it runs | Status |
+|---|---|---|---|
+| [Peg-in](#peg-in-stablecoins-to-frusd-and-btc) | USDC / USDT on Ethereum, Base, BNB Chain, Polygon → frUSD (optionally part BTC) on Bitcoin | the source chain, Ethereum, then Bitcoin | Live |
+| [On Bitcoin](#frusd-and-frbtc-on-bitcoin) | frUSD ↔ frBTC, BTC ↔ frBTC | Bitcoin | Live |
+| [Peg-out](#peg-out-frusd-to-another-chain) | frUSD on Bitcoin → USDC / USDT on Ethereum, Base, BNB Chain, Polygon | Bitcoin, then Ethereum | Live; gas drop coming |
+| [The FB arm](#the-fb-arm) | FB on Fractal ↔ frFB on Bitcoin | Fractal and Bitcoin | Live; onward routes coming |
+| [The DIESEL arm](#the-diesel-arm) | DIESEL mint, DIESEL ↔ frBTC | Bitcoin | Live; v3 mint gate upcoming |
+
+Every address and alkane id below is listed, with how it was verified, in [Signer Groups and Contracts](../protocol/signer-groups-and-contracts).
+
+:::danger[Mainnet only]
+None of these routes has a testnet. A wrong recipient script, a wrong chain or a wrong hop does not raise an error anywhere: the money arrives somewhere you can't spend it. Start with a small amount.
+:::
+
+## Peg-in: stablecoins to frUSD (and BTC)
+
+Every peg-in, from any chain, is one `DepositIntent`. It fixes the asset, the amount, the Bitcoin recipient and the refund rule, and its EIP-712 hash fixes a **deposit address on Ethereum** (the gateway). The funds reach that address one way or another; then `settle` sweeps them into the frUSD vault, and the frUSD signer group mints on Bitcoin. [frUSD Deposits from Other Chains](../protocol/frusd-cross-chain-deposits) follows one deposit end to end. This section is the encoding.
+
+### The intent
+
+```text
+DepositIntent(uint8 assetId,address token,uint256 amount,bytes32 recipientScriptHash,uint32 convertBps,bytes32 btcDestHash,uint16 maxSlippageBps,address refundAddress,uint64 expiry,uint256 nonce)
+
+typehash  0xd0ba66893952bd61d59c1120e0819129666508130451c7f40bba1c37f5d730c5
+domain    { name: "SUBFROST frUSD Gateway", version: "1", chainId: 1,
+            verifyingContract: 0xaF4C39A0Da304eF39D56783d785ea52bb8431362 }   // GatewayFactory
+```
+
+The intent always describes the **Ethereum** side, whichever chain the money starts on:
+
+| Field | Value |
+|---|---|
+| `assetId` | `0` = USDC, `1` = USDT: what the route arrives as on Ethereum |
+| `token` | the Ethereum token for that id: USDC `0xA0b86991c6218b36c1D19D4a2e9Eb0cE3606eB48`, USDT `0xdAC17F958D2ee523a2206206994597C13D831ec7` |
+| `amount` | the minimum that must **arrive** on Ethereum, 6 decimals. Set it a little under the bridge's quote |
+| `recipientScriptHash` | `keccak256` of the Bitcoin scriptPubKey that receives frUSD |
+| `convertBps` | `0` for pure frUSD. `1`–`10000`: that share is converted to BTC (see [A BTC share](#a-btc-share)) |
+| `btcDestHash` | `keccak256` of the BTC destination script when `convertBps > 0`, else 32 zero bytes |
+| `maxSlippageBps` | the slippage limit for the BTC share; `0` = let the signer group choose |
+| `refundAddress` | where a stuck deposit can be returned. Zero = no refund path |
+| `expiry` | Unix seconds. It only blocks `settle` when a refund address is set |
+| `nonce` | single use. On the Permit2 lanes it is also the Permit2 nonce |
+
+The `intentHash` is the EIP-712 digest of the intent under that domain. The deposit address is `CREATE2(GatewayFactory, salt = intentHash, keccak256(EIP-1167 clone of 0xdbA4c9fe841A7cf0b37B041126bA4d4640B4F296))`, or `gatewayFor(intentHash)` on the factory. Compute both yourself and compare them with what any service tells you.
+
+### The four ways in
+
+On BNB Chain, Polygon and Base, a peg-in starts at a **forwarder** for that chain and token. The forwarder recomputes the intent hash and the Ethereum deposit address from the intent itself, then bridges the stablecoin there. Nobody between the user and Ethereum can change the destination: it is not a parameter. There are four ways to hand the forwarder the funds:
+
+| Lane | What the user does | Contract call | Who sends it |
+|---|---|---|---|
+| **Deposit address** | Sends the stablecoin to a per-intent address on the source chain, from any wallet or exchange. Signs nothing | `SourceEscrowFactory.sweep(forwarder, intent)` | the pegin-relay group, or anyone |
+| **Permit2** | `approve(Permit2, max)` once per token per chain; then one signature per deposit | `sweepAndBridge(intent, owner, srcAmount, deadline, signature)` | the pegin-relay group, or anyone |
+| **EIP-2612 permit** | Two signatures, no approval transaction: a token `permit` to Permit2, plus the Permit2 signature | `sweepWithPermit(intent, owner, srcAmount, deadline, signature, permit)` | the pegin-relay group, or anyone |
+| **Direct deposit** | `approve(forwarder, srcAmount)`, then calls the forwarder and pays gas (and, on Stargate routes, the LayerZero fee) | `depositAndBridge(intent, srcAmount)` | the user. The only lane a smart contract can use |
+
+| Route | Forwarder | Bridge | Deposit address | Permit2 | EIP-2612 | Direct |
+|---|---|---|---|---|---|---|
+| Base USDC → USDC | `0x5e656a3e5680046e1E71361d59fdfbe058546518` | CCTP v2 | ✓ | ✓ | ✓ | ✓ |
+| BNB Chain USDT → USDT | `0xC1d512684B80D6A179F468595074AcdDFAAe3c1D` | Stargate | ✓ | ✓ | ✗ (no `permit`) | ✓ |
+| BNB Chain USDC → USDC | `0x8BFB31f205Ff5a51779b5B25B9BeD4F608d4C722` | Stargate | ✓ | ✓ | ✗ (no `permit`) | ✓ |
+| Polygon USDC → USDC | `0x91F3b7Fc7585421EAEF404eb69F90A52C83BE353` | Stargate | ✓ | ✓ | ✓ | ✓ |
+| Polygon USDT0 → USDT | `0x9b728A1366EFD0D892eb50e3E75DFFF5eD666EC7` | Stargate | ✓ | ✓ | ✓ | ✓ |
+
+Base has no USDT peg-in. On Ethereum itself, a peg-in is an ordinary transfer of USDC or USDT to the intent's deposit address (or the vault's own `depositAndBridge`, see [BTC/USD Commands](../api-reference/cli-sdk/btcusd#arm-b-evm-to-btc-deposit)).
+
+**Amounts.** `srcAmount` is in the source token's decimals: 18 on BNB Chain, 6 on Polygon and Base. The bridge must deliver at least `intent.amount × 10^(source decimals − 6)`, or it reverts and nothing leaves the user's wallet. Quote it on the forwarder first with `preview(intent, srcAmount)`.
+
+#### Permit2
+
+The user signs a Permit2 `PermitWitnessTransferFrom` whose witness is the intent. Note three details: the Permit2 domain has **no version**; `permitted` is the **source** token and amount; and `witness` is the intent struct, not the intent hash.
+
+```json
+{
+  "types": {
+    "EIP712Domain": [
+      {"name": "name", "type": "string"},
+      {"name": "chainId", "type": "uint256"},
+      {"name": "verifyingContract", "type": "address"}
+    ],
+    "PermitWitnessTransferFrom": [
+      {"name": "permitted", "type": "TokenPermissions"},
+      {"name": "spender", "type": "address"},
+      {"name": "nonce", "type": "uint256"},
+      {"name": "deadline", "type": "uint256"},
+      {"name": "witness", "type": "DepositIntent"}
+    ],
+    "TokenPermissions": [
+      {"name": "token", "type": "address"},
+      {"name": "amount", "type": "uint256"}
+    ],
+    "DepositIntent": [
+      {"name": "assetId", "type": "uint8"},
+      {"name": "token", "type": "address"},
+      {"name": "amount", "type": "uint256"},
+      {"name": "recipientScriptHash", "type": "bytes32"},
+      {"name": "convertBps", "type": "uint32"},
+      {"name": "btcDestHash", "type": "bytes32"},
+      {"name": "maxSlippageBps", "type": "uint16"},
+      {"name": "refundAddress", "type": "address"},
+      {"name": "expiry", "type": "uint64"},
+      {"name": "nonce", "type": "uint256"}
+    ]
+  },
+  "primaryType": "PermitWitnessTransferFrom",
+  "domain": {
+    "name": "Permit2",
+    "chainId": "56",
+    "verifyingContract": "0x000000000022D473030F116dDEE9F6B43aC78BA3"
+  },
+  "message": {
+    "permitted": {
+      "token": "0x55d398326f99059fF775485246999027B3197955",
+      "amount": "3000000000000000000000"
+    },
+    "spender": "0xC1d512684B80D6A179F468595074AcdDFAAe3c1D",
+    "nonce": "1",
+    "deadline": "1790808738",
+    "witness": {
+      "assetId": "1",
+      "token": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      "amount": "2992000000",
+      "recipientScriptHash": "0x615f28775040b5eecc619a53fce969d88d2a058566d0242818329a772bd723bb",
+      "convertBps": "0",
+      "btcDestHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "maxSlippageBps": "0",
+      "refundAddress": "0x0000000000000000000000000000000000000000",
+      "expiry": "1790805138",
+      "nonce": "1"
+    }
+  }
+}
+```
+
+That is 3,000 BNB Chain USDT (18 decimals) toward the intent from the [worked example](../protocol/frusd-cross-chain-deposits). The rules:
+
+- `spender` is the forwarder for that chain and token, and only that forwarder can redeem the signature.
+- `nonce` must equal `intent.nonce`. Permit2 then spends the intent itself, so the same intent can't be pulled twice.
+- `deadline` may be at most 7 days after the broadcast; a later one is refused.
+
+The `PermitWitnessTransferFrom` typehash under this witness is `0x2c6695f04e036c3f4d3a0a5258a05f5595c06e4985e3c55913af282a1afb0cf2`.
+
+#### EIP-2612 permit
+
+Where the token supports `permit`, the user can skip the one-time approval transaction. They sign a standard `Permit` whose **spender is Permit2** (never the forwarder), and then the Permit2 signature above. The forwarder applies the permit and pulls through Permit2 in the same transaction.
+
+```json
+{
+  "types": {
+    "EIP712Domain": [
+      {"name": "name", "type": "string"},
+      {"name": "version", "type": "string"},
+      {"name": "chainId", "type": "uint256"},
+      {"name": "verifyingContract", "type": "address"}
+    ],
+    "Permit": [
+      {"name": "owner", "type": "address"},
+      {"name": "spender", "type": "address"},
+      {"name": "value", "type": "uint256"},
+      {"name": "nonce", "type": "uint256"},
+      {"name": "deadline", "type": "uint256"}
+    ]
+  },
+  "primaryType": "Permit",
+  "domain": {
+    "name": "USD Coin",
+    "version": "2",
+    "chainId": 8453,
+    "verifyingContract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+  },
+  "message": {
+    "owner": "0xYourAddress",
+    "spender": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    "value": "10000000",
+    "nonce": "0",
+    "deadline": "1791384590"
+  }
+}
+```
+
+`nonce` is the token's own `nonces(owner)`. `value` must cover `srcAmount`. The domains differ per token:
+
+| Token | Domain |
+|---|---|
+| Base USDC | `name "USD Coin"`, `version "2"`, `chainId 8453`, `verifyingContract 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+| Polygon USDC | `name "USD Coin"`, `version "2"`, `chainId 137`, `verifyingContract 0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359` |
+| Polygon USDT0 | `name "USDT0"`, `version "1"`, `verifyingContract 0xc2132D05D31c914a87C6611C10748AEb04B58e8F`, and **`salt` = `bytes32(137)` instead of `chainId`**: `EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)`. The standard domain fails with `USDT0: INVALID-PERMIT` |
+
+The forwarder takes the permit as one 160-byte argument: `abi.encode(uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s)`.
+
+#### Deposit address
+
+The deposit-address lane needs no signature and no wallet integration: the user, or an exchange withdrawal, sends the source token to an address derived from the intent **on the source chain**:
+
+```text
+escrow = last20(keccak256(0xff ++ SourceEscrowFactory ++ intentHash ++ INIT_CODE_HASH))
+```
+
+Read it with `predict(intentHash)` on that chain's `SourceEscrowFactory`, and `INIT_CODE_HASH()` for the offline formula. The factories are Base `0x03aEBD3ACE98Ce26081fBF51E3970ab33cA70E60`, BNB Chain `0xdebE84e9FB41232CfAC5A1BFba50b15C36EBb0c5` and Polygon `0x76af40680f85f6A6c36CcF43eD2e0B8B78B241F3`.
+
+- **The escrow address is not the Ethereum deposit address.** Both are salted by the same intent hash, but under different factories on different chains. Send to the escrow on the source chain only.
+- `sweep(forwarder, intent)` deploys the escrow and bridges its **whole** balance.
+- With a refund address, `refund` returns the deposit after expiry, and `rescueWrongToken` returns a wrong token at any time, both to `refundAddress` only.
+
+#### Direct deposit
+
+`approve(forwarder, srcAmount)`, then `depositAndBridge(intent, srcAmount)` from the depositor's own address. On Stargate routes the call is payable: send the LayerZero fee as `msg.value` (quote it with `preview`). Unused fee is returned. On CCTP the fee comes out of the amount and there is no native fee.
+
+### Registering the intent
+
+Send the intent to the [peg-in service](../protocol/peer-services#peg-in-service-pegd) so it is watched and settled for you. Registration is not required for safety: `register` and `settle` on the `GatewayFactory` are open to anyone. For a source-chain deposit, `POST /v1/multichain`:
+
+```json
+{
+  "intent": {
+    "assetId": 1,
+    "token": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "amount": "2992000000",
+    "recipientScriptHash": "0x615f28775040b5eecc619a53fce969d88d2a058566d0242818329a772bd723bb",
+    "convertBps": 0,
+    "btcDestHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "maxSlippageBps": 0,
+    "refundAddress": "0x0000000000000000000000000000000000000000",
+    "expiry": 1790805138,
+    "nonce": "1"
+  },
+  "preimage": {
+    "recipientScript": "0x5120c052331c3d07822a338e86cd14d3d011e21e562380ea96f6093f7cc233dab49e"
+  },
+  "chainId": 1,
+  "expected": {
+    "depositAddress": "0x0d69fc4dc9C1D34Bf63d76Bf147A1E1E86065263",
+    "intentHash": "0xf00c4c2bb3e7a7f0553508e6d4da138400426a81ce6912c665bfde24dd9858da"
+  },
+  "source": {
+    "chainId": 56,
+    "token": "0x55d398326f99059fF775485246999027B3197955",
+    "srcAmount": "3000000000000000000000",
+    "forwarder": "0xC1d512684B80D6A179F468595074AcdDFAAe3c1D",
+    "bridge": "stargate",
+    "mode": "permit2",
+    "owner": "0xYourAddress",
+    "deadline": 1790808738,
+    "signature": "0x…65 bytes…"
+  }
+}
+```
+
+- `amount` and `nonce` are **decimal strings**; hex is refused.
+- `preimage.recipientScript` reveals the script behind `recipientScriptHash`. Add `btcDestination` when `convertBps > 0`.
+- `expected` is your own derivation. pegd refuses to register an address it can't reproduce, and tells you which field disagreed.
+- `source.mode` is `permit2`, `permit2612` (add `permit2612`: the 160-byte permit blob, hex) or `escrow` (add `escrow` and `escrowFactory`). `bridge` is `stargate` or `cctp`.
+
+The reply (`201`) echoes the full derivation: `typeHash`, `domainSeparator`, `structHash`, `intentHash` and `depositAddress`. For the worked example these are `domainSeparator 0xe1e9505d4595de83b7b15eedc17e685566072fa800071aa47b723334c396659f` and `structHash 0xa4b4582a37d7d21b290a3cedb8ac8ce6bcb2473fc8f1bda72de2873a0cb3e7ac`.
+
+### A BTC share
+
+With `convertBps > 0`, the frUSD signer group mints the frUSD and, in the same Bitcoin transaction, swaps `convertBps` of it for frBTC on the frUSD/frBTC pool `4:1778` and unwraps that frBTC to BTC at the destination. `register` reveals the destination script, which must hash to `btcDestHash`. It travels to Bitcoin inside the vault payment's `bridgeData` (protobuf):
+
+```text
+bridgeData = 0x12 <len> recipientScript                      // field 2: frUSD recipient
+           ‖ 0x22 <len> ( 0x08 <varint convertBps>           // field 4: BtcConversion
+                        ‖ 0x12 <len> btcDestination
+                        ‖ [0x18 <varint maxSlippageBps>] )
+```
+
+The conversion is two steps by two groups. The frBTC unwrap queues a BTC payment that the frBTC group pays afterwards, so the BTC lands after the frUSD. If the pool can't absorb the swap (a conversion over 10% of the pool's frUSD reserve is refused), the whole deposit is minted as frUSD instead, with no error. See [BTC/USD Commands](../api-reference/cli-sdk/btcusd#every-failure-on-this-path-is-silent) for the checks to make before signing.
+
+## frUSD and frBTC on Bitcoin
+
+Both are alkanes, so a swap is one Bitcoin transaction with no bridge.
+
+| Action | Cellpack | Carries in |
+|---|---|---|
+| Wrap BTC → frBTC | `[32, 0, 77]` | BTC paid to the frBTC custody address in the same transaction |
+| Unwrap frBTC → BTC | `[32, 0, 78, vout, amount]` | the frBTC; `vout` is the output whose script receives the BTC |
+| Quote | `[4, 1778, 107, i, j, dx]` (view, `get_dy`) | nothing |
+| Swap | `[4, 1778, 5, j, min_dy]` (`exchange`) | `dx` of coin `i`, moved into this protostone by an edict |
+
+On the pool contract, **coin 0 is frBTC and coin 1 is frUSD**. That is the reverse of the BTCUSD index's `token0`/`token1` ordering, so take the indices from here, not from the index. Selling 0.001 frBTC for frUSD:
+
+```text
+quote   [4, 1778, 107, 0, 1, 100000]        → dy, frUSD base units (8 decimals)
+swap    [4, 1778, 5, 1, <dy minus your slippage>]
+```
+
+- Opcode 3 is the swap on OYL-style pools, but it **reverts** on `4:1778`. Use 5.
+- Set the protostone's `refund` pointer to an output you own. A revert returns the input there, and a refund pointed at the OP_RETURN burns it.
+
+## Peg-out: frUSD to another chain
+
+A peg-out is a frUSD burn on Bitcoin that names an Ethereum address and, optionally, a call for the vault to make with the payout. The frUSD group pays the burn out of the vault on Ethereum. To land on Base, Polygon or BNB Chain, the call is `PegOutRouter.pegOut`, which forwards the payout over Across.
+
+### The burn cellpack
+
+```text
+plain:      [4, 1776, 5,  eth_hi, eth_lo, asset_id]
+with data:  [4, 1776, 14, eth_hi, eth_lo, asset_id, data_len, word_count, w0, w1, …]
+```
+
+- The protostone carries in the frUSD to burn (8 decimals). The minimum is 10 frUSD.
+- `eth_hi` is the top 4 bytes of the Ethereum address and `eth_lo` the bottom 16, both big-endian. This address is paid on Ethereum, in full, if the call fails. Use the burner's own address.
+- `asset_id`: `0` = USDC, `1` = USDT.
+- `data` is packed into u128 words, big-endian, 16 bytes each, the last word zero-padded. `data_len` is its length in **bytes**. `word_count` is the number of **words**, and must be there: without it, the contract reads the first data word as a length and the burn fails.
+- `data` itself is `0x01` (version) `‖ 0x01` (call) `‖` 20-byte target `‖` calldata.
+
+### PegOutRouter
+
+`0xE8ecC225C946a3A963CEfceEbB7d75a0f8c70e85` on Ethereum. Selector `0x60cd291f`:
+
+```solidity
+pegOut(uint256 routeIndex, address dstRecipient, address refundTo,
+       uint16 feeBps, uint32 deadlineOffset, bool callRecipient)
+```
+
+| Route | Burn `asset_id` | Lands as | Transport | Offered |
+|---|---|---|---|---|
+| 0 | 0 (USDC) | Base USDC | Across | yes |
+| 1 | 0 (USDC) | Polygon USDC | Across | yes |
+| 2 | 0 (USDC) | BNB Chain USDC (18 decimals) | Across | yes |
+| 3 | 0 (USDC) | Base USDC | CCTP v2 | **no**: nothing relays the mint on Base yet |
+| 4 | 1 (USDT) | Base USDT | Across | yes, without a gas drop |
+| 5 | 1 (USDT) | Polygon USDT0 | Across | yes |
+| 6 | 1 (USDT) | BNB Chain USDT (18 decimals) | Across | yes |
+
+There is no amount argument: the router pulls whatever the vault approved, after the vault's fees ($1.99 plus 0.10%).
+
+- `feeBps` is the Across relayer fee. Take `totalRelayFee.pct` from Across's `suggested-fees` API, round it up to whole bps and add a margin (the reference client adds 10). Too low and no relayer fills: the deposit refunds to `refundTo` **on Ethereum** after `deadlineOffset`. Too high and the relayer keeps the difference. The principal is safe either way.
+- `refundTo` gets an unfilled deposit back on Ethereum. Use the burner's own Ethereum address, the same one as `eth_hi`/`eth_lo`.
+- `deadlineOffset` is in seconds. The reference client uses 14,400 (four hours); the maximum is 21,600.
+- Set `callRecipient` to `false`. `true` makes the fill call the recipient, which only a gas-drop handler answers; a smart-contract wallet would revert every fill.
+
+**Example: USDC out to Polygon** for `0x1234567890abcdef1234567890abcdef12345678` (an example address), with `feeBps` 15:
+
+```text
+pegOut calldata
+  60cd291f
+  0000000000000000000000000000000000000000000000000000000000000001   route 1
+  0000000000000000000000001234567890abcdef1234567890abcdef12345678   dstRecipient
+  0000000000000000000000001234567890abcdef1234567890abcdef12345678   refundTo
+  000000000000000000000000000000000000000000000000000000000000000f   feeBps 15
+  0000000000000000000000000000000000000000000000000000000000003840   deadlineOffset 14400
+  0000000000000000000000000000000000000000000000000000000000000000   callRecipient false
+
+data = 01 01 e8ecc225c946a3a963cefceebb7d75a0f8c70e85 <the 196 bytes above>     218 bytes
+
+cellpack
+  [4, 1776, 14,
+   305419896,                                   eth_hi = 0x12345678
+   192300890990970933391196165374114813560,     eth_lo = 0x90abcdef1234567890abcdef12345678
+   0,                                           asset_id: USDC
+   218, 14,                                     data_len (bytes), word_count
+   w0 … w13]                                    data as 14 big-endian u128 words:
+                                                  0x0101e8ecc225c946a3a963cefceebb7d
+                                                  0x75a0f8c70e8560cd291f000000000000
+                                                  …
+```
+
+### Optional gas drop (coming)
+
+A peg-out can deliver part of the payout as the destination chain's native gas token, so that a fresh wallet can move what it received. The contracts for this are deployed; the service that registers drops, and the group that runs them, are not live yet.
+
+How it will work:
+
+- **The recipient is a handler, not the wallet.** The payout's `dstRecipient` is a per-recipient handler contract, at an address predicted from a `DropConfig`:
+
+  ```solidity
+  struct DropConfig {
+      address recipient;       // the wallet that finally receives everything
+      uint16  gasDropBps;      // share of the payout swapped to native gas
+      uint16  maxSlippageBps;  // floor for that swap, against a same-block quote
+      uint256 maxNativeOut;    // cap on the native amount
+  }
+  ```
+
+  `predict(config)` on the chain's `GasDropFactory` returns the handler's address.
+- **On delivery, the handler pays the wallet.** It swaps `gasDropBps` of what it received to native gas (never more than `maxNativeOut`) and sends everything to `recipient`. If the swap fails, the whole payout goes to `recipient` as the stablecoin; it never reverts. The factory caps `maxNativeOut` at 0.005 ETH on Base, 50 POL on Polygon and 0.02 BNB on BNB Chain.
+- **`callRecipient` is `true`** for a gas-drop peg-out, so that the Across fill calls the handler.
+- **Across can't fill to an address with no code.** The handler has to be deployed (`deployOnly(config)`) **before** you quote and burn. The order is: register → wait until the handler has code → quote → burn.
+- **Registration.** pegd's `POST /v1/gasdrops`, signed by the recipient (EIP-712, or ERC-1271 for a contract wallet), will ask the gasdrop-claim group to deploy the handler and poke it after a CCTP delivery. The proposed message is:
+
+  ```text
+  domain  { name: "SUBFROST GasDrop Registry", version: "1",
+            chainId: <destination chain>, verifyingContract: <that chain's GasDropFactory> }
+  GasDropRegistration(address recipient,uint16 gasDropBps,uint16 maxSlippageBps,uint256 maxNativeOut,uint8 routeIndex,uint256 nonce,uint64 expiresAt)
+  ```
+
+  Treat this shape as a draft until the endpoint ships.
+
+| Route | Factory |
+|---|---|
+| 0 (Base USDC) | `0x8F44B466F79d66A272172c3b8565b246aBcbE91F` on Base |
+| 1 (Polygon USDC) | `0x8F44B466F79d66A272172c3b8565b246aBcbE91F` on Polygon |
+| 5 (Polygon USDT0) | `0xdD57604b628A0b8bc9d26aA4F22EB62c5C25d183` on Polygon |
+| 6 (BNB Chain USDT) | `0x8F44B466F79d66A272172c3b8565b246aBcbE91F` on BNB Chain |
+| 2 (BNB Chain USDC) | `0xdD57604b628A0b8bc9d26aA4F22EB62c5C25d183` on BNB Chain |
+| 4 (Base USDT) | **not available**: its handler needs a two-hop swap that has not been audited |
+
+## The FB arm
+
+FB on Fractal becomes frFB (`4:4444`) on Bitcoin through the fb-vault and the frFB signer group. The [Fractal](../fractal/overview) section covers it fully: [gateway addresses](../fractal/gateway-addresses), the [intent encoding and the gateway service](../fractal/developer-guide), and [redemption](../fractal/redemption).
+
+| Action | Encoding |
+|---|---|
+| FB → frFB with no gateway | on Fractal: pay fb-vault opcode 104's script, plus a protostone with tag 44, cellpack `[44, 44, 77]` and pointer = your claimant output |
+| FB → frFB through a gateway address | an intent v2 (`0x02 ‖ recipient script ‖ refund ‖ CSV ‖ K ‖ action`); see the [developer guide](../fractal/developer-guide#the-intent-encoding-v2) |
+| frFB → FB | on Bitcoin: `[4, 4444, 88, dest0, dest1, dest2, dest_len]`, carrying the frFB |
+
+**Onward routes are coming.** The intent's `action` field is meant to say what happens to the frFB after it is minted: swap it to BTC, a stablecoin or DIESEL inside the group's mint transaction. No action encoding is defined yet. Today, a deposit with a non-empty `action` is minted and delivered as plain frFB to the recipient, so leave `action` empty. To get from frFB to another asset now, receive the frFB and swap it yourself.
+
+## The DIESEL arm
+
+DIESEL is `2:0`.
+
+### Minting
+
+```text
+[2, 0, 77]
+```
+
+One mint per transaction, as the first call in a protostone. Each block's DIESEL is shared among that block's mints.
+
+### The v3 mint gate (upcoming)
+
+DIESEL v3 adds a **mint gate**: every mint is forwarded to the gate, which decides how it is split. The gate is **SUBMINER-GATE**, already deployed at `4:1001`. v3 is scheduled to activate by consensus at Bitcoin block **975,000**, in an indexer release that has not been merged yet. Until that release ships, mints work as they do today.
+
+Under v3:
+
+- **The cellpack does not change.** It is still `[2, 0, 77]`. Anything after `77` is ignored, and DIESEL always calls the gate with opcode 1, so a minter can't steer the gate.
+- **The gate splits each mint.** It returns `caller_bp` basis points to the minter and deposits the rest into the SUBMINER treasury `2:96782`. The opening split is 192 bps (1.92%) to the minter and 98.08% to the treasury. Read the live value from the gate's opcode 102.
+- **The gate can only pay out of the mint it was handed.** If it returns more, or reverts, the whole mint reverts.
+- **The gate and its split can be changed only by a holder of cFIRE-SIGIL `4:866`**: on DIESEL with opcode 80 (which gate), and on the gate with opcode 2 (the split).
+
+### DIESEL in swaps
+
+DIESEL trades against frBTC in the pool `2:77087`. Swaps are usually routed through the AMM factory `4:65522`, which takes a path of alkane ids:
+
+```text
+[4, 65522, 13, n, path…, amount_in, amount_out_min, deadline]    exact in
+[4, 65522, 14, n, path…, amount_out, amount_in_max, deadline]    exact out
+
+DIESEL → frBTC:   [4, 65522, 13, 2, 2, 0, 32, 0, <amount_in>, <min_out>, <deadline>]
+```
+
+`n` is the number of ids in the path. Each id is two words, block then tx. `deadline` is a block height, and `0` means none. The DIESEL carried in must be at least `amount_in`.
+
+DIESEL is also the usual intermediate hop when two tokens share no pool, and it can [pay a transaction's network fee](../protocol/diesel-fees) through the [DIESEL fee broker](../protocol/peer-services#diesel-fee-broker).
+
+**From a stablecoin to DIESEL** is two hops, in two protostones: frUSD → frBTC on `4:1778` (`exchange`, [above](#frusd-and-frbtc-on-bitcoin)), then frBTC → DIESEL through the factory. The two pools are different contract types, so the factory can't route across both in one path.
+
+## Where to go next
+
+- [Signer Groups and Contracts](../protocol/signer-groups-and-contracts): every address used on this page, and how each was verified.
+- [Services on subtun0](../protocol/peer-services): pegd, the DIESEL fee broker and the Fractal gateway service.
+- [frUSD Deposits from Other Chains](../protocol/frusd-cross-chain-deposits): one peg-in followed end to end.
+- [BTC/USD Commands](../api-reference/cli-sdk/btcusd): quote, prepare and check these trades with `alkanes-cli`.

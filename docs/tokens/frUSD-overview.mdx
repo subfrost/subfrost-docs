@@ -166,6 +166,8 @@ In the app, choose USDC or USDT as what you are paying with and `frUSD` as what 
 
 If you would rather drive it yourself, [BTC/USD Commands](../api-reference/cli-sdk/btcusd) prints the same two calls for you to sign in your own wallet.
 
+USDC and USDT on **Base, BNB Chain and Polygon** can be deposited too, by a signed intent that bridges them to Ethereum first: see [frUSD Deposits from Other Chains](../protocol/frusd-cross-chain-deposits). Burning back out can likewise land on Base, BNB Chain or Polygon. [Encoding Pegs and Swaps](../developer-guide/encoding-pegs-and-swaps) has the encodings for both directions.
+
 :::warning[A plain transfer to the vault is not a deposit]
 The deposit must be made through the bridge contract's own deposit call, which carries the instruction naming your Bitcoin address. **Sending USDC or USDT to the vault address as an ordinary token transfer does not mint anything**: it arrives with no instruction attached, and there is no automatic route back.
 :::
@@ -192,5 +194,6 @@ Being specific about status matters, so here is where each piece stands.
 - [Swap](../using-subfrost/swap): trade BTC against USD through the frUSD/frBTC pool.
 - [Pools & Liquidity](../using-subfrost/pools-liquidity): what providing liquidity to that pool pays, and how its fee differs from a standard AMM pool.
 - [BTC/USD Commands](../api-reference/cli-sdk/btcusd): read the pool, quote a trade, or prepare a bridge deposit from the command line.
+- [Signer Groups and Contracts](../protocol/signer-groups-and-contracts): the frUSD signer group's address on both chains, and every contract on the way in and out.
 - [frBTC Overview](./frBTC-overview): the wrapped-BTC asset frUSD trades against, and how the two custody stories differ.
 - [Every Stablecoin Has an Off-Switch. frUSD Doesn't.](https://subfrost.io/articles/frusd-off-switch-free-finance): the essay making the case for why a dollar that settles on Bitcoin is worth building. It argues the destination; this page documents what is built today.

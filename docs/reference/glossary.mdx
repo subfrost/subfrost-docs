@@ -32,6 +32,10 @@ description: Short definitions for the terms used across the SUBFROST documentat
 *   **Wrap / Unwrap:** Wrapping locks BTC and mints frBTC 1:1; unwrapping burns frBTC and releases the underlying BTC through the signer group.
 *   **Oracle:** A decentralized group that brings outside data (mainly prices) on-chain by agreement, so no single party dictates the value.
 *   **Signer set:** The group of participants that collectively custodies the BTC backing frBTC through threshold signing.
+*   **subtun0:** SUBFROST's peer-to-peer overlay network. Some services are reached on it by a `.peer` name rather than a web address. See [Connecting over subtun0](../protocol/subtun0).
+*   **`.peer` name:** A subtun0 address such as `fr1….peer`, derived from the holder's public key, so only that key's holder can answer under it.
+*   **Entry relay:** The subtun0 relay a client connects to first. Its identity is the first hop of the client's first circuit.
+*   **Deposit intent:** The signed description of a frUSD peg-in (asset, amount, Bitcoin recipient, refund rule). Its hash fixes the deposit address.
 *   **PSBT:** Partially Signed Bitcoin Transaction. The format a wallet signs when authorizing a transaction.
 
 ## Alkane IDs
@@ -43,12 +47,14 @@ An Alkane ID is written `block:tx`. For example, frBTC is `32:0`, which appears 
 | `frBTC` | `32:0` |
 | DIESEL | `2:0` |
 | frUSD | `4:1776` |
+| frFB | `4:4444` |
 
 ## Cryptography
 
 *   **Schnorr signature:** The signature scheme Bitcoin adopted in Taproot (BIP-340), over the secp256k1 curve. Its linearity lets partial signatures combine into one.
 *   **FROST:** Flexible Round-Optimized Schnorr Threshold. A threshold scheme letting a dynamic set of signers produce one Schnorr signature without any signer holding the full private key.
 *   **ROAST:** Robust Asynchronous Schnorr Threshold. A robust, asynchronous optimization of FROST that keeps signing moving when some participants are slow or offline.
+*   **cggmp21:** A threshold ECDSA protocol. SUBFROST uses it for groups that sign EVM transactions, which only pay gas.
 *   **DKG:** Distributed Key Generation. A ceremony where participants jointly produce one group public key while each holds only a secret share of the private key.
 *   **Keystore:** An encrypted file (or hardware-backed store) that holds a user's sensitive cryptographic material.
 *   **AES-256-GCM:** A modern authenticated encryption cipher providing both confidentiality and integrity.

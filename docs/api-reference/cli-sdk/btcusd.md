@@ -64,6 +64,8 @@ Identities and decimals. These are safe to hardcode.
 | token1 | frBTC `32:0`, 8 decimals |
 | LP token | `4:1778`, 18 decimals |
 
+token0/token1 is the BTCUSD index's ordering. **The pool contract's own coin indices are the other way round**: in `get_dy(i, j, dx)` (107) and `exchange(j, min_dy)` (5), coin 0 is frBTC and coin 1 is frUSD. See [Encoding Pegs and Swaps](../../developer-guide/encoding-pegs-and-swaps#frusd-and-frbtc-on-bitcoin).
+
 ### Curve parameters, as deployed
 
 These are not invariants. `A` and `gamma` can ramp, fees are init parameters an admin can re-commit, and the whole thing sits behind an upgradeable proxy. Read them rather than hardcoding them, and re-read whenever `pool` reports the curve as ramping.
