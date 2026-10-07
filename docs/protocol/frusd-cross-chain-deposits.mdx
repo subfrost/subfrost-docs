@@ -8,7 +8,7 @@ description: How a stablecoin deposit on BNB Chain, Polygon or Base becomes frUS
 # frUSD Deposits from Other Chains
 
 :::info[Status: early production]
-The contracts on this page are live on Ethereum, BNB Chain, Polygon and Base, and so is the relay that broadcasts signed deposits on the source chain: the 2-of-3 pegin-relay group swept its first deposit (Base USDC, by EIP-2612 permit over CCTP) on 7 October 2026. The SUBFROST app has no screen for it yet. Integrators register intents with the [peg-in service](./peer-services#peg-in-service-pegd) over subtun0; every encoding is in [Encoding Pegs and Swaps](../developer-guide/encoding-pegs-and-swaps). The worked example below predates the current forwarders: it went through the first-generation BNB Chain forwarder, which is now retired, but every step after the bridge is unchanged.
+The contracts on this page are live on Ethereum, BNB Chain, Polygon and Base, and so is the relay that broadcasts signed deposits on the source chain. The first deposit through the relay went from Base USDC to frUSD on Bitcoin end to end on 7 October 2026 ([below](#the-first-run-through-the-relay)). The SUBFROST app has no screen for it yet. Integrators register intents with the [peg-in service](./peer-services#peg-in-service-pegd) over subtun0; every encoding is in [Encoding Pegs and Swaps](../developer-guide/encoding-pegs-and-swaps). The worked example below predates the current forwarders: it went through the first-generation BNB Chain forwarder, which is now retired, but every step after the bridge is unchanged.
 :::
 
 The frUSD vault lives on Ethereum. This page shows how stablecoins that start on BNB Chain, Polygon or Base reach it, by following one real deposit (BNB Chain USDT): 3,000.000000 USDT sent on BNB Chain on 30 September 2026, which became payment #52 in the frUSD vault, 2,989.017990 USDT owed as frUSD on Bitcoin.
@@ -320,6 +320,16 @@ A `settle` that triggers the sweep costs more gas: 628,204 for this one, against
 | 2026-09-30 00:44:35 | Ethereum | `settle`: the gateway is deployed and swept, 2,993.999999 USDT goes into the frUSD vault, payment #52 is queued for 2,989.017990, and the vault sweeps 3,011.989995 USDT into its strategy. 628,204 gas. | [0xd0ec…46cd](https://etherscan.io/tx/0xd0ec299b18a3dc126c89e521e330e9102c5e67b49940abb2cbc14d337f5c46cd) |
 
 From the send on BNB Chain to the queued payment took 13 minutes 2 seconds. `register` and `settle` were sent from the depositor's own wallet; both calls are open to anyone.
+
+## The first run through the relay
+
+The first deposit to go all the way through SUBFROST's own relay groups, on 7 October 2026: 10.000000 USDC on Base, by EIP-2612 permit (no approval transaction), over CCTP.
+
+| Chain | What happened | Transaction |
+|---|---|---|
+| Base | The pegin-relay group calls `sweepWithPermit` on the CCTP forwarder: the permit and the Permit2 witness are applied, the USDC is pulled and burned by CCTP toward the intent's gateway | [0x4932…94d1](https://basescan.org/tx/0x49321b74f62b28da688cbd9024305baf52ae4f1925f6164f45c2d53878fa94d1) |
+| Ethereum | The frusd-sweep group completes the CCTP message (the USDC is minted to the gateway), then `settleMany` sweeps the gateway into the vault: payment #62, 8.001990 USDC after the vault's fees | [0x7aae…4de4](https://etherscan.io/tx/0x7aaee3bfb40647b20f62d07eba343c3fd966a2450bc0250ac0a6e0a14da94de4) |
+| Bitcoin | The frUSD signer group mints the frUSD to the intent's recipient script (output 0) and returns frUSD-MINT to itself (output 1). Block 970,356 | [d833c5b3…209b](https://mempool.space/tx/d833c5b3cc6b257ef42b2f0e63df06fe8c9f26d018243e081b9fe1a96763209b) |
 
 ## Contracts
 

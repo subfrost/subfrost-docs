@@ -13,7 +13,7 @@ This page is for wallets, apps and agents that build SUBFROST transactions thems
 |---|---|---|---|
 | [Peg-in](#peg-in-stablecoins-to-frusd-and-btc) | USDC / USDT on Ethereum, Base, BNB Chain, Polygon → frUSD (optionally part BTC) on Bitcoin | the source chain, Ethereum, then Bitcoin | Live |
 | [On Bitcoin](#frusd-and-frbtc-on-bitcoin) | frUSD ↔ frBTC, BTC ↔ frBTC | Bitcoin | Live |
-| [Peg-out](#peg-out-frusd-to-another-chain) | frUSD on Bitcoin → USDC / USDT on Ethereum, Base, BNB Chain, Polygon | Bitcoin, then Ethereum | Live; gas drop coming |
+| [Peg-out](#peg-out-frusd-to-another-chain) | frUSD on Bitcoin → USDC / USDT on Ethereum, Base, BNB Chain, Polygon | Bitcoin, then Ethereum | Live, with optional gas drop |
 | [The FB arm](#the-fb-arm) | FB on Fractal ↔ frFB on Bitcoin | Fractal and Bitcoin | Live; onward routes coming |
 | [The DIESEL arm](#the-diesel-arm) | DIESEL mint, DIESEL ↔ frBTC | Bitcoin | Live; v3 mint gate upcoming |
 
@@ -367,11 +367,9 @@ cellpack
                                                   …
 ```
 
-### Optional gas drop (coming)
+### Optional gas drop
 
-A peg-out can deliver part of the payout as the destination chain's native gas token, so that a fresh wallet can move what it received. The contracts for this are deployed; the service that registers drops, and the group that runs them, are not live yet.
-
-How it will work:
+A peg-out can deliver part of the payout as the destination chain's native gas token, so that a fresh wallet can move what it received. The handler contracts and the registry are live. The gasdrop-claim group, which will deploy handlers and deliver CCTP payouts for you, is coming; until it runs, deploy the handler yourself (anyone may).
 
 - **The recipient is a handler, not the wallet.** The payout's `dstRecipient` is a per-recipient handler contract, at an address predicted from a `DropConfig`:
 
@@ -385,18 +383,91 @@ How it will work:
   ```
 
   `predict(config)` on the chain's `GasDropFactory` returns the handler's address.
-- **On delivery, the handler pays the wallet.** It swaps `gasDropBps` of what it received to native gas (never more than `maxNativeOut`) and sends everything to `recipient`. If the swap fails, the whole payout goes to `recipient` as the stablecoin; it never reverts. The factory caps `maxNativeOut` at 0.005 ETH on Base, 50 POL on Polygon and 0.02 BNB on BNB Chain.
+- **On delivery, the handler pays the wallet.** It swaps `gasDropBps` of what it received to native gas (never more than `maxNativeOut`) and sends everything to `recipient`. If the swap fails, the whole payout goes to `recipient` as the stablecoin; it never reverts. `maxNativeOut` is capped at 0.005 ETH on Base, 50 POL on Polygon and 0.02 BNB on BNB Chain.
 - **`callRecipient` is `true`** for a gas-drop peg-out, so that the Across fill calls the handler.
-- **Across can't fill to an address with no code.** The handler has to be deployed (`deployOnly(config)`) **before** you quote and burn. The order is: register → wait until the handler has code → quote → burn.
-- **Registration.** pegd's `POST /v1/gasdrops`, signed by the recipient (EIP-712, or ERC-1271 for a contract wallet), will ask the gasdrop-claim group to deploy the handler and poke it after a CCTP delivery. The proposed message is:
+- **Across can't fill to an address with no code.** The handler must exist **before** you quote and burn. `deployOnly(config)` on the factory deploys it, and anyone may call it. The order is: register → deploy (or wait until the handler has code) → quote → burn.
 
-  ```text
-  domain  { name: "SUBFROST GasDrop Registry", version: "1",
-            chainId: <destination chain>, verifyingContract: <that chain's GasDropFactory> }
-  GasDropRegistration(address recipient,uint16 gasDropBps,uint16 maxSlippageBps,uint256 maxNativeOut,uint8 routeIndex,uint256 nonce,uint64 expiresAt)
-  ```
+#### Registering a gas drop
 
-  Treat this shape as a draft until the endpoint ships.
+Register the drop with the [peg-in service](../protocol/peer-services#peg-in-service-pegd): `POST /v1/gasdrops`. The **recipient** signs it, with EIP-712 (or ERC-1271 if the recipient is a contract wallet):
+
+```json
+{
+  "types": {
+    "EIP712Domain": [
+      {"name": "name", "type": "string"},
+      {"name": "version", "type": "string"},
+      {"name": "chainId", "type": "uint256"},
+      {"name": "verifyingContract", "type": "address"}
+    ],
+    "GasDropRegistration": [
+      {"name": "recipient", "type": "address"},
+      {"name": "gasDropBps", "type": "uint16"},
+      {"name": "maxSlippageBps", "type": "uint16"},
+      {"name": "maxNativeOut", "type": "uint256"},
+      {"name": "routeIndex", "type": "uint8"},
+      {"name": "nonce", "type": "uint256"},
+      {"name": "expiresAt", "type": "uint64"}
+    ]
+  },
+  "primaryType": "GasDropRegistration",
+  "domain": {
+    "name": "SUBFROST GasDrop Registry",
+    "version": "1",
+    "chainId": 137,
+    "verifyingContract": "0x8F44B466F79d66A272172c3b8565b246aBcbE91F"
+  },
+  "message": {
+    "recipient": "0xYourAddress",
+    "gasDropBps": 500,
+    "maxSlippageBps": 100,
+    "maxNativeOut": "5000000000000000000",
+    "routeIndex": 1,
+    "nonce": "1",
+    "expiresAt": 1791400000
+  }
+}
+```
+
+`chainId` is the **destination** chain, and `verifyingContract` is the `GasDropFactory` for that route (table below). The request body is the same fields plus where it applies and the signature:
+
+```json
+{
+  "chainId": 137,
+  "routeIndex": 1,
+  "factory": "0x8F44B466F79d66A272172c3b8565b246aBcbE91F",
+  "handler": "0x…  (predict(config) on that factory)",
+  "recipient": "0xYourAddress",
+  "gasDropBps": 500,
+  "maxSlippageBps": 100,
+  "maxNativeOut": "5000000000000000000",
+  "nonce": "1",
+  "expiresAt": 1791400000,
+  "signature": "0x…65 bytes…"
+}
+```
+
+- `maxNativeOut` and `nonce` are decimal strings.
+- `expiresAt` must be in the future and at most 2 hours ahead.
+- A nonce is single use per (chain, recipient), forever. Registering the same drop again with a new nonce refreshes the existing entry.
+- pegd recomputes `handler` with CREATE2. A mismatch is refused (`409 handler_mismatch`), so compare it with your own `predict`.
+
+The reply (`201`, or `200` for a refresh) is `{"gasdrop": {...}, "created": true, "signedBy": "0x…", "digest": "0x…", "derivation": {...}}`, where `gasdrop` is the stored entry: `chainId`, `routeIndex`, `transport`, `factory`, `handler`, `recipient`, `gasDropBps`, `maxSlippageBps`, `maxNativeOut`, `expiresAt`, `nonce`, `signature`, `createdAt`, `lastRequestedAt`.
+
+The errors you will meet, in the usual `{"error": {"code", "message", "details"}}` shape:
+
+| Code | Status | Meaning |
+|---|---|---|
+| `route_unsupported` | 400 | Route 4 (Base USDT): there is no gas-drop factory for it |
+| `route_chain_mismatch`, `wrong_factory_for_route` | 400 | `chainId` or `factory` doesn't belong to `routeIndex` |
+| `out_of_bounds` | 400 | A bps or `maxNativeOut` over its limit |
+| `expired`, `expiry_too_far` | 400 | `expiresAt` in the past, or more than 2 hours ahead |
+| `signature_invalid` | 403 | The signature doesn't recover to `recipient` (or ERC-1271 refused it) |
+| `handler_mismatch` | 409 | Your `handler` isn't what the factory predicts for this config |
+| `nonce_reused` | 409 | That nonce was already used for this recipient on this chain |
+| rate limit | 429 | At most 3 unexpired drops per recipient, plus hourly and daily caps |
+
+`GET /v1/gasdrops?chain_id=137` lists the registry for one chain, newest request first.
 
 | Route | Factory |
 |---|---|

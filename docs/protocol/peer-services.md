@@ -7,16 +7,16 @@ description: Every public SUBFROST service reached by a .peer name - the peg-in 
 
 # Services on subtun0
 
-These SUBFROST services are reached by a `.peer` name on subtun0. To connect to one, see [Connecting over subtun0](./subtun0). Each name is derived from the service's own key, so nobody else can answer under it.
+These SUBFROST services are reached by a `.peer` name on subtun0. Connect through the entry relay `wss://wss-1.subdns.to/ws`, with its identity `fr1rx2zvtw676fm3x5krvt893ktu5cdycu9ft4jmcfxlleeuvmp587su6wsmp.peer` as the first hop, and open a stream to the service's name: see [Connecting over subtun0](./subtun0). Each name is derived from the service's own key, so nobody else can answer under it.
 
-| Service | `.peer` name | Speaks | Through an HTTPS gateway |
-|---|---|---|---|
-| [Peg-in service (pegd)](#peg-in-service-pegd) | `fr173rdd4ld26sequ3ps6jrwaemxxzrsrnaaua9z6vh58y04guckmtqd23s4r.peer` | HTTP, port 80 | Yes |
-| [DIESEL fee broker](#diesel-fee-broker) | `fr12quta238kx3l4mfd2jnqv6sgsfa87gskm7avzegg66kdcwjqsh5scqqm58.peer` | HTTP, port 80 | Yes |
-| [Fractal gateway service](#fractal-gateway-service) | `fr1kq3hutys4xp0gvukkpr68nyzrjt2tnrwlafnqxuuv8agh2l720tqlxjywg.peer` | its own framing (FBG1) | No |
-| [SIGIL DAO](#sigil-dao) | `fr1rvrz4mzz0m0sw0uvm2py5mn2grlrjk8mhu995w2revrh4cdkxgesj7vye2.peer` | HTTP, port 80 | Yes |
+| Service | `.peer` name | Speaks |
+|---|---|---|
+| [Peg-in service (pegd)](#peg-in-service-pegd) | `fr173rdd4ld26sequ3ps6jrwaemxxzrsrnaaua9z6vh58y04guckmtqd23s4r.peer` | HTTP, port 80 |
+| [DIESEL fee broker](#diesel-fee-broker) | `fr12quta238kx3l4mfd2jnqv6sgsfa87gskm7avzegg66kdcwjqsh5scqqm58.peer` | HTTP, port 80 |
+| [Fractal gateway service](#fractal-gateway-service) | `fr1kq3hutys4xp0gvukkpr68nyzrjt2tnrwlafnqxuuv8agh2l720tqlxjywg.peer` | its own framing (FBG1) |
+| [SIGIL DAO](#sigil-dao) | `fr1rvrz4mzz0m0sw0uvm2py5mn2grlrjk8mhu995w2revrh4cdkxgesj7vye2.peer` | HTTP, port 80 |
 
-In the examples below, `$PEGD` and similar stand for a base URL that reaches the service: `http://<name>.peer` through a subtun0 client, or `https://<name without .peer>.subdns.to` through the gateway.
+Paths below are relative to `http://<name>.peer`, over that stream.
 
 ## Peg-in service (pegd)
 
@@ -32,10 +32,11 @@ pegd turns a signed deposit intent into a watched deposit. It derives the Ethere
 | `GET /v1/gateways` | List registrations. Query `status`, `kind` (`deposit_address`, `multichain`, `permit`), `chainId`, `limit` (max 1000), `offset` |
 | `GET /v1/gateways/:id` | One registration, by deposit address or by intent hash, with its recent events |
 | `GET /v1/gateways/:id/events` | Its full event log (`limit` max 5000, `offset`) |
+| `POST /v1/gasdrops` | Register a recipient-signed gas drop for a peg-out (see [Optional gas drop](../developer-guide/encoding-pegs-and-swaps#optional-gas-drop)) |
+| `GET /v1/gasdrops` | The gas-drop registry for one chain. Query `chain_id` (required), `as_of`, `order=last_requested_desc`, `limit` (1–1000, default 200), `offset` |
 | `GET /v1/health` | Service status, and the derivation constants it checks against |
-| `POST /v1/gasdrops` | **Coming.** Registers a gas drop for a peg-out. Not served yet; see [the gas drop](../developer-guide/encoding-pegs-and-swaps#optional-gas-drop-coming) |
 
-- **Reads are open.** Writes (`POST`) are authenticated, with an `x-api-key` header or `Authorization: Bearer`.
+- **No API key is needed.** A registration is accepted only if pegd reproduces its derivation (and, for a gas drop, the recipient's signature verifies), so a bad request can't register anything useful.
 - **Every registration is public once made.** `GET /v1/gateways` lists the intents, the source-chain owner address, and the transactions. Don't put anything in an intent that you would not publish.
 - **A registration is a record, not a promise of custody.** pegd never holds funds. The deposit address is fixed by the intent hash on the `GatewayFactory`, and anyone can call `register` and `settle` there.
 
@@ -111,13 +112,13 @@ Every `u128` on this wire, alkane id parts and price numerators included, is a d
 
 The Fractal gateway service derives and registers [gateway addresses](../fractal/gateway-addresses) for FB deposits, and sweeps them into the fb-vault. Its requests are `POST /v1/gateway`, `GET /v1/gateway/:address`, `GET /v1/vault` and `GET /healthz`; the [Fractal Developer Guide](../fractal/developer-guide#asking-the-gateway-service-to-sweep-it) documents them.
 
-It is not an HTTP server. It speaks its own request framing (FBG1) directly to its `.peer` name, so neither an HTTPS gateway nor `curl` over a subtun0 stream reaches it. Use its own client, `fb-gatewayd client`, which connects to its home relays (`wss://wss-2.asilos.ltd/ws`, then `wss-1` and `wss-3`; override with `--relays`).
+It is not an HTTP server. It speaks its own request framing (FBG1) directly to its `.peer` name, so `curl` over a subtun0 stream doesn't reach it. The service registers on `wss://wss-1.subdns.to/ws`. Use its own client, `fb-gatewayd client`, and point it there with `--relays wss://wss-1.subdns.to/ws`.
 
 ## SIGIL DAO
 
 `fr1rvrz4mzz0m0sw0uvm2py5mn2grlrjk8mhu995w2revrh4cdkxgesj7vye2.peer`
 
-The SIGIL DAO web app, served directly over subtun0: the app itself at `/`, plus `/dao`, `/proposals`, `/identities`, `/profiles` and `/health`.
+The SIGIL DAO peer serves the DAO's data and app over subtun0: the app itself at `/`, plus `/dao`, `/proposals`, `/identities`, `/profiles` and `/health`. The SIGIL web app joins subtun0 through `wss://wss-1.subdns.to/ws` and talks to this peer.
 
 ## Where to go next
 

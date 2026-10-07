@@ -2,7 +2,7 @@
 title: Connecting over subtun0
 sidebar_label: Connecting over subtun0
 sidebar_position: 10
-description: How to reach SUBFROST services on subtun0, the peer-to-peer overlay. The entry relays and their identities, the one-hop bootstrap, a CLI and a TypeScript example, and the HTTPS gateways.
+description: How to reach SUBFROST services on subtun0, the peer-to-peer overlay. Connect to wss://wss-1.subdns.to/ws, build a one-hop circuit to its identity, and open a stream to any .peer service. CLI and TypeScript examples.
 ---
 
 # Connecting over subtun0
@@ -21,20 +21,16 @@ fr1 + bech32m( BLAKE3( public key ) ) + .peer
 
 So a name like `fr173rdd4ld26sequ3ps6jrwaemxxzrsrnaaua9z6vh58y04guckmtqd23s4r.peer` is not a label someone chose. Only the holder of the matching key can register it, and the relays check the signature before they accept a registration. If you have the right name, you reach the right service, whoever runs the relay in between.
 
-## Entry relays
+## The entry relay
 
-A client joins subtun0 by opening a WebSocket to an **entry relay**. These are the public entry relays and their identities:
+A client joins subtun0 by opening a WebSocket to an **entry relay**. SUBFROST clients use one:
 
-| Entry relay | Its identity |
+| | |
 |---|---|
-| `wss://wss-1.subdns.to/ws` | `fr1rx2zvtw676fm3x5krvt893ktu5cdycu9ft4jmcfxlleeuvmp587su6wsmp.peer` |
-| `wss://wss-2.subdns.to/ws` | `fr17yfwdtxxcam46uzgsy3zhz69rwlxzazg6jvtcmhyl36em6ydex9qxdky65.peer` |
-| `wss://wss-3.subdns.to/ws` | `fr1zmjd04fcqca3fdrraxlkyrj2eym545ggty4jwjsgugf9rs000d8s24uxl6.peer` |
-| `wss://wss-1.asilos.ltd/ws` | `fr1698vdase8v9ufrprxcl3xe9vd5wkuhp69mznj0kheha5s9t5juaqp2kduv.peer` |
-| `wss://wss-2.asilos.ltd/ws` | `fr1yg76pekuymzznc8fg2rtnz3sqv36vu9q4vhf6mj6czg9mugsudzqkqsyt3.peer` |
-| `wss://wss-3.asilos.ltd/ws` | `fr1d0msjgdmf5e08766twtksuh9lqyq4xcep5dc0v2jy6uq78m8mudsvlktyx.peer` |
+| Entry relay | `wss://wss-1.subdns.to/ws` (served at `https://wss-1.subdns.to`) |
+| Its identity | `fr1rx2zvtw676fm3x5krvt893ktu5cdycu9ft4jmcfxlleeuvmp587su6wsmp.peer` |
 
-**Start with `wss://wss-1.subdns.to/ws`.** The relays form one mesh, so any of them reaches every service listed on this site; the others are fallbacks.
+Every service on [Services on subtun0](./peer-services) is reachable from it, and every example on this site uses it. Hardcode both values together: the identity is what the client checks, the URL is only how it gets there.
 
 ## The bootstrap: one hop, to the relay itself
 
@@ -61,13 +57,13 @@ subtun0-proxychains \
 
 That asks the [DIESEL fee broker](./peer-services#diesel-fee-broker) for its current terms.
 
-- `--ingress` is the entry relay URL. It can be repeated, for fallbacks.
+- `--ingress` is the entry relay URL.
 - `--exit` is the last hop of the circuit. For a one-hop circuit it **must** be the identity of the `--ingress` relay. An `--ingress` without an `--exit` is refused.
 - `--resolve` defaults to `peer-only`: only `.peer` names are resolved, and anything else is refused, so the command cannot leak a request to the public internet by mistake.
 - `--identity` loads a persistent identity. Without it, a fresh anonymous identity is made for each run.
 
 :::note[TODO: distribution]
-`subtun0-proxychains` and the TypeScript module below are not yet published as public downloads or packages. Until they are, use the [HTTPS gateway](#without-a-client-the-https-gateways) for plain HTTP services.
+`subtun0-proxychains` and the TypeScript module below are not yet published as public downloads or packages.
 :::
 
 ## From TypeScript (browser or Node)
@@ -147,17 +143,13 @@ console.log(body);
 
 In Node, use a WebSocket implementation such as the `ws` package, and pass the `.wasm` bytes to `init({ module_or_path })`. In either, put a timeout on the circuit wait: a wrong hop never becomes ready.
 
-## Without a client: the HTTPS gateways
+## Other relays
 
-A plain HTTP service on port 80 can also be reached over ordinary HTTPS, through a subtun0 gateway. Drop the `.peer` suffix and append the gateway's domain:
+The mesh has other public relays, which carry the same services: `wss-2.subdns.to` and `wss-3.subdns.to`, and `wss-1`, `wss-2` and `wss-3.asilos.ltd`. Some SUBFROST services also register on them. A client doesn't need any of them; if you use one, the first hop must be **that** relay's own identity, not wss-1's.
 
-```bash
-curl https://fr12quta238kx3l4mfd2jnqv6sgsfa87gskm7avzegg66kdcwjqsh5scqqm58.subdns.to/v1/tokens
-```
+## HTTPS gateways (debugging only)
 
-Gateways run on `subdns.to`, `asilos.ltd` and `fr.style`. Use the `fr1….subdns.to` form, not `fr1….peer.subdns.to`, which fails the TLS handshake.
-
-A gateway is a convenience with a cost. It terminates your TLS, so the gateway operator can see and alter the traffic, and the name-to-key guarantee above now depends on trusting it. Use a direct subtun0 client for anything you sign or rely on. The [Fractal gateway service](./peer-services#fractal-gateway-service) does not speak HTTP at all, so no gateway can reach it.
+subtun0 HTTPS gateways (for example `https://<name without .peer>.subdns.to/…`) can fetch a plain HTTP service from a browser or `curl`, which is handy for a quick look while debugging. **They are not a client path.** A gateway terminates your TLS, so its operator can see and alter the traffic, and the name-to-key guarantee above no longer holds end to end. Build clients on a direct subtun0 connection to wss-1.subdns.to. The [Fractal gateway service](./peer-services#fractal-gateway-service) does not speak HTTP, so no gateway reaches it anyway.
 
 ## Where to go next
 

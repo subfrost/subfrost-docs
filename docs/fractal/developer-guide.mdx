@@ -153,7 +153,7 @@ Fractal mainnet uses Bitcoin's `bc1p…` address format, so the address is the s
 
 ## Asking the gateway service to sweep it
 
-SUBFROST runs a gateway service on its peer-to-peer network, **subtun0** (see [Connecting over subtun0](../protocol/subtun0)). It is not behind a public HTTP endpoint, and it does not speak HTTP over subtun0 either: it uses its own request framing, so an HTTPS gateway can't reach it. Use its client, `fb-gatewayd client`, which connects through the subtun0 relays `wss://wss-2.asilos.ltd/ws`, then `wss-1` and `wss-3` (override with `--relays`), to
+SUBFROST runs a gateway service on its peer-to-peer network, **subtun0** (see [Connecting over subtun0](../protocol/subtun0)). It is not behind a public HTTP endpoint, and it does not speak HTTP over subtun0 either: it uses its own request framing, so an HTTPS gateway can't reach it. The service registers on the entry relay `wss://wss-1.subdns.to/ws`. Use its client, `fb-gatewayd client`, with `--relays wss://wss-1.subdns.to/ws`, to
 
 ```
 fr1kq3hutys4xp0gvukkpr68nyzrjt2tnrwlafnqxuuv8agh2l720tqlxjywg.peer
@@ -170,7 +170,8 @@ The name is derived from the service's subtun0 key, so nobody else can answer as
 The reference client does the whole compare-before-deposit flow:
 
 ```bash
-fb-gatewayd client --service fr1kq3hutys4xp0gvukkpr68nyzrjt2tnrwlafnqxuuv8agh2l720tqlxjywg.peer \
+fb-gatewayd client --relays wss://wss-1.subdns.to/ws \
+  --service fr1kq3hutys4xp0gvukkpr68nyzrjt2tnrwlafnqxuuv8agh2l720tqlxjywg.peer \
   gateway --recipient-address <your Bitcoin address> [--sweep-fee 2000]
 ```
 
