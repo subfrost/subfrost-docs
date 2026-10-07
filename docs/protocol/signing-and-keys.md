@@ -38,6 +38,12 @@ ROAST is the piece that makes this robust in the real world: it keeps the signin
 
 The signer set is not fixed forever. Participants can join or leave through a **reshare**, which redistributes the shares to a new group while keeping the same group public key, so the custody address does not change and no funds move.
 
+## Threshold ECDSA with cggmp21
+
+Some of SUBFROST's work happens on EVM chains (Ethereum, Base, BNB Chain, Polygon), and an EVM transaction has to be signed with ECDSA, which is not linear like Schnorr. For those chains SUBFROST uses **cggmp21**, a threshold ECDSA protocol: a group of signers, each holding a share, jointly produces one ordinary ECDSA signature for one ordinary EVM address, again without the private key ever existing in one place.
+
+The two kinds of group do different jobs. A FROST group **authorizes** value: its Schnorr signature is what releases collateral from the frUSD vault on Ethereum, just as it spends BTC on Bitcoin. A cggmp21 group only **pays gas**: it broadcasts transactions whose effect is already fixed by a user's signed intent or by a FROST signature. A stolen cggmp21 key can waste its own gas, and nothing else. Every group, with its threshold and public address, is listed in [Signer Groups and Contracts](./signer-groups-and-contracts).
+
 ## Distributed key generation
 
 Before the group can sign anything, it has to agree on a shared key. It does this through **distributed key generation (DKG)**, an interactive ceremony where the participants jointly produce a single group public key while each one ends up holding only a secret **share** of the matching private key.
@@ -58,4 +64,5 @@ On mobile, this is backed by the device's secure hardware where available, using
 ## Where to go next
 
 - [frBTC Peg & Custody](./frbtc-peg-and-custody): how this signing secures the BTC behind frBTC.
+- [Signer Groups and Contracts](./signer-groups-and-contracts): every live group, what it signs, and its address.
 - [What is SUBFROST](../start-here/what-is-subfrost): the big picture.

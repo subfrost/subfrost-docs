@@ -1,0 +1,131 @@
+---
+title: Signer Groups and Contracts
+sidebar_label: Signer Groups and Contracts
+sidebar_position: 12
+description: Every SUBFROST signer group, FROST and cggmp21, with its threshold, what it signs and its public address. Plus every contract and alkane id the pegs use, on Bitcoin, Fractal, Ethereum, Base, BNB Chain and Polygon.
+---
+
+# Signer Groups and Contracts
+
+This page is the registry. It lists every signer group SUBFROST runs, what each one may sign, and its public address. It also lists every contract and alkane id the pegs depend on. Every entry was read back from its chain before it was published; the method for each is noted next to it, so you can check it yourself.
+
+## Two kinds of group
+
+SUBFROST runs two kinds of threshold group. Both have the same property: the full key never exists in one place, and a quorum has to cooperate to sign (see [Signing and Keys](./signing-and-keys)).
+
+- **FROST groups hold value.** They produce one BIP-340 Schnorr signature, which is a native Bitcoin signature and is also what the frUSD vault on Ethereum verifies. A FROST group's key **is** the custody: on Bitcoin it is a taproot address, and on Ethereum it is the vault's `defaultPublicKey`.
+- **cggmp21 groups pay gas.** cggmp21 is threshold ECDSA, which produces the ordinary signature an EVM transaction needs. Each of these groups controls one Ethereum-style address (an EOA) that broadcasts transactions and pays their gas. **None of them can move user funds.** What a transaction does is already fixed by a user's signed intent, by a FROST signature, or by a contract that only ever pays one fixed recipient. A stolen cggmp21 key can waste its own gas and nothing else.
+
+## FROST groups (Bitcoin and Fractal)
+
+| Group | Threshold | Signs | Public address |
+|---|---|---|---|
+| **frBTC** | nine signers (see [frBTC Peg & Custody](./frbtc-peg-and-custody)) | BTC payouts from custody when frBTC is unwrapped | `bc1p5lushqjk7kxpqa87ppwn0dealucyqa6t40ppdkhpqm3grcpqvw9s3wdsx7` |
+| **frUSD** | 2-of-3 launch group, being widened to 6-of-9 | frUSD mints on Bitcoin, and every privileged call on the frUSD vault on Ethereum (releases, strategy changes) | `bc1pk6nv75fp4cav5zq3vrl98rwynq0e9lazqcygvqa2fqd6agnd95cskcz0kw` |
+| **frFB** | 6-of-9 | frFB mints on Bitcoin, and FB redemptions out of the fb-vault on Fractal | `bc1pt93aunap64ys8zlpmzc20z65a2vnmn0phrpc37kknve5835xsc9s6332rc` (the same string on Fractal) |
+
+**How to check each one.**
+
+- **frBTC.** Call opcode 103 on `32:0`. It returns the group's **untweaked** x-only key, `7940ef3b659179a1371dec05793cb027cde47806fb66ce1e3d1b69d56de629dc`. Apply the BIP-341 taproot tweak (key path only, no script tree) to get output key `a7f90b8256f58c1074fe085d37b73dff3040774babc216dae106e281e020638b`, which is the address above. Encoding the opcode-103 key directly, without the tweak, gives a different address that is **not** custody.
+- **frUSD.** The address holds frUSD's mint authority, `frUSD-MINT` (`2:92949`). Its 32-byte output key, `b6a6cf5121ae3aca081160fe538dc4981f92ffa206088603aa481baea26d2d31`, is byte for byte what `defaultPublicKey()` returns on the frUSD vault `0x95779E7E1C943042255B8a78273fe6DE4823CF06`. One key, two chains. Widening the group is a key rotation, itself signed by the group; nothing is redeployed. The threshold has no effect on gas: the vault always verifies a single 64-byte signature.
+- **frFB.** On Bitcoin the address holds `frFB-AUTH` (`2:102485`). On Fractal, fb-vault (`44:44`) opcode 104 returns `5120 5963de4fa1d549038be1d8b0a78b54ea993dcde1b8c388fad69b3343c686860b`: exactly this address's script. Opcode 103 returns its untweaked key, `ca1240110a6354160fbb8e726340352e38478af4f2a34c9b04893741c5d49203`. See [Fractal](../fractal/overview).
+
+## cggmp21 groups (EVM)
+
+| Group | Threshold | Broadcasts | EOA | Status |
+|---|---|---|---|---|
+| **pegin-relay** | 2-of-3 | The source-chain leg of a peg-in on Base, BNB Chain and Polygon: the forwarders' `sweepAndBridge`, `sweepWithPermit` and escrow sweeps | `0x7F6f63dEE1EC0096EE81ba7d02E6de72a76b3001` | Live. First sweep: Base, `sweepWithPermit` over CCTP, [`0x49321b74…94d1`](https://basescan.org/tx/0x49321b74f62b28da688cbd9024305baf52ae4f1925f6164f45c2d53878fa94d1), 7 October 2026, the [first end-to-end peg-in](./frusd-cross-chain-deposits) |
+| **frusd-sweep** | 2-of-3 | The Ethereum leg: `register` and `settleMany` on the `GatewayFactory`, and CCTP `receiveMessage` for Base deposits | `0x7518fAA18f20096Eb005cef6571962777D88B3fD` | Live. Example `settleMany`: [`0x7aaee3bf…4de4`](https://etherscan.io/tx/0x7aaee3bfb40647b20f62d07eba343c3fd966a2450bc0250ac0a6e0a14da94de4) |
+| **claim** | 2-of-3 | `claim` on the peg-out `EscrowFactory`: delivers a peg-out that landed at a recipient's delivery escrow | `0xCE4d3f82ad29a0AE8d99781D81284677d95c38c9` | Funded on Ethereum, Base, BNB Chain and Polygon; has not sent a transaction yet |
+| **gasdrop-claim** | 2-of-3 | Deploys and pokes [gas-drop handlers](../developer-guide/encoding-pegs-and-swaps#optional-gas-drop) registered with pegd. Until it runs, anyone can deploy a handler with `deployOnly` | not created yet | **Coming** (the registry it reads is live) |
+
+Each of these calls is also open to anyone: `register`, `settle`, `reclaim`, `claim` and the forwarders' entry points are all permissionless. The groups are there so that you don't have to send them yourself, not because nobody else can.
+
+## Contracts
+
+The same hex address can be a different contract on a different chain, so always name a contract with its chain. Every address below was checked for code on its chain, plus a read that ties it to its role.
+
+### Ethereum
+
+| Contract | Address | Role |
+|---|---|---|
+| `GatewayFactory` | `0xaF4C39A0Da304eF39D56783d785ea52bb8431362` | Derives peg-in deposit addresses; `register`, `settle`, `settleMany`, `reclaim`; relays into the frUSD vault |
+| `GatewayProxy` implementation | `0xdbA4c9fe841A7cf0b37B041126bA4d4640B4F296` | The code every deposit address clones (`IMPLEMENTATION()` on the factory) |
+| frUSD vault (proxy) | `0x95779E7E1C943042255B8a78273fe6DE4823CF06` | Holds the reserve; queues mints; pays redemptions on a FROST signature |
+| frUSD vault implementation | `0x5376beedba9ba7f5b0396d28bd75473027b8bd55` | The code behind the vault proxy (EIP-1967 slot) |
+| `PegOutRouter` | `0xE8ecC225C946a3A963CEfceEbB7d75a0f8c70e85` | Bridges a redemption to Base, Polygon or BNB Chain. `VAULT()` = the frUSD vault; 7 routes |
+| `EscrowFactory` (peg-out delivery escrows) | `0x9D00ea542a8dd0DACD092ea135208bc0BB038E33` | Same address and code on Ethereum, Base, BNB Chain and Polygon; `claim(recipient, tokens)` |
+| Permit2 | `0x000000000022D473030F116dDEE9F6B43aC78BA3` | The canonical Permit2, at this address on every chain here |
+
+`Permit2Gateway`, the gasless path for USDC or USDT already on Ethereum, is still **not deployed**.
+
+### Base
+
+| Contract | Address | Role |
+|---|---|---|
+| `Permit2CctpForwarder` (USDC) | `0x5e656a3e5680046e1E71361d59fdfbe058546518` | Base USDC peg-in, bridged by Circle CCTP v2 |
+| `SourceEscrowFactory` | `0x03aEBD3ACE98Ce26081fBF51E3970ab33cA70E60` | Per-intent deposit addresses for the Base forwarders |
+| `GasDropFactory` (USDC) | `0x8F44B466F79d66A272172c3b8565b246aBcbE91F` | Gas-drop handlers for USDC peg-outs to Base (swaps on Aerodrome) |
+
+A Stargate forwarder for Base USDC is also deployed (`0x9b728A1366EFD0D892eb50e3E75DFFF5eD666EC7` on Base), but Base deposits are routed over CCTP.
+
+### BNB Chain
+
+| Contract | Address | Role |
+|---|---|---|
+| `Permit2SweepForwarder` (USDT) | `0xC1d512684B80D6A179F468595074AcdDFAAe3c1D` | BNB Chain USDT peg-in, bridged by Stargate |
+| `Permit2SweepForwarder` (USDC) | `0x8BFB31f205Ff5a51779b5B25B9BeD4F608d4C722` | BNB Chain USDC peg-in, bridged by Stargate |
+| `SourceEscrowFactory` | `0xdebE84e9FB41232CfAC5A1BFba50b15C36EBb0c5` | Per-intent deposit addresses for the BNB Chain forwarders |
+| `GasDropFactory` (USDT) | `0x8F44B466F79d66A272172c3b8565b246aBcbE91F` | Gas-drop handlers for USDT peg-outs to BNB Chain (PancakeSwap) |
+| `GasDropFactory` (USDC) | `0xdD57604b628A0b8bc9d26aA4F22EB62c5C25d183` | Gas-drop handlers for USDC peg-outs to BNB Chain |
+
+### Polygon
+
+| Contract | Address | Role |
+|---|---|---|
+| `Permit2SweepForwarder` (USDC) | `0x91F3b7Fc7585421EAEF404eb69F90A52C83BE353` | Polygon native USDC peg-in, bridged by Stargate |
+| `Permit2SweepForwarder` (USDT0) | `0x9b728A1366EFD0D892eb50e3E75DFFF5eD666EC7` | Polygon USDT0 peg-in, bridged by Stargate |
+| `SourceEscrowFactory` | `0x76af40680f85f6A6c36CcF43eD2e0B8B78B241F3` | Per-intent deposit addresses for the Polygon forwarders |
+| `GasDropFactory` (USDC) | `0x8F44B466F79d66A272172c3b8565b246aBcbE91F` | Gas-drop handlers for USDC peg-outs to Polygon (QuickSwap) |
+| `GasDropFactory` (USDT0) | `0xdD57604b628A0b8bc9d26aA4F22EB62c5C25d183` | Gas-drop handlers for USDT0 peg-outs to Polygon |
+
+There is no gas-drop factory for USDT on Base yet: its handler needs a two-hop swap, which has not been audited. Peg-outs on that route (route 4) are paid in USDT only.
+
+### Retired
+
+These are still on chain, but nothing routes through them any more. Don't send to them: they support only the original `sweepAndBridge` entry point and no deposit addresses.
+
+| Contract | Chain | Address |
+|---|---|---|
+| `Permit2SweepForwarder` (USDT) | BNB Chain | `0xb24bccc6256309d0dff6883ab874e84179d53da9` |
+| `Permit2SweepForwarder` (USDC) | BNB Chain | `0x9A2Bd5Ab5A9fB426d7F754eae14B54b3C3F93F19` |
+| `Permit2SweepForwarder` (USDC) | Polygon | `0xb24bccc6256309d0dff6883ab874e84179d53da9` |
+| `Permit2SweepForwarder` (USDT0) | Polygon | `0x24167a1b385145057bdc93aabf5dbe2047e5c7c6` |
+| `Permit2SweepForwarder` (USDC) | Base | `0x24167a1b385145057bdc93aabf5dbe2047e5c7c6` |
+| `PegOutRouter` (4 routes) | Ethereum | `0xd036eF46955E0D90b0435b0428Ef7CFd7781B377` |
+
+## Alkanes and protofractal ids
+
+| Id | Chain | What it is |
+|---|---|---|
+| `32:0` | Bitcoin | frBTC |
+| `4:1776` | Bitcoin | frUSD (8 decimals) |
+| `2:92949` | Bitcoin | frUSD-MINT, frUSD's mint authority, held by the frUSD group |
+| `4:1778` | Bitcoin | the frUSD/frBTC CryptoSwap pool, and its LP token (implementation `4:1786`) |
+| `4:4444` | Bitcoin | frFB |
+| `2:102485` | Bitcoin | frFB-AUTH, frFB's mint authority, held by the frFB group |
+| `2:102486` | Bitcoin | frFB-SIGIL, frFB's upgrade authority |
+| `2:0` | Bitcoin | DIESEL |
+| `2:77087` | Bitcoin | the DIESEL/frBTC pool |
+| `4:65522` | Bitcoin | the AMM factory that routes swaps across pools |
+| `4:1001` | Bitcoin | SUBMINER-GATE, DIESEL's v3 mint gate (deployed; [not active yet](../developer-guide/encoding-pegs-and-swaps#the-diesel-arm)) |
+| `2:96782` | Bitcoin | the SUBMINER treasury, which the gate pays and DIESEL fees repay |
+| `4:866` | Bitcoin | cFIRE-SIGIL, the authority that can change the gate or its split |
+| `44:44` | Fractal | fb-vault, FB custody |
+| `44:4442` | Fractal | FB-SIGIL, the bearer token that rotates fb-vault's signer |
+
+## Where to go next
+
+- [Signing and Keys](./signing-and-keys): FROST, ROAST, cggmp21 and DKG.
+- [Encoding Pegs and Swaps](../developer-guide/encoding-pegs-and-swaps): what to sign and send to use all of the above.
+- [Services on subtun0](./peer-services): the services that act for these groups.

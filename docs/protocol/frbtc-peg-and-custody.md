@@ -53,3 +53,4 @@ This is what makes it different from the usual "wrapped BTC" approach, where a s
 
 - [What is SUBFROST](../start-here/what-is-subfrost): the big picture.
 - [The Oracle](./the-oracle): how the protocol reads outside data.
+- [Signer Groups and Contracts](./signer-groups-and-contracts): the frBTC custody address, and how to derive it yourself from `32:0`.
