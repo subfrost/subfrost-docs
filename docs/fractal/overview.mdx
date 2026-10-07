@@ -1,0 +1,102 @@
+---
+title: Fractal
+sidebar_label: Overview
+sidebar_position: 1
+description: How FB on Fractal Bitcoin becomes frFB on Bitcoin. The protofractal subprotocol, the fb-vault custody contract, the FROST signer group, intents, and what is live today.
+---
+
+# Fractal
+
+frFB is FB, the native coin of [Fractal Bitcoin](https://fractalbitcoin.io), held in custody on Fractal and represented on Bitcoin as an alkane. It works the same way [frBTC](../tokens/frBTC-overview) does, with one difference: the coin being locked lives on a different chain from the token being minted.
+
+## The short version
+
+1. **You lock FB on Fractal.** You pay FB to the signer group's address, in a transaction that calls the **fb-vault** contract's `Wrap`. The transaction names who receives the frFB, and can carry an **intent**: arbitrary bytes saying what to do next.
+2. **fb-vault records the deposit.** The amount is whatever the transaction actually paid the group. The contract also records the claimant and the intent bytes. Nothing is minted on Fractal.
+3. **The signer group mints frFB on Bitcoin.** The 6-of-9 FROST group holds frFB's mint authority. It reads fb-vault's deposit log and mints frFB, less fees, to the claimant.
+4. **Redemption runs the other way.** Burning frFB on Bitcoin records a Fractal destination in frFB's redemption queue. The group redeems it in fb-vault and pays the FB out of custody, with the Fractal network fees taken from the redeemed FB. See [Redemption](./redemption).
+
+You do not have to build any of these transactions yourself. A **gateway address** can be derived from your intent alone. Any FB sent to it can be moved into the vault by anyone, and only into the vault, and the deposit pays for that move itself. See [Gateway addresses and OP_CAT](./gateway-addresses).
+
+## Two chains, two contracts, one group
+
+| | chain | id | what it is |
+|---|---|---|---|
+| **fb-vault** | Fractal | `44:44` | FB custody: the deposit log, the intents, the payment queue, the signer key |
+| **FB-SIGIL** | Fractal | `44:4442` | one indivisible token; bearing it is the only way to rotate fb-vault's signer key |
+| **frFB** | Bitcoin | `4:4444` | the wrapped token, plus its redemption queue |
+| **frFB-AUTH** | Bitcoin | `2:102485` | mint authority for frFB, held by the signer group |
+| **frFB-SIGIL** | Bitcoin | `2:102486` | upgrade authority for frFB, held separately from AUTH |
+
+**The signer group** is a 6-of-9 FROST group. Its taproot address is the same string on both chains, because Fractal uses Bitcoin's address format:
+
+```
+bc1pt93aunap64ys8zlpmzc20z65a2vnmn0phrpc37kknve5835xsc9s6332rc
+```
+
+On Fractal, that address *is* the vault's custody: fb-vault only credits FB paid to it. On Bitcoin, it holds frFB-AUTH, so only the group can mint.
+
+### Why the Fractal contracts have ids like `44:44`
+
+Fractal has no alkanes deployment path of its own. SUBFROST indexes it with **protofractal**, a separate protorunes subprotocol with **protocol tag 44** (alkanes is tag 1). Its storage is namespaced by that tag, so it cannot collide with alkanes even in principle. protofractal has two contracts compiled into the indexer and installed at genesis: fb-vault and FB-SIGIL. It refuses every deploy. So nothing on Fractal can be replaced by a transaction; changing a contract means shipping a new indexer.
+
+The ids sit on block 44, the protocol tag reused as an id prefix. Ordinary alkanes give that block no meaning, so a protofractal call can never be mistaken for an alkanes deployment.
+
+frFB, on the other hand, is an ordinary alkane on Bitcoin. It was deployed by witness reveal to the reserved id `4:4444` on 5 October 2026 (reveal `d2e644e9…663d`).
+
+## Authority, and how it can change
+
+- **Custody** is a script comparison, not a signature check. `Wrap` sums the outputs that pay the vault's *current* signer script (opcode 104). FB paid anywhere else is not credited.
+- **Paying FB out** (`Redeem`, opcode 79) needs a BIP340 signature from the group over the burn being redeemed, the amounts, the destination and a nonce. A captured signature can't be redirected, resized or replayed, and no burn can be redeemed twice. Signatures verify against the group's taproot **output** key, which is what its threshold signer produces.
+- **Rotating the signer key** (`SetSigner`, opcode 1) needs no signature. It needs the caller to **bear FB-SIGIL**. A key that has been lost can't authorize its own replacement, but a bearer token outlives the key it governs. The sigil started inside the vault and was released to the group's address on 6 October 2026. That transaction is `5b74991b…04f8`; the rotation to the group key was `c2b8c3f3…2414`.
+- **Minting frFB** needs frFB-AUTH. **Upgrading frFB** needs frFB-SIGIL; AUTH alone is not enough.
+
+## Intents
+
+An intent is up to 4 KB of bytes attached to a deposit, telling the group what to do once the frFB exists: deliver it to a script, and later swap it or route it onward. fb-vault **stores intents and never interprets them**. Their meaning lives in the signer group's programs, so it can evolve without touching the contract. A deposit can carry its intent in either of two ways:
+
+- **A tapscript envelope** in any input: `OP_FALSE OP_IF "fb-intent" <bytes…> OP_ENDIF`. This is how gateway addresses carry it, and it can be large.
+- **Extra words in the `Wrap` cellpack**: `[44, 44, 77, byte_len, w0, w1, …]`. This is for a plain wallet deposit, and is limited by the 83-byte OP_RETURN.
+
+An envelope takes precedence over words. An intent that is missing, oversized or unreadable never blocks the deposit. By the time `Wrap` runs, the FB has already been paid, so the deposit is credited and the frFB goes to the claimant plainly.
+
+## Reading it yourself
+
+All Fractal state is served at:
+
+```
+https://mainnet.subfrost.io/v4/{apikey}/fractal
+```
+
+This returns live alkanes state from protofractal (`metashrew_view`, `metashrew_height`), plus address balances, UTXOs and broadcast. The [developer guide](./developer-guide) shows each request.
+
+## Fees
+
+| | where | amount (current settings) |
+|---|---|---|
+| gateway sweep | Fractal, taken from the deposit | `K`, 2,000 sats by default, fixed per address |
+| mint | taken from the frFB minted | 0.30% + 1,000 sats |
+| redemption | taken from the FB paid out | the Fractal network fees of the two redemption transactions (protocol fee 0) |
+
+Example: 1 FB (100,000,000 sats) sent to a gateway address puts 99,998,000 sats in the vault and mints 99,697,006 frFB.
+
+## A real bridge, step by step
+
+The first FB → frFB bridge on mainnet, on 6 October 2026. Every number below can be checked on the explorers.
+
+| step | chain | transaction | what happened |
+|---|---|---|---|
+| 1. Deposit | Fractal | [`eda40cec…a0be`](https://mempool.fractalbitcoin.io/tx/eda40cecf426cb6d980a8cad7085a5b281181a3742ad03357e2073c3c1b9a0be) | 20 FB (2,000,000,000 sats) sent from an ordinary wallet to the gateway address `bc1pw7zhtc3lzqz3z9pep65yca2kkvshcprx7n0g706lpl4805lq7l9svygrn7` |
+| 2. Sweep | Fractal | [`7f8fb743…1d5b`](https://mempool.fractalbitcoin.io/tx/7f8fb7430b085a1476a22244f56efe1d9d453671e08e80d1abded5146dce1d5b) | the covenant spend: one input (the deposit), 1,999,998,000 sats to the vault, 546 sats to the claimant, the `Wrap` call in the OP_RETURN. The deposit paid its own 1,454-sat fee out of `K` (397 vB) |
+| 3. Credit | Fractal | fb-vault `44:44` | `GetHeld` = 1,999,998,000; the deposit and its intent are in the deposit log |
+| 4. Mint | Bitcoin | [`973920e8…5a15`](https://mempool.space/tx/973920e8fd80ec345730e3febb371a2e469645e4d9e869764756e5a715aa5a15) | signed by the 6-of-9 group: **1,993,997,006 frFB** to `bc1ptttaar6ugd267nj2lg5ndxu9tcec96kllamqr9uzw7naruxxvlps2qf2vw` (output 0), frFB-AUTH returned to the group (output 1). Confirmed in block 970,189 |
+
+The mint amount is the vault credit less the mint fee: 1,999,998,000 − (0.30% × 1,999,998,000 + 1,000) = 1,993,997,006. After it, frFB's total supply was exactly 1,993,997,006.
+
+The contract setup is on-chain too:
+
+| | transaction |
+|---|---|
+| frFB deployed to `4:4444` | [`d2e644e9…663d`](https://mempool.space/tx/d2e644e90179682957a9d664d6d4a2b57aa48e87d1c76f469ffacae93eaf663d) |
+| FB-SIGIL released from the vault | [`5b74991b…04f8`](https://mempool.fractalbitcoin.io/tx/5b74991b6b4843306b374be1bef8bae776d1262bf695637ba5fc03f5eb5204f8) |
+| fb-vault signer rotated to the group key | [`c2b8c3f3…2414`](https://mempool.fractalbitcoin.io/tx/c2b8c3f3f12664d6c5da928cbe6a9e385b251021fca00c4c393c10e936842414) |

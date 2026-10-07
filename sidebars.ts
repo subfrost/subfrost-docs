@@ -67,6 +67,15 @@ const sidebars: SidebarsConfig = {
         },
       ],
     },
+    // FRACTAL: added 2026-10-06. FB on Fractal Bitcoin <-> frFB on Bitcoin, the
+    // protofractal subprotocol, OP_CAT gateway addresses and the developer guide. Explicit
+    // order (overview -> mechanism -> integration) rather than alphabetical.
+    {
+      type: 'category',
+      label: 'Fractal',
+      link: {type: 'doc', id: 'fractal/overview'},
+      items: ['fractal/gateway-addresses', 'fractal/redemption', 'fractal/developer-guide'],
+    },
     // SUBFROST APP: hidden from the nav on 2026-07-15, NOT deleted. The pages and their URLs are
     // untouched; only the sidebar entry is commented out. Restoring is uncommenting this block.
     //

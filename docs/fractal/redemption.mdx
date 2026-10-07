@@ -1,0 +1,80 @@
+---
+title: Redeeming frFB for FB
+sidebar_label: Redemption (frFB → FB)
+sidebar_position: 3
+description: How burning frFB on Bitcoin becomes FB paid out on Fractal. The redemption queue, the Redeem call and why it exists, the double-redemption guards, and how fees come out of the redeemed FB.
+---
+
+# Redeeming frFB for FB
+
+Redemption is minting in reverse. You burn frFB on Bitcoin and name a Fractal address. The signer group sees the burn, records the redemption in fb-vault, and pays you the FB out of custody, less the Fractal network fees for doing so.
+
+## The short version
+
+1. **You burn frFB on Bitcoin**, calling frFB (`4:4444`) opcode 88, `Burn`, with your Fractal destination script as arguments. frFB checks the destination and reduces its supply. It then appends a record to its **redemption queue**: which burn this was, how much, and where the FB should go.
+2. **The group redeems it on Fractal.** Its `frfb-burn` program reads the queue and calls fb-vault's **`Redeem`** (opcode 79) with a signed description of your burn. fb-vault debits its custody balance by the full amount and queues a payment of the net amount to your destination.
+3. **The group pays it.** A second transaction spends the output that funds the queued payment and pays your Fractal address.
+
+## Step 1: the burn
+
+```
+cellpack   [4, 4444, 88, dest0, dest1, dest2, dest_len]
+carrying   exactly the frFB to burn, and nothing else
+```
+
+The destination is your Fractal scriptPubKey, packed as three little-endian u128 words plus an explicit length, the same packing fb-vault uses. Only standard scripts are accepted: P2TR, P2WPKH, P2WSH, P2PKH and P2SH. A destination like `OP_RETURN`, or bytes that are not a script, makes the burn **revert**. You keep your frFB, and nothing is queued. Burning anything other than frFB itself also reverts.
+
+Each burn appends one record to `GetBurnsByHeight` (frFB opcode 21) at its Bitcoin height:
+
+```
+consensus(OutPoint{ burn txid, protostone vout })  ‖  consensus(TxOut{ value = frFB burned, script = Fractal destination })
+```
+
+The outpoint is the burn's identity. Only one burn is allowed per protostone, so every burn has a distinct identity.
+
+## Step 2: `Redeem`, and why it isn't `Release`
+
+fb-vault was designed with a signed `Release` call (opcode 78). It carries the amount, the destination and the group's 64-byte signature as cellpack arguments. That call can never be relayed on Fractal. Fractal, like Bitcoin Core 29, relays an OP_RETURN of at most 83 bytes, and measured with the indexer's own encoder:
+
+| runestone | bytes |
+|---|---|
+| `Release` (78), P2TR destination + signature | **220** |
+| `Release` (78), no signature at all | 96 |
+| `Redeem` (79) | **19** |
+
+So `Redeem` takes **no cellpack arguments**. Its payload and the group's signature travel in the witness of a spend of the group's **redemption lock**. This is a small taproot output with an unspendable internal key and one leaf, `OP_2DROP OP_2DROP <group output key> OP_CHECKSIG`. The payload is `kind ‖ burn txid ‖ burn vout ‖ burn height ‖ burn index ‖ gross ‖ net ‖ destination`. It and the signature are split across four witness items of at most 80 bytes each. Witness items sit outside the transaction's signature hash, so the group signs the payload and the transaction in one round.
+
+fb-vault verifies the signature against the group's **taproot output key**: the key inside the address deposits pay, not the raw key that opcode 103 returns. That is the key the group's threshold signer produces signatures for.
+
+## Guards
+
+- **No burn is redeemed twice.** fb-vault records every redeemed burn by its Bitcoin `txid:vout`, and refuses a second redemption whatever nonce or signature comes with it. The burn identity is part of the signed payload, so a signature for one burn can't be used for another. You can check it with `GetRedeemed` (opcode 27), which returns the Fractal height of the redemption, or 0.
+- **No two redemptions race.** Every `Redeem` spends the single lock output and creates the next one. Two attempts built from the same state therefore conflict, and at most one confirms. The signed nonce gives the same guarantee inside the contract.
+- **No payment is made twice.** A queued payment is unpaid exactly while the output that funds it is unspent, and paying it spends that output.
+- **Never touched:** the output holding FB-SIGIL, and any group output carrying a protofractal token or flagged as an inscription or rune.
+- **Reorgs stop it, they don't fool it.** Where the program resumes is stored in fb-vault (`GetBurnCursor`, opcode 26), together with the burn that put it there. If frFB's queue no longer agrees, for example after a Bitcoin reorg, the program stops rather than guess.
+
+## Fees: paid out of the redeemed FB
+
+The FB needed to redeem comes out of the FB being redeemed. Nobody needs a separate FB balance. For a burn of `A` frFB:
+
+```
+net = A − protocol fee − Redeem tx fee − payment tx fee      (protocol fee defaults to 0)
+```
+
+fb-vault's custody balance (`GetHeld`) is debited by the full `A`, and you are paid `net`. The two transactions spend exactly the difference as network fees, so the recorded balance never exceeds the FB actually in custody. Fees use a fixed configured rate, so every signer builds exactly the same transactions.
+
+At 2 sat/vB to a P2TR address, the `Redeem` transaction is 342 vB (684 sats) and the payment is 111 vB (222 sats). **A 100,000-sat burn pays out 99,094.** The very first redemption also pays once for creating the redemption lock.
+
+A burn too small to be worth paying, where `net` would be below the destination's dust limit (330 sats for P2TR), is **absorbed**. It is not redeemed, and its FB stays in custody. Don't burn dust.
+
+## Reading it yourself
+
+| where | call | tells you |
+|---|---|---|
+| Bitcoin, frFB `4:4444` | op 21 `GetBurnsByHeight {height}` | the burns queued at a Bitcoin height |
+| Fractal, fb-vault `44:44` | op 27 `GetRedeemed {txid0, txid1, vout}` | whether, and at what Fractal height, a burn was redeemed |
+| Fractal, fb-vault `44:44` | op 21 `GetPaymentsByHeight {height}` | payments queued at a Fractal height |
+| Fractal, fb-vault `44:44` | op 26 `GetBurnCursor` | how far the group has worked through the burn queue |
+
+The request format is in the [developer guide](./developer-guide#reading-a-contract).
