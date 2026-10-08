@@ -1,0 +1,163 @@
+---
+title: Intent Routes
+sidebar_label: Intent Routes (FB → anything)
+sidebar_position: 3
+description: An intent can tell the signer group what to do with the frFB it mints — swap to frBTC and unwrap to BTC, bridge out as a stablecoin, buy DIESEL, or provide frFB/frBTC liquidity — in the same Bitcoin transaction as the mint, with the depositor signing nothing after sending FB.
+---
+
+# Intent Routes
+
+A gateway address commits to an [intent](./overview#intents): a recipient,
+and an optional **action**. With no action, the signer group mints plain
+frFB to the recipient. With an action, the group **carries the action out on
+Bitcoin as part of the mint**. The depositor (a UniSat user, an exchange
+withdrawal, a script) sends FB to the gateway address and signs nothing
+else.
+
+Because the action is part of the intent bytes, it is part of the address:
+each (route, recipient, bounds) has its own deposit address.
+
+## The routes
+
+An action is version byte `0x01`, a kind byte, then the kind's fields as
+LEB128-encoded integers. There must be exactly that many fields, with
+nothing after them.
+
+| kind | route | fields | what the depositor ends up with |
+|---|---|---|---|
+| `1` | **BTC** | `min_frbtc` | frFB → frBTC on SUBFROSTAMM (`2:102671`), then unwrapped. BTC is paid to the recipient by the frBTC signer. |
+| `2` | **Stable** | `min_frbtc, min_frusd, n, burn_args[n]` | frFB → frBTC → frUSD on the BTCUSD pool (`4:1778`), then frUSD burn-and-bridge (`4:1776`, opcode 14) to USDC or USDT on an EVM chain |
+| `3` | **DIESEL** | `min_frbtc, min_diesel` | frFB → frBTC → DIESEL (OYL pool `2:77087`) |
+| `4` | **LP** | `swap_ppm, min_frbtc, a_min_frfb, b_min_frbtc, min_lp` | part of the frFB swapped to frBTC, then both added to the frFB/frBTC pool. The LP token (`2:102671`) and any excess of either side go to the recipient. |
+
+- **`burn_args`** (Stable) are the frUSD burn arguments after the target
+  and opcode: the EVM recipient, the asset (0 USDC, 1 USDT), and the
+  peg-out router payload (route, recipient, refund address, fee, deadline).
+  The burn takes all the frUSD it receives and needs at least 10 frUSD.
+- **`swap_ppm`** (LP) is the share of the frFB to swap, in parts per
+  million. The single-sided zap split for a deposit of `A` into reserves
+  `R` with fee fraction `f` (taking `g = 1 − f`) is:
+
+  ```text
+  s = (√(R²(1+g)² + 4gRA) − R(1+g)) / 2g
+  ```
+- **Contract ids are not in the action.** The signer group takes them from
+  its own configuration. The action only names a route and its bounds, and
+  the group wires every transfer itself, so an action can't move anything
+  but its own deposit's frFB.
+- **The recipient must be a Bitcoin script the depositor controls**, even
+  for a Stable route that pays out on an EVM chain. It is where every
+  refund goes (see below).
+
+## Setting the bounds
+
+About 20 minutes pass between registering a gateway address and the mint:
+the sweep, the signer group's confirmation depth, and a Bitcoin block. The
+**client** quotes the route and writes **absolute minimums** into the action
+with a generous margin. The signer group does not re-quote.
+
+Quote for the amount that will actually be minted:
+
+```text
+minted = deposit − K − ⌊(deposit − K) × 0.30%⌋ − 1,000 − route fee
+```
+
+Then, for each leg:
+
+| leg | quote |
+|---|---|
+| SUBFROSTAMM swap | `out = in·(1e6 − fee)·R_out / (R_in·1e6 + in·(1e6 − fee))`. The pool's opcode 97 returns `reserve0, reserve1, lp_ppm, protocol_ppm, season_ppm`; fee = the sum of the three. For frFB/frBTC the reserves are (frFB, frBTC). |
+| BTCUSD exchange | `get_dy(0, 1, dx)`, opcode 107 on `4:1778` |
+| OYL swap | constant product at 1%; pool `2:77087` opcode 97 returns (DIESEL, frBTC) |
+| LP | the zap split above, then the amounts added and the LP minted from the post-swap reserves and the pool's LP supply (opcode 101) |
+
+Take **3–5%** off each. A bound that is too tight costs nothing but the
+route (the deposit is then delivered as plain frFB); one that is too loose
+costs only price.
+
+## What happens, and what lands where
+
+| case | the recipient receives |
+|---|---|
+| the route completes | BTC / the bridged stablecoin / DIESEL / LP tokens and any excess |
+| the route **would** fail when the group checks it before signing | **plain frFB**. The group replays the exact transaction first; if any leg would revert, or the replay can't be read, it drops the route and mints normally |
+| the route fails **on-chain** (the price moved past a bound after signing) | whatever the route had reached: frFB if the first leg failed, frBTC or frUSD if a later one did. Every leg refunds to the recipient. |
+| the action doesn't decode | plain frFB |
+
+**Nothing is lost to a route.** The worst case is the depositor holding frFB
+(or the intermediate token) at their own address.
+
+## On-chain shape
+
+Alkanes gives every transaction at least 3.5M fuel however small it is, and
+only a share of more depending on how busy the block is. So the signer group
+does not bet on block share. It measures each leg's fuel in its pre-signing
+replay and packs legs into transactions that each stay under the free
+amount.
+
+Measured on mainnet:
+
+| leg | fuel |
+|---|---|
+| mint | 0.38M |
+| SUBFROSTAMM swap | 2.15M |
+| add liquidity | 2.69M |
+| BTCUSD exchange | 4.67M |
+| OYL swap | 4.67M |
+| frUSD burn | 0.91M |
+| unwrap | 0.51M |
+
+- **Composed**, when everything fits: one mint transaction carrying the
+  route.
+- **Split**, when it doesn't (today, every route): the mint carries the
+  first swap and a small group-held **escrow** output, pre-funded with the
+  BTC the rest will spend. Child transactions spend the escrow and run the
+  remaining legs, each paying for its parent (CPFP), so they normally
+  confirm together.
+
+  ```text
+  mint     Mint · routing · first swap ─▶ escrow (group)
+  child 1  escrow ─▶ next leg(s) ─▶ escrow′ (group) or the recipient
+  child 2  …
+  ```
+
+  Every child has the recipient's output first, and every leg refunds
+  there. If a child ever failed to land, the group would send the escrow,
+  whole, to the recipient before minting anything else.
+- **One routed deposit per mint.** A second one is minted next.
+
+## Tracking a routed deposit
+
+- **On Fractal:** exactly as for a plain deposit. See the
+  [developer guide](./developer-guide).
+- **The mint:** found the same way, by its `Mint` marker covering the
+  deposit. A routed deposit's frFB is **not** sent to its output directly.
+  It goes into the first route leg, or into the escrow when split. Identify
+  the routed delivery as the output the route legs refund to.
+- **Split routes:** the escrow is the group's output after the change
+  output. Follow its spend to the first child, then each child's group
+  output to the next. The last child's first output holds the result.
+- **BTC route:** the BTC arrives afterwards, from the frBTC signer, at the
+  recipient.
+- **Stable route:** the payout then follows the frUSD peg-out, keyed by the
+  burn transaction.
+- **A dropped route** looks exactly like a plain deposit: frFB at the
+  recipient, in the mint.
+
+## Fees
+
+| | amount (current settings) |
+|---|---|
+| route fee | 6 FB (600,000,000 frFB units) per routed deposit, taken from the minted frFB. It covers the Bitcoin fees the group pays for the extra legs. A deposit whose net is below it is minted as plain frFB. |
+| swaps, exchange, bridge | each venue's own fee: 1.5% SUBFROSTAMM, the BTCUSD pool's, 1% OYL, the peg-out router's |
+
+## Contract notes
+
+- **SUBFROSTAMM swaps use opcode 29** (swap everything received). Opcode 13
+  with `amount_in = 0` runs out of fuel on mainnet. Pass an explicit amount
+  if you use opcode 13 yourself.
+- **SUBFROSTAMM deadlines:** a deadline of 0 always reverts; routes pass the
+  maximum value.
+- **frBTC unwrap** must be a top-level protostone with no edicts, in a
+  transaction with an output paying the frBTC signer. The group adds that
+  output.

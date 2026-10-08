@@ -1,7 +1,7 @@
 ---
 title: Fractal Developer Guide
 sidebar_label: Developer Guide
-sidebar_position: 4
+sidebar_position: 5
 description: Reading protofractal state, sending FB with an intent, computing a gateway address yourself, and asking the SUBFROST gateway service to sweep it over subtun0.
 ---
 
@@ -124,13 +124,24 @@ An intent is canonical bytes. The address depends on every byte, so encode exact
 | refund CSV in blocks, u16 LE; **0 when there is no refund** | 2 |
 | sweep fee `K`, u32 LE, 1,000–100,000 sats: the deposit pays its own sweep | 4 |
 | action length *m*, u16 LE | 2 |
-| action: what to do with the frFB after minting (opaque; empty = deliver) | *m* |
+| action: what to do with the frFB after minting. Empty = deliver plain frFB; otherwise an [intent route](./intents#the-routes) | *m* |
 
 **No refund is the default.** The sweep is fully committed and anyone can broadcast it, so a refund path is not needed for safety. An intent with no refund (all-zero key, CSV 0) gives a gateway address with a single leaf, the sweep. If you do set a refund key and CSV, a second leaf lets that key take the deposit back after CSV blocks. The two forms give different addresses for the same recipient.
 
 Version `0x01` intents have no `K`, and their sweeper pays the claimant output and the fee. They still decode and can still be swept, but nothing issues them any more.
 
 Decoding is strict. Trailing bytes, an unknown version, or anything over 4096 bytes is rejected.
+
+### Encoding an action
+
+An action is `0x01 ‖ kind ‖ LEB128 fields`. For example, an LP route that swaps 50.3% of the frFB and requires at least 11,018 frBTC from the swap, 2,372,008,084 frFB and 11,018 frBTC added, and 5,111,760 LP:
+
+```text
+01 04  d8 d9 1e  8a 56  94 f1 87 eb 08  8a 56  d0 ff b7 02
+       swap_ppm   min_frbtc  a_min_frfb      b_min_frbtc  min_lp
+```
+
+Put those bytes in the intent's action field and register the gateway address exactly as for a plain intent. [Intent routes](./intents) lists every kind and how to set the bounds.
 
 ## Computing the gateway address yourself
 

@@ -7,7 +7,7 @@ description: How a Fractal deposit address that commits to your intent can be sw
 
 # Gateway Addresses and OP_CAT
 
-A gateway address is a Fractal address derived from your **intent**: where the frFB should go, and optionally what should happen to it next. You send FB to it from any wallet. From there the FB can move in exactly one way: into the frFB vault, in a transaction whose OP_RETURN calls `Wrap` with your claimant and carries your intent.
+A gateway address is a Fractal address derived from your **intent**: where the frFB should go, and optionally what should happen to it next (an [intent route](./intents)). You send FB to it from any wallet. From there the FB can move in exactly one way: into the frFB vault, in a transaction whose OP_RETURN calls `Wrap` with your claimant and carries your intent.
 
 Who broadcasts that transaction doesn't matter. It could be the SUBFROST gateway service, you, or a stranger. None of them can change where the FB goes, because the address itself enforces the shape of the transaction that spends it. That is the job of `OP_CAT`.
 

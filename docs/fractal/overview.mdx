@@ -53,7 +53,7 @@ frFB, on the other hand, is an ordinary alkane on Bitcoin. It was deployed by wi
 
 ## Intents
 
-An intent is up to 4 KB of bytes attached to a deposit, telling the group what to do once the frFB exists: deliver it to a script, and later swap it or route it onward. fb-vault **stores intents and never interprets them**. Their meaning lives in the signer group's programs, so it can evolve without touching the contract. A deposit can carry its intent in either of two ways:
+An intent is up to 4 KB of bytes attached to a deposit, telling the group what to do once the frFB exists: deliver it to a script, or carry out an **action** on it, such as swap to BTC, bridge out as a stablecoin, buy DIESEL, or provide frFB/frBTC liquidity. The group does this in the same Bitcoin transaction as the mint; see [Intent routes](./intents). fb-vault **stores intents and never interprets them**. Their meaning lives in the signer group's programs, so it can evolve without touching the contract. A deposit can carry its intent in either of two ways:
 
 - **A tapscript envelope** in any input: `OP_FALSE OP_IF "fb-intent" <bytes…> OP_ENDIF`. This is how gateway addresses carry it, and it can be large.
 - **Extra words in the `Wrap` cellpack**: `[44, 44, 77, byte_len, w0, w1, …]`. This is for a plain wallet deposit, and is limited by the 83-byte OP_RETURN.
@@ -76,6 +76,7 @@ This returns live alkanes state from protofractal (`metashrew_view`, `metashrew_
 |---|---|---|
 | gateway sweep | Fractal, taken from the deposit | `K`, 2,000 sats by default, fixed per address |
 | mint | taken from the frFB minted | 0.30% + 1,000 sats |
+| intent route | taken from the frFB minted, routed deposits only | 6 FB, covering the Bitcoin fees of the extra legs; each venue charges its own fee ([details](./intents#fees)) |
 | redemption | taken from the FB paid out | the Fractal network fees of the two redemption transactions (protocol fee 0) |
 
 Example: 1 FB (100,000,000 sats) sent to a gateway address puts 99,998,000 sats in the vault and mints 99,697,006 frFB.
