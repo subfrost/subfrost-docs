@@ -22,9 +22,9 @@ You do not have to build any of these transactions yourself. A **gateway address
 
 | | chain | id | what it is |
 |---|---|---|---|
-| **fb-vault** | Fractal | `44:44` | FB custody: the deposit log, the intents, the payment queue, the signer key |
-| **FB-SIGIL** | Fractal | `44:4442` | one indivisible token; bearing it is the only way to rotate fb-vault's signer key |
-| **frFB** | Bitcoin | `4:4444` | the wrapped token, plus its redemption queue |
+| **fb-vault** | Fractal | `22:22` | FB custody: the deposit log, the intents, the payment queue, the signer key |
+| **FB-SIGIL** | Fractal | `22:4222` | one indivisible token; bearing it is the only way to rotate fb-vault's signer key. It stays inside the vault |
+| **frFB** | Bitcoin | `4:88888` | the wrapped token, plus its redemption queue |
 | **frFB-AUTH** | Bitcoin | `2:102485` | mint authority for frFB, held by the signer group |
 | **frFB-SIGIL** | Bitcoin | `2:102486` | upgrade authority for frFB, held separately from AUTH |
 
@@ -33,6 +33,13 @@ You do not have to build any of these transactions yourself. A **gateway address
 ```
 bc1pt93aunap64ys8zlpmzc20z65a2vnmn0phrpc37kknve5835xsc9s6332rc
 ```
+
+:::note Current ids (since 9 October 2026)
+frFB moved to `4:88888` and the Fractal side to protofractal **protocol tag 12** (fb-vault `22:22`,
+FB-SIGIL `22:4222`) on 9 October 2026. frFB-AUTH and frFB-SIGIL are unchanged. Every gateway
+address changed with it: never reuse an address derived before that date. The history below
+(tag 44, `44:44`, `4:4444`) describes the original deployment.
+:::
 
 On Fractal, that address *is* the vault's custody: fb-vault only credits FB paid to it. On Bitcoin, it holds frFB-AUTH, so only the group can mint.
 
@@ -58,6 +65,11 @@ An intent is up to 4 KB of bytes attached to a deposit, telling the group what t
 - **A tapscript envelope** in any input: `OP_FALSE OP_IF "fb-intent" <bytes…> OP_ENDIF`. This is how gateway addresses carry it, and it can be large.
 - **Extra words in the `Wrap` cellpack**: `[44, 44, 77, byte_len, w0, w1, …]`. This is for a plain wallet deposit, and is limited by the 83-byte OP_RETURN.
 
+The signer group acts on the **action** an intent carries: it can swap the frFB to BTC, DIESEL,
+FIRE or frUSD, add frFB/frBTC liquidity, or bridge out to USDC/USDT on an EVM chain, and split part
+of the value off as DIESEL or BTC gas, all in the mint's own transaction chain. See
+[Intent Routes](./intents).
+
 An envelope takes precedence over words. An intent that is missing, oversized or unreadable never blocks the deposit. By the time `Wrap` runs, the FB has already been paid, so the deposit is credited and the frFB goes to the claimant plainly.
 
 ## Reading it yourself
@@ -76,6 +88,7 @@ This returns live alkanes state from protofractal (`metashrew_view`, `metashrew_
 |---|---|---|
 | gateway sweep | Fractal, taken from the deposit | `K`, 2,000 sats by default, fixed per address |
 | mint | taken from the frFB minted | 0.30% + 1,000 sats |
+| route | withheld from a routed deposit | 6 FB (routed deposits start at 7 FB; 30 FB for STABLE); see [Intent Routes](./intents#minimums-and-fees) |
 | redemption | taken from the FB paid out | the Fractal network fees of the two redemption transactions (protocol fee 0) |
 
 Example: 1 FB (100,000,000 sats) sent to a gateway address puts 99,998,000 sats in the vault and mints 99,697,006 frFB.

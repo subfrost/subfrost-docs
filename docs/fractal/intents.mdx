@@ -1,0 +1,197 @@
+---
+title: Intent Routes
+sidebar_label: Intent Routes (FB → anything)
+sidebar_position: 3
+description: Send FB once and receive BTC, DIESEL, frFB/frBTC LP, FIRE, frUSD on Bitcoin, or USDC/USDT on an EVM chain. The frFB signer group executes the route on Bitcoin in the same transaction chain as the mint, and can split part of the value off as gas (DIESEL or BTC).
+---
+
+# Intent Routes
+
+A [gateway address](./gateway-addresses) commits to an [intent](./overview#intents): a
+**recipient** on Bitcoin and an optional **action**. With no action, the signer group mints plain
+frFB to the recipient. With an action, the group **carries the route out on Bitcoin as part of the
+mint**. You send FB to the gateway address from any wallet (UniSat, an exchange withdrawal, a
+script) and sign nothing else.
+
+The action is part of the intent bytes, so it is part of the address: every
+(route, recipient, bounds) combination has its own deposit address.
+
+## How a deposit becomes a route
+
+1. **Deposit.** You send FB to the gateway address on Fractal.
+2. **Sweep.** Anyone (normally the gateway service) moves the deposit into the fb-vault custody
+   contract with the covenant spend. The deposit pays its own sweep fee `K`.
+3. **Mint and route.** The FROST signer group mints frFB (`4:88888`) on Bitcoin. In the same
+   Bitcoin transaction, and in a short chain of child transactions when the route needs more
+   execution budget than one transaction gets, it runs the route: swaps, liquidity adds, frBTC
+   unwraps, or the frUSD bridge-out.
+4. **Delivery.** The result lands at your recipient script. BTC (from a BTC route or a BTC gas leg)
+   is paid shortly afterwards by the frBTC signer. Stablecoins on an EVM chain arrive through the
+   frUSD peg-out.
+
+Redemption (frFB back to FB on Fractal) is unchanged: see [Redemption](./redemption).
+
+## The routes
+
+| route | what you receive at the recipient | gas split | status |
+|---|---|---|---|
+| **plain** | frFB | optional: DIESEL or BTC | live (gas split: rolling out) |
+| **BTC** | BTC, unwrapped from frBTC by the frBTC signer | — (it already delivers BTC) | live |
+| **DIESEL** | DIESEL (frFB → frBTC → DIESEL on the OYL pool `2:77087`) | BTC only | live (gas split: rolling out) |
+| **LP** | frFB/frBTC LP tokens (`2:102725`) plus any excess of either side | DIESEL or BTC | live (gas split: rolling out) |
+| **FIRE** | FIRE `2:77623` (frFB → frBTC → FIRE on the SUBFROSTAMM pool `2:97417`) | DIESEL or BTC | **rolling out** |
+| **frUSD** | frUSD `4:1776` on Bitcoin (frFB → frBTC → frUSD on the BTCUSD pool `4:1778`) | DIESEL or BTC | **rolling out** |
+| **STABLE** | USDC or USDT on Base, Polygon or BNB Chain (frFB → frBTC → frUSD → frUSD burn-and-bridge, paid out through Across) | DIESEL or BTC, delivered on Bitcoin to the recipient | live (gas split: rolling out) |
+
+:::info Rolling out
+FIRE, frUSD and the gas split use **action version 2**. They become available once the gateway
+service's `/v1/vault` reports `routes.max_action_version` = `2`, which happens only after every
+signer runs version 2. Until then, clients refuse to build them. The routes marked *live* use
+action version 1 and are unaffected.
+:::
+
+Every swap in a route goes through frBTC first: frFB → frBTC on the SUBFROSTAMM frFB/frBTC pool
+`2:102725` (via the SUBFROSTAMM factory `4:333052`), then on to the target.
+
+- **STABLE** bridges out: the frUSD is burned on Bitcoin and USDC/USDT is paid on the EVM chain you
+  choose. It can also carry an EVM-side **gas drop** (`--gas-drop-bps`): a small share of the payout
+  is swapped to the destination chain's native token (for example BNB). The gas-drop registration
+  is unsigned, so the EVM recipient does not need to sign anything and may be any address.
+- **frUSD** keeps the frUSD on Bitcoin at your recipient: no burn, no bridge.
+- **The recipient must be a Bitcoin script you control**, even for STABLE. Every refund goes there
+  (see [Outcomes](#outcomes)).
+
+## The gas split
+
+A route can turn part of its value into **gas** for the recipient, so a fresh wallet can transact
+right away:
+
+- **DIESEL gas**: frFB → frBTC → DIESEL on the OYL pool `2:77087`.
+- **BTC gas**: frFB → frBTC → unwrapped BTC, paid to the recipient by the frBTC signer.
+
+You choose a share of the routed frFB, in parts per million on the wire (the CLI takes basis
+points: `--gas-bps 1000` = 10% = 100,000 ppm). The rest runs the main route.
+
+| main route | gas it may carry |
+|---|---|
+| plain, LP, FIRE, frUSD, STABLE | DIESEL or BTC |
+| DIESEL | BTC only (DIESEL is already the gas token) |
+| BTC | none (it already delivers BTC) |
+
+**A gas leg can never lose value.** If the signer group's replay shows the gas leg would not
+complete, because a gas swap would miss its minimum or a BTC gas unwrap would be under the dust
+floor, the group drops **only the gas leg** and its share joins the main route. A *plain + gas*
+deposit whose gas leg is dropped is delivered as plain frFB. The deposit's record carries a note
+saying `gas leg dropped (…)`. Keep a BTC gas share comfortably above the dust floor (see below);
+clients refuse a split whose BTC gas minimum would not clear it.
+
+## Minimums and fees
+
+| | amount (current settings) |
+|---|---|
+| gateway sweep fee `K` | 2,000 sats by default, fixed per address, taken on Fractal |
+| mint fee | 0.30% + 1,000 sats, taken from the frFB minted |
+| route fee | **6 FB**, withheld from a routed deposit for the Bitcoin transactions the route costs |
+| gas fee | an optional extra fee on routes with a gas leg; currently **0** (shown as `routes.gas_fee_sats` in `/v1/vault`) |
+| routed minimum | **7 FB** per routed deposit; **30 FB** for STABLE (the burn needs at least 10 frUSD) |
+| BTC unwrap dust floor | the frBTC reaching an unwrap must be at least **547 sats** (546 dust + the 0.1% frBTC unwrap premium). Below it a BTC route is delivered as plain frFB, and a BTC gas leg is dropped |
+| pool fees | SUBFROSTAMM 1.5% per swap (frFB/frBTC, FIRE/frBTC); OYL 1% (DIESEL); BTCUSD CryptoSwap fee |
+| slippage margin | clients quote every leg live and take **300–500 bps** off each minimum (default 500) |
+
+The routed amount is
+
+```text
+routed net = (deposit − K) − 0.30% − 1,000 − route fee [− gas fee]
+gas share  = floor(routed net × gas_ppm / 1,000,000)
+main share = routed net − gas share
+```
+
+For example, 50 FB to a FIRE + 10% DIESEL gas address: the vault receives 49.99998 FB, the mint
+fee leaves 49.84997006 FB, the route fee leaves 43.84997006 FB routed: 4.38499700 FB buys DIESEL
+gas, 39.46497306 FB buys FIRE.
+
+## Bounds: absolute and loose
+
+About 20 minutes pass between registering an address and the mint (the sweep, the signers'
+confirmation depth, a Bitcoin block). So the **client** quotes every leg for the amount that will be
+minted, takes the margin off, and writes **absolute minimums** into the action. The signers do not
+re-quote: they replay the whole transaction before signing, and anything that would miss a minimum
+is dropped (see below). A tighter margin risks a dropped route; a looser one only costs price.
+
+## Outcomes
+
+| case | the recipient receives |
+|---|---|
+| the route completes | the route's asset (BTC / DIESEL / LP + excess / FIRE / frUSD / the stablecoin on EVM), plus the gas leg's DIESEL or BTC |
+| the **main** route would fail **before signing** (the replay says so, or no replay answer) | **plain frFB**: the route is dropped and the deposit minted normally |
+| a **gas leg** would fail before signing, or a BTC gas unwrap would be under the dust floor | the main route, with the gas share added to it. For *plain + gas*: plain frFB |
+| a leg fails **on chain** (the price moved past a bound after signing) | whatever the route had reached: frFB if the first swap failed, frBTC or frUSD if a later leg did. Every step refunds to the recipient |
+| routes are off, or the signers do not understand the action | plain frFB |
+
+Nothing is ever lost to a route. The worst case is holding frFB, or the intermediate token, at your
+own address.
+
+## On chain: one mint, sometimes a short chain
+
+Alkanes gives every Bitcoin transaction a fixed execution budget, so the signer group measures each
+leg in its replay and packs legs into transactions. A light route rides inside the mint
+transaction. A heavier one (most routes, and every gas split) continues in **child transactions**
+that spend a group-held escrow output and pay for their parent (CPFP). The chain is always linear:
+mint → child 1 → child 2 …, and every child pays its result to the recipient. A route with a gas
+split is typically the mint plus two or three children, usually confirming in the same block.
+
+If a child never lands, its escrow sits on the group's address holding the reached token. Before
+minting anything else, the group sends the whole escrow to the recipient it reads back out of the
+transaction that created it.
+
+## Tracking a routed deposit
+
+- **On Fractal:** the gateway address and its sweep, as for any deposit
+  (`GET /v1/gateway/:address` on the gateway service).
+- **The mint:** the Bitcoin transaction from the group's address whose frFB `Mint` call carries the
+  marker covering your deposit. The recipient's output in it holds the result of a light route.
+- **Children:** follow the mint's escrow output to child 1, its escrow to child 2, and so on. The
+  last child's first output is your recipient, holding the route's result; the gas leg's DIESEL
+  lands at the recipient output of the child that runs it.
+- **BTC** (a BTC route or BTC gas) arrives in a later Bitcoin transaction from the frBTC signer.
+- **STABLE:** after the burn, the payout follows the frUSD peg-out, keyed by the burn transaction
+  (`subfrost-cli pegout track`).
+
+`subfrost-cli fractal track` does all of this for you: see [the CLI](./cli).
+
+## For developers: the action format
+
+An action is a version byte, a kind byte, and (version 2) a gas byte, followed by LEB128 integers:
+exactly the kind's fields, then the gas fields, nothing after them. Contract ids are **never** in the
+action; the signers take them from their own configuration.
+
+```text
+v1: 0x01 | kind | fields
+v2: 0x02 | kind | gas | fields | gas fields
+```
+
+| kind | name | fields | version |
+|---|---|---|---|
+| `1` | BTC | `min_frbtc` | 1 |
+| `2` | STABLE | `min_frbtc, min_frusd, n, burn_args[n]` | 1 (2 with gas) |
+| `3` | DIESEL | `min_frbtc, min_diesel` | 1 (2 with gas) |
+| `4` | LP | `swap_ppm, min_frbtc, a_min_frfb, b_min_frbtc, min_lp` | 1 (2 with gas) |
+| `5` | FIRE | `min_frbtc, min_fire` | 2 |
+| `6` | FRUSD | `min_frbtc, min_frusd` | 2 |
+| `7` | PLAIN | — (only with gas) | 2 |
+
+| gas | fields |
+|---|---|
+| `0` none | — |
+| `1` DIESEL | `gas_ppm, min_frbtc, min_diesel` |
+| `2` BTC | `gas_ppm, min_frbtc` |
+
+- Kinds 1–4 **without** gas are always written as version 1, so every route has exactly one
+  encoding and one address. Version-2 decoding is canonical: the bytes must re-encode to themselves.
+- Examples: `0205008a5680feac0d` is FIRE with `min_frbtc` 11,018 and `min_fire` 28,000,000;
+  `020702c09a0cd00f` is plain frFB with 20% BTC gas and a 2,000-sat frBTC minimum.
+- A signer that predates version 2 reads it as an unknown version and delivers plain frFB: it never
+  misreads it.
+
+The reference encoder is fractalplane `programs/frfb-core/src/action.rs`. The SUBFROST wallet core
+(`subfrost-fractal`) vendors it byte for byte and checks the same test vectors.

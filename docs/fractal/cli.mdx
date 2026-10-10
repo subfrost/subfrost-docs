@@ -1,0 +1,104 @@
+---
+title: Bridging with subfrost-cli
+sidebar_label: CLI (subfrost-cli fractal)
+sidebar_position: 4
+description: Derive gateway addresses, deposit FB with a route and a gas split, and track the mint, its children and the gas delivery with subfrost-cli fractal.
+---
+
+# Bridging with `subfrost-cli fractal`
+
+`subfrost-cli fractal` builds the same routed actions the SUBFROST apps do, through the same wallet
+core, with the signers' own encoder. Every route is quoted live, every minimum is margined, and the
+gateway address is recomputed locally before anything is signed.
+
+## Look before you deposit
+
+```sh
+subfrost-cli fractal info                          # gateway service: K, minimum, routes (fees, ids, max_action_version), pin rule
+subfrost-cli fractal routes                        # supported pairs and route legs
+subfrost-cli fractal routes --from FB --to frBTC --amount 5000000000   # a live route quote
+subfrost-cli fractal quote --amount 5000000000     # what a plain deposit mints
+```
+
+`fractal info` shows `routes.max_action_version`. FIRE, frUSD and the gas split need it to be `2`;
+below that the CLI refuses those routes rather than build an address the signers would treat as
+plain frFB.
+
+## Deposit with a route
+
+```sh
+subfrost-cli fractal deposit --recipient <btc address> --amount <FB sats> --fee-rate <sat/vB> \
+  --route plain|btc|diesel|lp|fire|frusd|stable \
+  [--gas diesel|btc --gas-bps N] \
+  [--route-margin-bps 300..500] \
+  [--dry-run] [--out PLAN] [--state FILE] [--no-track] [-y]
+```
+
+- `--amount` is in FB sats (1 FB = 100,000,000).
+- `--route-margin-bps` is the slippage margin taken off every quoted minimum: 300 to 500, default
+  500. A value outside that range is refused, never clamped.
+- `--gas diesel|btc --gas-bps N` splits N basis points of the routed frFB off as gas. Allowed gas per
+  route: plain, LP, FIRE, frUSD and STABLE take `diesel` or `btc`; DIESEL takes `btc`; BTC takes
+  none. See [the gas split](./intents#the-gas-split).
+- `--dry-run` quotes, derives and prints the plan (legs, minimums, action bytes, the address) and
+  stops. `--out PLAN` keeps it; `fractal sign-send PLAN` signs and sends it later, after re-checking
+  the wallet's UTXOs and the vault script.
+- Routed deposits must be at least **7 FB** (**30 FB** for STABLE), after which the CLI checks that
+  the route fee and the routed minimums leave every leg above zero and, for BTC and BTC gas, above
+  the unwrap dust floor.
+
+Examples:
+
+```sh
+# 50 FB -> FIRE, 10% of it as DIESEL gas
+subfrost-cli fractal deposit --recipient bc1p… --amount 5000000000 --fee-rate 2 \
+  --route fire --gas diesel --gas-bps 1000 --dry-run
+
+# 20 FB -> frFB, 20% of it unwrapped to BTC for fees
+subfrost-cli fractal deposit --recipient bc1p… --amount 2000000000 --fee-rate 2 \
+  --route plain --gas btc --gas-bps 2000
+
+# 40 FB -> frUSD kept on Bitcoin
+subfrost-cli fractal deposit --recipient bc1p… --amount 4000000000 --fee-rate 2 --route frusd
+```
+
+### STABLE (USDC / USDT on an EVM chain)
+
+```sh
+subfrost-cli fractal deposit --recipient bc1p… --amount 5000000000 --fee-rate 2 \
+  --route stable --to-chain 56 --to-token USDT --evm-recipient 0x… [--gas-drop-bps N]
+```
+
+- `--to-chain` is the destination chain id (Base 8453, Polygon 137, BNB Chain 56); `--to-token` is
+  `USDC` or `USDT`.
+- `--gas-drop-bps N` (1–1000) pays N bps of the payout as the destination's native token. Its
+  registration is posted automatically and unsigned right before the FB is signed; the EVM
+  recipient signs nothing. `subfrost-cli fractal gas-drop-status <handler> --chain 56` shows
+  `pending` until the peg-out lands, then `admitted`.
+- `subfrost-cli fractal stable-check [--to-chain --to-token]` checks the payout path is served
+  today before you deposit.
+- The recipient (`--recipient`) is still a Bitcoin address you control: any refund lands there.
+
+## Just the address
+
+```sh
+subfrost-cli fractal deposit-address --recipient <btc> [--sweep-fee K] [--amount N] \
+  [--route … | --action-hex H] [--local-only]
+```
+
+prints the gateway address for a recipient and route (registering it with the gateway service
+unless `--local-only`), after deriving it locally and comparing.
+
+## Tracking
+
+```sh
+subfrost-cli fractal track STATE
+subfrost-cli fractal track --recipient <btc> | --address <gateway> [--txid T]   [--once] [--interval S]
+```
+
+`fractal deposit` writes a tracking record (under `~/.subfrost-cli/fractal/` unless `--state`) and
+follows it unless `--no-track`. Tracking follows the deposit on Fractal, the sweep, the mint (found
+by its marker), the route's child transactions through each escrow, the main result and the gas
+leg's DIESEL at the recipient, and BTC from the frBTC signer for a BTC route or BTC gas. A STABLE
+payout continues with `subfrost-cli pegout track`. Ctrl-C is safe: run the same command on the same
+file to resume.
