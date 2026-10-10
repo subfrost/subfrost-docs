@@ -1,0 +1,55 @@
+---
+title: Security Model
+sidebar_label: Security model
+sidebar_position: 6
+description: Why an intent route can only move your own deposit, how the frFB signer group checks every route before signing, and what happens when anything is unclear.
+---
+
+# Security model
+
+## Who can do what
+
+- **The FROST signer group** (a threshold group) holds frFB's mint authority (frFB-AUTH) on Bitcoin
+  and the custody key of fb-vault on Fractal. No single signer can mint, move custody, or sign a
+  route.
+- **Your intent is in your address.** The gateway address is derived from the intent bytes
+  (recipient, sweep fee, action). Change one byte and it is a different address, so nobody can
+  re-point a deposit after the fact. Always derive the address yourself, or with a client that
+  does (the SUBFROST apps and `subfrost-cli` recompute and compare before showing it).
+- **The action names a route and its bounds, nothing else.** Every contract id (frFB, frBTC, the
+  pools, frUSD, FIRE) comes from the signers' own configuration. The group wires every transfer, so
+  a route can only ever move the frFB minted for that deposit.
+- **Every step refunds to your recipient.** If any leg reverts, what it held (frFB, frBTC, frUSD) is
+  returned to the recipient script, never to the group or anyone else.
+
+## Fail-closed before signing
+
+Before the group signs a mint, it replays the complete transaction against current Bitcoin state
+(`simulatetransaction`) and only signs on a **positive** answer:
+
+- **Every route leg must execute** and meet its minimum. A main leg that would fail drops the route
+  and the deposit is minted as plain frFB. A gas leg that would fail is dropped alone and its share
+  joins the main route.
+- **BTC must clear dust.** The frBTC reaching every unwrap (a BTC route or a BTC gas leg) must clear
+  the dust floor, or that leg is dropped.
+- **Mint authority must come home.** The replay must show frFB-AUTH landing, whole, on the group's
+  own output. An unavailable, unreadable or ambiguous answer means nothing is signed that round.
+- **No answer is not a yes.** If the replay cannot be read, routes are dropped (plain frFB is always
+  safe) or the round waits.
+
+## Upgrades without surprises
+
+- Existing addresses keep their meaning forever: version-1 actions decode and execute exactly as
+  before, and their bytes are pinned by test vectors.
+- New routes (FIRE, frUSD, the gas split) use action version 2. A signer that does not know
+  version 2 delivers such a deposit as plain frFB; it can never misread it.
+- Clients only offer version-2 routes once the gateway service's `/v1/vault` reports
+  `routes.max_action_version` = `2`, which the operator sets after every signer has been upgraded.
+
+## What you are trusting
+
+- The signer group's threshold, to mint only what fb-vault recorded and to run the published
+  route programs.
+- The pools a route trades on, for price: your minimums bound the worst case, and a miss refunds
+  rather than fills badly.
+- For STABLE, the frUSD peg-out and its EVM payout path.
